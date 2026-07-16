@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>共有対応型ミニサイト掲示板</title>
+    <title>超多機能 共有リアルタイム掲示板</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
@@ -58,6 +58,7 @@
         .res-date-id { color: #666666; font-size: 12px; }
         .res-body { font-size: 16px; margin-left: 2em; line-height: 1.4; }
         .res-subject { font-weight: bold; color: #CC0000; font-size: 16px; }
+        .edited-tag { color: #FF6600; font-size: 11px; font-weight: bold; margin-left: 5px; }
         .anchor { color: #0000FF; text-decoration: underline; cursor: pointer; }
         
         .res-body a { color: #0000FF; text-decoration: underline; }
@@ -86,6 +87,7 @@
         .back-btn { margin-bottom: 15px; display: inline-block; }
         .share-btn { color: #0066CC; font-weight: bold; }
         .delete-btn { color: #CC0000; }
+        .edit-btn { color: #0066CC; }
 
         .uploaded-img { cursor: zoom-in; transition: transform 0.2s; }
         .uploaded-img:hover { opacity: 0.8; }
@@ -133,7 +135,8 @@
             border: 1px dashed #666; padding: 10px; margin-top: 10px;
             background: #F9F9F9; text-align: center;
         }
-        #webcam { width: 100%; max-width: 240px; border: 1px solid #000; }
+        #webcam { width: 100%; max-width: 280px; border: 1px solid #000; background: #000; }
+        .recording-timer { color: red; font-weight: bold; font-size: 14px; margin-top: 5px; }
         
         .modal {
             display: none; position: fixed; z-index: 1000; top: 0; left: 0;
@@ -151,7 +154,7 @@
 </head>
 <body>
 
-    <h1 id="siteTitle">■ 共有リアルタイム掲示板 ■</h1>
+    <h1 id="siteTitle">■ 超多機能 共有リアルタイム掲示板 ■</h1>
 
     <div class="container">
         <div id="lobbyScreen">
@@ -211,8 +214,10 @@
             </div>
 
             <div class="form-box">
-                <div class="form-title">このスレッドに書き込む</div>
+                <div class="form-title" id="writeFormTitle">このスレッドに書き込む</div>
                 <form id="postForm">
+                    <input type="hidden" id="editPostId" value="">
+
                     <div class="form-row" style="margin-bottom: 10px;">
                         <label for="subject">件名 :</label>
                         <input type="text" id="subject" placeholder="無題">
@@ -224,49 +229,60 @@
                     <div class="form-row" style="margin-bottom: 10px;">
                         <textarea id="message" placeholder="本文を入力してください" required></textarea>
                     </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="linkUrl">リンクURL :</label>
-                        <input type="text" id="linkUrl" placeholder="https://...">
+                    
+                    <div id="mediaFieldsGroup">
+                        <div class="form-row" style="margin-bottom: 10px;">
+                            <label for="linkUrl">リンクURL :</label>
+                            <input type="text" id="linkUrl" placeholder="https://...">
+                        </div>
+                        <div class="form-row" style="margin-bottom: 10px;">
+                            <label for="linkTitle">リンク名 :</label>
+                            <input type="text" id="linkTitle" placeholder="タイトル">
+                        </div>
+                        <div class="form-row" style="margin-bottom: 10px;">
+                            <label for="htmlCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">💻 HTML :</label>
+                            <textarea id="htmlCode" class="code-textarea"></textarea>
+                        </div>
+                        <div class="form-row" style="margin-bottom: 10px;">
+                            <label for="cssCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">🎨 CSS :</label>
+                            <textarea id="cssCode" class="code-textarea"></textarea>
+                        </div>
+                        <div class="form-row" style="margin-bottom: 10px;">
+                            <label for="jsCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">⚡ JavaScript :</label>
+                            <textarea id="jsCode" class="code-textarea"></textarea>
+                        </div>
+                        <div class="form-row" style="margin-bottom: 10px;">
+                            <label for="mediaFile">ファイル添付:</label>
+                            <input type="file" id="mediaFile" accept="image/*,video/*,audio/*">
+                        </div>
+                        <div class="form-row" style="margin-bottom: 10px;">
+                            <button type="button" class="btn" id="btnStartCamPhoto">📷 写真撮影</button>
+                            <button type="button" class="btn" id="btnStartCamVideo">🎥 動画撮影(最大30秒)</button>
+                            <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 録音(最大60秒)</button>
+                        </div>
                     </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="linkTitle">リンク名 :</label>
-                        <input type="text" id="linkTitle" placeholder="タイトル">
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="htmlCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">💻 HTML :</label>
-                        <textarea id="htmlCode" class="code-textarea"></textarea>
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="cssCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">🎨 CSS :</label>
-                        <textarea id="cssCode" class="code-textarea"></textarea>
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="jsCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">⚡ JavaScript :</label>
-                        <textarea id="jsCode" class="code-textarea"></textarea>
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="mediaFile">ファイル添付:</label>
-                        <input type="file" id="mediaFile" accept="image/*,video/*,audio/*">
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <button type="button" class="btn" id="btnStartCamUser">📷 内カメラ</button>
-                        <button type="button" class="btn" id="btnStartCamEnv">📷 外カメラ</button>
-                        <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 録音モード</button>
-                    </div>
+
                     <div id="cameraArea" class="media-capture-area hidden">
                         <video id="webcam" autoplay playsinline muted></video><br>
-                        <button type="button" class="btn" id="btnShutter">📸 撮影</button>
+                        <div id="recTimer" class="recording-timer hidden">🔴 REC: 0秒 / 30秒</div>
+                        <button type="button" class="btn" id="btnShutter">📸 撮影する</button>
+                        <button type="button" class="btn hidden" id="btnStartVideoRec" style="color: red;">🔴 撮影開始</button>
+                        <button type="button" class="btn hidden" id="btnStopVideoRec">■ 停止</button>
                         <button type="button" class="btn" id="btnStopCamera">中止</button>
                         <canvas id="captureCanvas" class="hidden"></canvas>
                     </div>
+
                     <div id="audioArea" class="media-capture-area hidden">
+                        <div id="audioTimer" class="recording-timer">🔴 REC: 0秒 / 60秒</div>
                         <button type="button" class="btn" id="btnAudioStart" style="color:red;">🔴 録音開始</button>
                         <button type="button" class="btn hidden" id="btnAudioStop">■ 停止</button>
                         <button type="button" class="btn" id="btnStopAudio">中止</button>
                     </div>
+
                     <div id="attachmentPreview" style="margin: 5px 0; color: #008000; font-weight: bold; font-size: 12px;"></div>
                     
                     <button type="submit" class="btn" id="btnSubmitPost">書き込む</button>
+                    <button type="button" class="btn hidden" id="btnCancelEdit" style="background-color: #CCCCCC;">訂正をキャンセル</button>
                 </form>
             </div>
         </div>
@@ -276,12 +292,12 @@
     <div id="siteModal" class="modal"><span class="modal-close" id="siteModalClose">&times;</span><div class="modal-site-wrapper"><iframe id="modalTargetSite" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox" allow="camera; microphone; display-capture;" style="width: 100%; height: 100%; border: none; background-color: #ffffff;"></iframe></div></div>
 
     <script>
-        // Supabase接続情報
+        // Supabase接続設定
         const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 投稿者の秘密キー
+        // 投稿者の識別キー
         if (!localStorage.getItem('bbs_user_secret')) {
             localStorage.setItem('bbs_user_secret', Math.random().toString(36).substring(2, 12).toUpperCase());
         }
@@ -297,15 +313,15 @@
 
         let activeThreadId = null;
         let attachedImageB64 = null, attachedVideoB64 = null, attachedAudioB64 = null;
-        let cameraStream = null, audioStream = null, mediaRecorder = null, chunks = [], activeFacingMode = "user";
+        let cameraStream = null, audioStream = null, mediaRecorder = null, chunks = [];
+        let recordSeconds = 0, recordInterval = null;
 
         function escapeHtml(str) { return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : ''; }
         function convertLinksAndAnchors(raw) { let html = escapeHtml(raw).replace(/&gt;&gt;(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>'); return html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>').replace(/\n/g, '<br>'); }
-        function getBbsDate() { const now = new Date(); const days = ['日', '月', '火', '水', '木', '金', '土']; return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}(${days[now.getDay()]}) ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`; }
         function buildFullSrcdoc(h, c, j) { return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:10px;font-family:sans-serif;}${c||''}</style></head><body>${h||''}<script>try{${j||''}}catch(e){console.error(e)}<\/script></body></html>`; }
         function clearAttachments() { attachedImageB64 = null; attachedVideoB64 = null; attachedAudioB64 = null; document.getElementById('attachmentPreview').innerText = ""; }
 
-        // --- 画像、ボイス等のファイル入力変換処理 ---
+        // ファイル入力
         document.getElementById('mediaFile').addEventListener('change', function(e) {
             clearAttachments();
             const file = e.target.files[0];
@@ -326,17 +342,38 @@
             reader.readAsDataURL(file);
         });
 
-        // --- カメラ撮影機能 ---
-        async function startCamera(mode) {
-            stopCamera(); stopAudio(); clearAttachments(); activeFacingMode = mode;
+        // --- カメラ起動（写真 or 動画兼用） ---
+        async function startCamera(forVideo = false) {
+            stopCamera(); stopAudio(); clearAttachments();
             try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode }, audio: false });
-                document.getElementById('webcam').srcObject = cameraStream;
+                // 動画の場合はマイク(audio)も一緒に起動
+                const constraints = { video: { facingMode: "user" }, audio: forVideo };
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                const videoEl = document.getElementById('webcam');
+                videoEl.srcObject = cameraStream;
+                videoEl.muted = !forVideo; // 録画中はハウリング防止のため自身の音はミュート
+
                 document.getElementById('cameraArea').classList.remove('hidden');
-            } catch (e) { alert("カメラの起動に失敗しました。HTTPS(セキュア回線)上でのみ動作します。"); }
+
+                if (forVideo) {
+                    document.getElementById('btnShutter').classList.add('hidden');
+                    document.getElementById('btnStartVideoRec').classList.remove('hidden');
+                    document.getElementById('btnStopVideoRec').classList.add('hidden');
+                    document.getElementById('recTimer').classList.remove('hidden');
+                    document.getElementById('recTimer').innerText = "🔴 REC: 0秒 / 30秒";
+                } else {
+                    document.getElementById('btnShutter').classList.remove('hidden');
+                    document.getElementById('btnStartVideoRec').classList.add('hidden');
+                    document.getElementById('btnStopVideoRec').classList.add('hidden');
+                    document.getElementById('recTimer').classList.add('hidden');
+                }
+            } catch (e) { alert("カメラ・マイクの起動に失敗しました。カメラの使用を許可してください。"); }
         }
-        document.getElementById('btnStartCamUser').addEventListener('click', () => startCamera("user"));
-        document.getElementById('btnStartCamEnv').addEventListener('click', () => startCamera("environment"));
+
+        document.getElementById('btnStartCamPhoto').addEventListener('click', () => startCamera(false));
+        document.getElementById('btnStartCamVideo').addEventListener('click', () => startCamera(true));
+
+        // 写真シャッター
         document.getElementById('btnShutter').addEventListener('click', () => {
             const canvas = document.getElementById('captureCanvas'), video = document.getElementById('webcam');
             canvas.width = video.videoWidth; canvas.height = video.videoHeight;
@@ -345,9 +382,55 @@
             document.getElementById('attachmentPreview').innerText = "📸 写真を撮影して添付しました";
             stopCamera();
         });
-        function stopCamera() { if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); cameraStream=null; } document.getElementById('cameraArea').classList.add('hidden'); }
 
-        // --- 録音機能 ---
+        // --- 🎥 動画撮影（最大30秒）の制御 ---
+        document.getElementById('btnStartVideoRec').addEventListener('click', () => {
+            chunks = [];
+            // カメラと音声を含めたストリームから録画
+            mediaRecorder = new MediaRecorder(cameraStream, { mimeType: 'video/webm;codecs=vp9,opus' });
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                let r = new FileReader();
+                r.onload = e => {
+                    attachedVideoB64 = e.target.result;
+                    document.getElementById('attachmentPreview').innerText = "🎥 録画動画（最大30秒）を添付しました";
+                };
+                r.readAsDataURL(blob);
+                stopCamera();
+            };
+
+            mediaRecorder.start();
+            document.getElementById('btnStartVideoRec').classList.add('hidden');
+            document.getElementById('btnStopVideoRec').classList.remove('hidden');
+
+            // 30秒タイマースタート
+            recordSeconds = 0;
+            recordInterval = setInterval(() => {
+                recordSeconds++;
+                document.getElementById('recTimer').innerText = `🔴 REC: ${recordSeconds}秒 / 30秒`;
+                if (recordSeconds >= 30) {
+                    stopVideoRecording();
+                }
+            }, 1000);
+        });
+
+        document.getElementById('btnStopVideoRec').addEventListener('click', stopVideoRecording);
+
+        function stopVideoRecording() {
+            clearInterval(recordInterval);
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+            }
+        }
+
+        function stopCamera() {
+            clearInterval(recordInterval);
+            if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); cameraStream=null; }
+            document.getElementById('cameraArea').classList.add('hidden');
+        }
+
+        // --- 🎙️ 録音（最大60秒）の制御 ---
         document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
             stopCamera(); stopAudio(); clearAttachments();
             try {
@@ -355,25 +438,57 @@
                 document.getElementById('audioArea').classList.remove('hidden');
                 document.getElementById('btnAudioStart').classList.remove('hidden');
                 document.getElementById('btnAudioStop').classList.add('hidden');
+                document.getElementById('audioTimer').innerText = "🔴 REC: 0秒 / 60秒";
             } catch(e) { alert("マイクの起動に失敗しました。"); }
         });
+
         document.getElementById('btnAudioStart').addEventListener('click', () => {
             chunks = []; mediaRecorder = new MediaRecorder(audioStream);
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'audio/webm' });
-                let r = new FileReader(); r.onload = e => { attachedAudioB64 = e.target.result; document.getElementById('attachmentPreview').innerText = "🎙️ ボイスメモを録音して添付しました"; };
-                r.readAsDataURL(blob); stopAudio();
+                let r = new FileReader();
+                r.onload = e => {
+                    attachedAudioB64 = e.target.result;
+                    document.getElementById('attachmentPreview').innerText = "🎙️ ボイスメモ（最大60秒）を添付しました";
+                };
+                r.readAsDataURL(blob);
+                stopAudio();
             };
             mediaRecorder.start();
-            document.getElementById('btnAudioStart').classList.add('hidden'); document.getElementById('btnAudioStop').classList.remove('hidden');
+            document.getElementById('btnAudioStart').classList.add('hidden');
+            document.getElementById('btnAudioStop').classList.remove('hidden');
+
+            // 60秒タイマースタート
+            recordSeconds = 0;
+            recordInterval = setInterval(() => {
+                recordSeconds++;
+                document.getElementById('audioTimer').innerText = `🔴 REC: ${recordSeconds}秒 / 60秒`;
+                if (recordSeconds >= 60) {
+                    stopAudioRecording();
+                }
+            }, 1000);
         });
-        document.getElementById('btnAudioStop').addEventListener('click', () => { if(mediaRecorder&&mediaRecorder.state==="recording") mediaRecorder.stop(); });
-        function stopAudio() { if(audioStream){ audioStream.getTracks().forEach(t=>t.stop()); audioStream=null; } document.getElementById('audioArea').classList.add('hidden'); }
+
+        document.getElementById('btnAudioStop').addEventListener('click', stopAudioRecording);
+
+        function stopAudioRecording() {
+            clearInterval(recordInterval);
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+            }
+        }
+
+        function stopAudio() {
+            clearInterval(recordInterval);
+            if(audioStream){ audioStream.getTracks().forEach(t=>t.stop()); audioStream=null; }
+            document.getElementById('audioArea').classList.add('hidden');
+        }
+
         document.getElementById('btnStopCamera').addEventListener('click', stopCamera);
         document.getElementById('btnStopAudio').addEventListener('click', stopAudio);
 
-        // --- モーダル表示 ---
+        // モーダル
         const imgModal = document.getElementById('imageModal'), siteModal = document.getElementById('siteModal'), modalTargetSite = document.getElementById('modalTargetSite');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
         document.getElementById('siteModalClose').addEventListener('click', () => { siteModal.style.display = "none"; modalTargetSite.srcdoc = ""; });
@@ -432,7 +547,6 @@
 
             if (error || data.length === 0) return;
 
-            // スレッドを立てた本人の場合はスレッド削除ボタンを表示可能に（最初の投稿のcreator_secretで判定）
             const firstPost = data[0];
             document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
             document.getElementById('btnDeleteThread').classList.toggle('hidden', firstPost.creator_secret !== userSecret);
@@ -457,13 +571,21 @@
                 // リンク
                 let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
 
-                // ミニサイト埋め込みプレビュー
+                // ミニサイト埋め込み
                 let embed = (res.html_code || res.css_code || res.js_code) ? `<div class="embed-site-container"><div class="embed-site-title">🌐 埋め込みミニサイト: <button class="btn expand-site-btn" data-id="${res.id}">🔍 拡大</button></div><iframe sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox" srcdoc="${escapeHtml(buildFullSrcdoc(res.html_code, res.css_code, res.js_code))}" class="embed-site-frame"></iframe></div>` : '';
 
-                // 個別アクション（削除・訂正）
-                let actions = (isOp && !res.is_deleted) ? `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>` : '';
+                // 訂正タグ
+                let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
 
-                // 日時とIDの整形
+                // アクションボタン（削除・訂正）
+                let actions = "";
+                if (isOp && !res.is_deleted) {
+                    actions = `
+                        <button class="btn edit-btn" data-id="${res.id}">✍️ 訂正</button>
+                        <button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>
+                    `;
+                }
+
                 const dateObj = new Date(res.created_at);
                 const days = ['日', '月', '火', '水', '木', '金', '土'];
                 const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
@@ -475,10 +597,11 @@
                             <span class="res-number">${resNum}</span> ：
                             <span class="res-name">${escapeHtml(res.name)}</span> ：
                             <span class="res-date-id">${dateStr} ID:${displayID}</span>
+                            ${editedLabel}
                         </div>
                         <div class="res-body">
                             ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
-                            ${res.is_deleted ? '（削除されました）' : convertLinksAndAnchors(res.message)}
+                            <span id="text-body-${res.id}">${res.is_deleted ? '（削除されました）' : convertLinksAndAnchors(res.message)}</span>
                             ${res.is_deleted ? '' : link}
                             ${res.is_deleted ? '' : media}
                             ${res.is_deleted ? '' : embed}
@@ -489,9 +612,9 @@
             });
         }
 
-        // 画面の切り替え
         function showScreen(id) {
             stopCamera(); stopAudio(); clearAttachments();
+            cancelEditMode();
             if (id === 'lobby') {
                 document.getElementById('lobbyScreen').classList.remove('hidden');
                 document.getElementById('threadScreen').classList.add('hidden');
@@ -503,8 +626,101 @@
             }
         }
 
-        // --- 各種クリック・送信イベント ---
+        // --- フォーム送信制御（投稿 ＆ 訂正） ---
+        document.getElementById('postForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editPostId').value;
+            const message = document.getElementById('message').value;
 
+            if (editId) {
+                // 【訂正処理】
+                const { error } = await _supabase
+                    .from('posts')
+                    .update({
+                        message: message,
+                        is_edited: true
+                    })
+                    .eq('id', editId);
+
+                if (error) {
+                    alert("訂正に失敗しました。");
+                    console.error(error);
+                } else {
+                    alert("投稿を訂正しました。");
+                    cancelEditMode();
+                    renderActiveThread();
+                }
+            } else {
+                // 【新規書き込み処理】
+                const name = document.getElementById('name').value.trim() || "名無しさん";
+                const subject = document.getElementById('subject').value.trim();
+
+                const { error } = await _supabase
+                    .from('posts')
+                    .insert([{
+                        name: name,
+                        subject: subject,
+                        message: message,
+                        thread_id: activeThreadId,
+                        creator_secret: userSecret,
+                        link_url: document.getElementById('linkUrl').value.trim(),
+                        link_title: document.getElementById('linkTitle').value.trim(),
+                        html_code: document.getElementById('htmlCode').value,
+                        css_code: document.getElementById('cssCode').value,
+                        js_code: document.getElementById('jsCode').value,
+                        image: attachedImageB64 || "",
+                        video: attachedVideoB64 || "",
+                        audio: attachedAudioB64 || "",
+                        is_deleted: false,
+                        is_edited: false
+                    }]);
+
+                if (error) {
+                    alert("書き込みに失敗しました。");
+                    console.error(error);
+                    return;
+                }
+
+                this.reset();
+                clearAttachments();
+                document.getElementById('mediaFile').value = "";
+                renderActiveThread();
+            }
+        });
+
+        // 訂正モードへの切り替え
+        async function enterEditMode(id) {
+            const { data, error } = await _supabase.from('posts').select('*').eq('id', id).single();
+            if (error || !data) return;
+
+            document.getElementById('editPostId').value = id;
+            document.getElementById('message').value = data.message;
+            document.getElementById('message').focus();
+
+            // 訂正中は他の入力フィールドを隠す
+            document.getElementById('writeFormTitle').innerText = "✍️ 投稿を訂正中...";
+            document.getElementById('subject').parentElement.classList.add('hidden');
+            document.getElementById('name').parentElement.classList.add('hidden');
+            document.getElementById('mediaFieldsGroup').classList.add('hidden');
+            document.getElementById('btnSubmitPost').innerText = "訂正内容を保存する";
+            document.getElementById('btnCancelEdit').classList.remove('hidden');
+        }
+
+        // 訂正モードの解除
+        function cancelEditMode() {
+            document.getElementById('editPostId').value = "";
+            document.getElementById('message').value = "";
+            document.getElementById('writeFormTitle').innerText = "このスレッドに書き込む";
+            document.getElementById('subject').parentElement.classList.remove('hidden');
+            document.getElementById('name').parentElement.classList.remove('hidden');
+            document.getElementById('mediaFieldsGroup').classList.remove('hidden');
+            document.getElementById('btnSubmitPost').innerText = "書き込む";
+            document.getElementById('btnCancelEdit').classList.add('hidden');
+        }
+
+        document.getElementById('btnCancelEdit').addEventListener('click', cancelEditMode);
+
+        // スレッド一覧の遷移
         document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         document.getElementById('btnBack').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         
@@ -516,7 +732,7 @@
             }
         });
 
-        // 新しいスレッドを立てる
+        // スレッド新規作成
         document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const title = document.getElementById('newThreadTitle').value.trim();
@@ -537,7 +753,8 @@
                     html_code: document.getElementById('threadHtmlCode').value,
                     css_code: document.getElementById('threadCssCode').value,
                     js_code: document.getElementById('threadJsCode').value,
-                    is_deleted: false
+                    is_deleted: false,
+                    is_edited: false
                 }]);
 
             if (error) {
@@ -552,53 +769,13 @@
             showScreen('thread');
         });
 
-        // コメント送信
-        document.getElementById('postForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const name = document.getElementById('name').value.trim() || "名無しさん";
-            const subject = document.getElementById('subject').value.trim();
-            const message = document.getElementById('message').value;
-
-            const { error } = await _supabase
-                .from('posts')
-                .insert([{
-                    name: name,
-                    subject: subject,
-                    message: message,
-                    thread_id: activeThreadId,
-                    creator_secret: userSecret,
-                    link_url: document.getElementById('linkUrl').value.trim(),
-                    link_title: document.getElementById('linkTitle').value.trim(),
-                    html_code: document.getElementById('htmlCode').value,
-                    css_code: document.getElementById('cssCode').value,
-                    js_code: document.getElementById('jsCode').value,
-                    image: attachedImageB64 || "",
-                    video: attachedVideoB64 || "",
-                    audio: attachedAudioB64 || "",
-                    is_deleted: false
-                }]);
-
-            if (error) {
-                alert("書き込みに失敗しました。");
-                console.error(error);
-                return;
-            }
-
-            this.reset();
-            clearAttachments();
-            document.getElementById('mediaFile').value = "";
-            renderActiveThread();
-        });
-
-        // スレッド内の要素クリックイベント（返信、拡大、削除）
+        // 掲示板内でのクリック判定（返信、削除、訂正、拡大）
         document.getElementById('resContainer').addEventListener('click', async e => {
-            // 画像クリックで拡大
             if (e.target.classList.contains('uploaded-img')) {
                 imgModal.style.display = "flex";
                 document.getElementById('modalTargetImage').src = e.target.src;
             }
             
-            // ミニサイトを全画面拡大
             if (e.target.classList.contains('expand-site-btn')) {
                 const id = e.target.getAttribute('data-id');
                 const { data, error } = await _supabase.from('posts').select('*').eq('id', id).single();
@@ -608,13 +785,18 @@
                 }
             }
 
-            // 返信アンカー
             if (e.target.classList.contains('reply-btn')) {
                 document.getElementById('message').value += `>>${e.target.getAttribute('data-resnum')}\n`;
                 document.getElementById('message').focus();
             }
 
-            // レス削除（あぼーん処理）
+            // ✍️ 訂正ボタンが押された時
+            if (e.target.classList.contains('edit-btn')) {
+                const id = e.target.getAttribute('data-id');
+                enterEditMode(id);
+            }
+
+            // 🗑️ 削除
             if (e.target.classList.contains('delete-btn')) {
                 if (confirm("本当にこの投稿を削除しますか？")) {
                     const id = e.target.getAttribute('data-id');
@@ -623,26 +805,22 @@
                         .update({ name: "あぼーん", message: "（削除されました）", is_deleted: true, image: "", video: "", audio: "", html_code: "", css_code: "", js_code: "", link_url: "", link_title: "" })
                         .eq('id', id);
 
-                    if (error) {
-                        alert("削除に失敗しました。");
-                    } else {
-                        renderActiveThread();
-                    }
+                    if (error) alert("削除に失敗しました。");
+                    else renderActiveThread();
                 }
             }
         });
 
         // スレッド全体の削除
         document.getElementById('btnDeleteThread').addEventListener('click', async () => {
-            if (confirm("このスレッドおよび含まれるすべての書き込みを完全に削除しますか？")) {
+            if (confirm("このスレッド内のすべての書き込みを完全に削除しますか？")) {
                 const { error } = await _supabase
                     .from('posts')
                     .delete()
                     .eq('thread_id', activeThreadId);
 
-                if (error) {
-                    alert("スレッドの削除に失敗しました。");
-                } else {
+                if (error) alert("スレッドの削除に失敗しました。");
+                else {
                     activeThreadId = null;
                     window.location.hash = "";
                     showScreen('lobby');
@@ -655,13 +833,12 @@
             const baseUrl = window.location.href.split('#')[0];
             const shareUrl = `${baseUrl}#${activeThreadId}`;
             navigator.clipboard.writeText(shareUrl).then(() => {
-                alert(`リンクをクリップボードにコピーしました！\n別のスマホやPCからアクセスしてみてください。\n\nURL: ${shareUrl}`);
+                alert(`リンクをコピーしました！\n\nURL: ${shareUrl}`);
             }).catch(() => {
-                prompt('以下のURLをコピーして共有してください：', shareUrl);
+                prompt('URLをコピーして共有してください：', shareUrl);
             });
         });
 
-        // URLハッシュ監視
         window.addEventListener('hashchange', () => {
             const hash = window.location.hash.substring(1);
             if (hash) { activeThreadId = hash; showScreen('thread'); } else { showScreen('lobby'); }
