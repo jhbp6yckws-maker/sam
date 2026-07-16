@@ -87,6 +87,33 @@
         .share-btn { color: #0066CC; font-weight: bold; }
         .delete-btn { color: #CC0000; }
 
+        .uploaded-img { cursor: zoom-in; transition: transform 0.2s; }
+        .uploaded-img:hover { opacity: 0.8; }
+        .uploaded-img, .uploaded-video {
+            max-width: 300px;
+            width: 100%;
+            height: auto;
+            display: block;
+            margin-top: 10px;
+            border: 1px solid #CCCCCC;
+        }
+        .uploaded-audio { display: block; margin-top: 10px; }
+
+        .embed-site-container { margin-top: 15px; max-width: 600px; width: 100%; }
+        .embed-site-title {
+            font-size: 12px; color: #555555; font-weight: bold;
+            margin-bottom: 3px; display: flex; align-items: center; gap: 5px;
+        }
+        .embed-site-frame {
+            width: 100%; height: 250px; border: 1px solid #999999;
+            background-color: #FFFFFF; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .modal-site-wrapper {
+            width: 90%; height: 85%; background-color: #FFFFFF;
+            border-radius: 4px; overflow: hidden; box-shadow: 0 0 20px rgba(255,255,255,0.2);
+        }
+
         .form-box {
             margin-top: 20px; background-color: #FFFFFF; padding: 15px;
             border: 1px solid #CCCCCC; display: inline-block; width: 100%;
@@ -101,6 +128,24 @@
             font-family: monospace; height: 80px;
             background-color: #F4F7F9; border: 1px solid #A9BCC6; margin-bottom: 5px;
         }
+        
+        .media-capture-area {
+            border: 1px dashed #666; padding: 10px; margin-top: 10px;
+            background: #F9F9F9; text-align: center;
+        }
+        #webcam { width: 100%; max-width: 240px; border: 1px solid #000; }
+        
+        .modal {
+            display: none; position: fixed; z-index: 1000; top: 0; left: 0;
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.85);
+            justify-content: center; align-items: center;
+        }
+        .image-modal-mode { cursor: zoom-out; }
+        .modal-content { max-width: 90%; max-height: 90%; box-shadow: 0 0 20px rgba(255,255,255,0.2); border-radius: 4px; }
+        .modal-close {
+            position: absolute; top: 20px; right: 25px; color: #fff;
+            font-size: 35px; font-weight: bold; cursor: pointer; z-index: 1010;
+        }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -111,11 +156,11 @@
     <div class="container">
         <div id="lobbyScreen">
             <div class="menu-box">
-                <h3>新しいスレッドを立てる</h3>
+                <h3>新しいお題でスレッドを立てる</h3>
                 <form id="createThreadForm">
                     <div class="form-row" style="margin-bottom: 10px;">
                         <label for="newThreadTitle">お題(タイトル) :</label>
-                        <input type="text" id="newThreadTitle" placeholder="例：みんなで雑談スレ" required>
+                        <input type="text" id="newThreadTitle" placeholder="例：WEB開発お披露目スレ" required>
                     </div>
                     <div class="form-row" style="margin-bottom: 10px;">
                         <label for="creatorName">名前 :</label>
@@ -123,7 +168,27 @@
                     </div>
                     <div class="form-row" style="margin-bottom: 10px;">
                         <label for="firstMessage">最初の本文 :</label>
-                        <textarea id="firstMessage" placeholder="スレッドの解説や最初の投稿" required></textarea>
+                        <textarea id="firstMessage" placeholder="スレッドの解説など" required></textarea>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <label for="threadLinkUrl">リンクURL :</label>
+                        <input type="text" id="threadLinkUrl" placeholder="https://example.com (任意)">
+                    </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <label for="threadLinkTitle">リンク名 :</label>
+                        <input type="text" id="threadLinkTitle" placeholder="サイト名など (任意)">
+                    </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <label for="threadHtmlCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">💻 HTML (任意) :</label>
+                        <textarea id="threadHtmlCode" class="code-textarea" placeholder="<button id='btn'>Click</button>"></textarea>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <label for="threadCssCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">🎨 CSS (任意) :</label>
+                        <textarea id="threadCssCode" class="code-textarea" placeholder="button { color: red; }"></textarea>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <label for="threadJsCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">⚡ JavaScript (任意) :</label>
+                        <textarea id="threadJsCode" class="code-textarea" placeholder="document.getElementById('btn').onclick = () => alert('OK');"></textarea>
                     </div>
                     <button type="submit" class="btn">新規スレッドを立てる</button>
                 </form>
@@ -138,6 +203,7 @@
         <div id="threadScreen" class="hidden">
             <button class="btn back-btn" id="btnBack">← スレッド一覧に戻る</button>
             <button class="btn back-btn share-btn" id="btnShare">🔗 このスレッドの共有リンクを取得</button>
+            <button class="btn back-btn delete-btn hidden" id="btnDeleteThread">🗑️ このスレッドを削除</button>
             
             <div class="thread-box">
                 <div class="thread-title" id="activeThreadTitle">スレタイトル</div>
@@ -158,19 +224,64 @@
                     <div class="form-row" style="margin-bottom: 10px;">
                         <textarea id="message" placeholder="本文を入力してください" required></textarea>
                     </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <label for="linkUrl">リンクURL :</label>
+                        <input type="text" id="linkUrl" placeholder="https://...">
+                    </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <label for="linkTitle">リンク名 :</label>
+                        <input type="text" id="linkTitle" placeholder="タイトル">
+                    </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <label for="htmlCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">💻 HTML :</label>
+                        <textarea id="htmlCode" class="code-textarea"></textarea>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <label for="cssCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">🎨 CSS :</label>
+                        <textarea id="cssCode" class="code-textarea"></textarea>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <label for="jsCode" style="width: auto; display: block; margin-bottom: 2px; font-weight: bold;">⚡ JavaScript :</label>
+                        <textarea id="jsCode" class="code-textarea"></textarea>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <label for="mediaFile">ファイル添付:</label>
+                        <input type="file" id="mediaFile" accept="image/*,video/*,audio/*">
+                    </div>
+                    <div class="form-row" style="margin-bottom: 10px;">
+                        <button type="button" class="btn" id="btnStartCamUser">📷 内カメラ</button>
+                        <button type="button" class="btn" id="btnStartCamEnv">📷 外カメラ</button>
+                        <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 録音モード</button>
+                    </div>
+                    <div id="cameraArea" class="media-capture-area hidden">
+                        <video id="webcam" autoplay playsinline muted></video><br>
+                        <button type="button" class="btn" id="btnShutter">📸 撮影</button>
+                        <button type="button" class="btn" id="btnStopCamera">中止</button>
+                        <canvas id="captureCanvas" class="hidden"></canvas>
+                    </div>
+                    <div id="audioArea" class="media-capture-area hidden">
+                        <button type="button" class="btn" id="btnAudioStart" style="color:red;">🔴 録音開始</button>
+                        <button type="button" class="btn hidden" id="btnAudioStop">■ 停止</button>
+                        <button type="button" class="btn" id="btnStopAudio">中止</button>
+                    </div>
+                    <div id="attachmentPreview" style="margin: 5px 0; color: #008000; font-weight: bold; font-size: 12px;"></div>
+                    
                     <button type="submit" class="btn" id="btnSubmitPost">書き込む</button>
                 </form>
             </div>
         </div>
     </div>
 
+    <div id="imageModal" class="modal image-modal-mode"><span class="modal-close" id="modalClose">&times;</span><img class="modal-content" id="modalTargetImage"></div>
+    <div id="siteModal" class="modal"><span class="modal-close" id="siteModalClose">&times;</span><div class="modal-site-wrapper"><iframe id="modalTargetSite" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox" allow="camera; microphone; display-capture;" style="width: 100%; height: 100%; border: none; background-color: #ffffff;"></iframe></div></div>
+
     <script>
-        // 2. あなたのSupabase接続設定（コピーしてもらったURLの末尾から /rest/v1/ を取り除いたベースURLを使います）
+        // Supabase接続情報
         const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // ユーザーの一時的な識別用
+        // 投稿者の秘密キー
         if (!localStorage.getItem('bbs_user_secret')) {
             localStorage.setItem('bbs_user_secret', Math.random().toString(36).substring(2, 12).toUpperCase());
         }
@@ -185,14 +296,91 @@
         }
 
         let activeThreadId = null;
+        let attachedImageB64 = null, attachedVideoB64 = null, attachedAudioB64 = null;
+        let cameraStream = null, audioStream = null, mediaRecorder = null, chunks = [], activeFacingMode = "user";
 
         function escapeHtml(str) { return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : ''; }
         function convertLinksAndAnchors(raw) { let html = escapeHtml(raw).replace(/&gt;&gt;(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>'); return html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>').replace(/\n/g, '<br>'); }
         function getBbsDate() { const now = new Date(); const days = ['日', '月', '火', '水', '木', '金', '土']; return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}(${days[now.getDay()]}) ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`; }
+        function buildFullSrcdoc(h, c, j) { return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:10px;font-family:sans-serif;}${c||''}</style></head><body>${h||''}<script>try{${j||''}}catch(e){console.error(e)}<\/script></body></html>`; }
+        function clearAttachments() { attachedImageB64 = null; attachedVideoB64 = null; attachedAudioB64 = null; document.getElementById('attachmentPreview').innerText = ""; }
 
-        // --- Supabaseからデータを読み込む処理 ---
+        // --- 画像、ボイス等のファイル入力変換処理 ---
+        document.getElementById('mediaFile').addEventListener('change', function(e) {
+            clearAttachments();
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                if (file.type.startsWith('image/')) {
+                    attachedImageB64 = evt.target.result;
+                    document.getElementById('attachmentPreview').innerText = "🖼️ 画像ファイルを選択しました";
+                } else if (file.type.startsWith('video/')) {
+                    attachedVideoB64 = evt.target.result;
+                    document.getElementById('attachmentPreview').innerText = "🎥 動画ファイルを選択しました";
+                } else if (file.type.startsWith('audio/')) {
+                    attachedAudioB64 = evt.target.result;
+                    document.getElementById('attachmentPreview').innerText = "🎵 音声ファイルを選択しました";
+                }
+            };
+            reader.readAsDataURL(file);
+        });
 
-        // スレッド一覧（ロビー）を取得して表示
+        // --- カメラ撮影機能 ---
+        async function startCamera(mode) {
+            stopCamera(); stopAudio(); clearAttachments(); activeFacingMode = mode;
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode }, audio: false });
+                document.getElementById('webcam').srcObject = cameraStream;
+                document.getElementById('cameraArea').classList.remove('hidden');
+            } catch (e) { alert("カメラの起動に失敗しました。HTTPS(セキュア回線)上でのみ動作します。"); }
+        }
+        document.getElementById('btnStartCamUser').addEventListener('click', () => startCamera("user"));
+        document.getElementById('btnStartCamEnv').addEventListener('click', () => startCamera("environment"));
+        document.getElementById('btnShutter').addEventListener('click', () => {
+            const canvas = document.getElementById('captureCanvas'), video = document.getElementById('webcam');
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            attachedImageB64 = canvas.toDataURL('image/jpeg', 0.6);
+            document.getElementById('attachmentPreview').innerText = "📸 写真を撮影して添付しました";
+            stopCamera();
+        });
+        function stopCamera() { if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); cameraStream=null; } document.getElementById('cameraArea').classList.add('hidden'); }
+
+        // --- 録音機能 ---
+        document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
+            stopCamera(); stopAudio(); clearAttachments();
+            try {
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                document.getElementById('audioArea').classList.remove('hidden');
+                document.getElementById('btnAudioStart').classList.remove('hidden');
+                document.getElementById('btnAudioStop').classList.add('hidden');
+            } catch(e) { alert("マイクの起動に失敗しました。"); }
+        });
+        document.getElementById('btnAudioStart').addEventListener('click', () => {
+            chunks = []; mediaRecorder = new MediaRecorder(audioStream);
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                let r = new FileReader(); r.onload = e => { attachedAudioB64 = e.target.result; document.getElementById('attachmentPreview').innerText = "🎙️ ボイスメモを録音して添付しました"; };
+                r.readAsDataURL(blob); stopAudio();
+            };
+            mediaRecorder.start();
+            document.getElementById('btnAudioStart').classList.add('hidden'); document.getElementById('btnAudioStop').classList.remove('hidden');
+        });
+        document.getElementById('btnAudioStop').addEventListener('click', () => { if(mediaRecorder&&mediaRecorder.state==="recording") mediaRecorder.stop(); });
+        function stopAudio() { if(audioStream){ audioStream.getTracks().forEach(t=>t.stop()); audioStream=null; } document.getElementById('audioArea').classList.add('hidden'); }
+        document.getElementById('btnStopCamera').addEventListener('click', stopCamera);
+        document.getElementById('btnStopAudio').addEventListener('click', stopAudio);
+
+        // --- モーダル表示 ---
+        const imgModal = document.getElementById('imageModal'), siteModal = document.getElementById('siteModal'), modalTargetSite = document.getElementById('modalTargetSite');
+        imgModal.addEventListener('click', () => imgModal.style.display = "none");
+        document.getElementById('siteModalClose').addEventListener('click', () => { siteModal.style.display = "none"; modalTargetSite.srcdoc = ""; });
+
+        // --- Supabase 読み書き処理 ---
+
+        // スレッド一覧表示
         async function fetchThreads() {
             const { data, error } = await _supabase
                 .from('posts')
@@ -200,21 +388,16 @@
                 .order('id', { ascending: true });
 
             if (error) {
-                console.error("データ取得エラー:", error);
-                document.getElementById('threadList').innerText = "データの取得に失敗しました。SQLの設定を確認してください。";
+                console.error(error);
+                document.getElementById('threadList').innerText = "データの取得に失敗しました。";
                 return;
             }
 
-            // thread_idごとに投稿をグループ分けする
             const threadMap = {};
             data.forEach(post => {
                 const tId = post.thread_id;
                 if (!threadMap[tId]) {
-                    threadMap[tId] = {
-                        id: tId,
-                        title: post.subject || "無題のスレッド",
-                        posts: []
-                    };
+                    threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", posts: [] };
                 }
                 threadMap[tId].posts.push(post);
             });
@@ -229,9 +412,8 @@
             }
 
             threadList.forEach(t => {
-                // スレッドの最初の投稿をタイトル代わりにする
                 const firstPost = t.posts[0];
-                const title = firstPost ? firstPost.subject : t.title;
+                const title = firstPost ? (firstPost.subject || firstPost.message.substring(0, 20)) : t.title;
                 container.insertAdjacentHTML('beforeend', `
                     <div class="thread-list-item">
                         <span class="thread-link" data-id="${t.id}">■ ${escapeHtml(title)} (${t.posts.length})</span>
@@ -240,7 +422,7 @@
             });
         }
 
-        // 開いているスレッドの書き込み一覧を表示
+        // 個別スレッドの描画
         async function renderActiveThread() {
             const { data, error } = await _supabase
                 .from('posts')
@@ -248,38 +430,60 @@
                 .eq('thread_id', activeThreadId)
                 .order('id', { ascending: true });
 
-            if (error) {
-                console.error("スレッド取得エラー:", error);
-                return;
-            }
+            if (error || data.length === 0) return;
 
-            if (data.length === 0) return;
-
-            // 1件目をスレッドのタイトルに設定
-            document.getElementById('activeThreadTitle').innerText = data[0].subject || "無題のスレッド";
+            // スレッドを立てた本人の場合はスレッド削除ボタンを表示可能に（最初の投稿のcreator_secretで判定）
+            const firstPost = data[0];
+            document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
+            document.getElementById('btnDeleteThread').classList.toggle('hidden', firstPost.creator_secret !== userSecret);
 
             const container = document.getElementById('resContainer');
             container.innerHTML = '';
 
             data.forEach((res, index) => {
                 const resNum = index + 1;
-                // 作成日時を整形
+                const isOp = (res.creator_secret === userSecret);
+
+                // メディアタグの作成
+                let media = "";
+                if (res.image) {
+                    media = `<img src="${res.image}" class="uploaded-img">`;
+                } else if (res.video) {
+                    media = `<video src="${res.video}" class="uploaded-video" controls></video>`;
+                } else if (res.audio) {
+                    media = `<audio src="${res.audio}" class="uploaded-audio" controls></audio>`;
+                }
+
+                // リンク
+                let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
+
+                // ミニサイト埋め込みプレビュー
+                let embed = (res.html_code || res.css_code || res.js_code) ? `<div class="embed-site-container"><div class="embed-site-title">🌐 埋め込みミニサイト: <button class="btn expand-site-btn" data-id="${res.id}">🔍 拡大</button></div><iframe sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox" srcdoc="${escapeHtml(buildFullSrcdoc(res.html_code, res.css_code, res.js_code))}" class="embed-site-frame"></iframe></div>` : '';
+
+                // 個別アクション（削除・訂正）
+                let actions = (isOp && !res.is_deleted) ? `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>` : '';
+
+                // 日時とIDの整形
                 const dateObj = new Date(res.created_at);
                 const days = ['日', '月', '火', '水', '木', '金', '土'];
                 const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
+                const displayID = generateUserID(dateStr);
 
                 container.insertAdjacentHTML('beforeend', `
                     <div class="res">
                         <div class="res-header">
                             <span class="res-number">${resNum}</span> ：
                             <span class="res-name">${escapeHtml(res.name)}</span> ：
-                            <span class="res-date-id">${dateStr}</span>
+                            <span class="res-date-id">${dateStr} ID:${displayID}</span>
                         </div>
                         <div class="res-body">
                             ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
-                            ${convertLinksAndAnchors(res.message)}
+                            ${res.is_deleted ? '（削除されました）' : convertLinksAndAnchors(res.message)}
+                            ${res.is_deleted ? '' : link}
+                            ${res.is_deleted ? '' : media}
+                            ${res.is_deleted ? '' : embed}
                         </div>
-                        <button class="btn reply-btn" data-resnum="${resNum}">返信</button>
+                        <button class="btn reply-btn" data-resnum="${resNum}">返信</button>${actions}
                     </div>
                 `);
             });
@@ -287,6 +491,7 @@
 
         // 画面の切り替え
         function showScreen(id) {
+            stopCamera(); stopAudio(); clearAttachments();
             if (id === 'lobby') {
                 document.getElementById('lobbyScreen').classList.remove('hidden');
                 document.getElementById('threadScreen').classList.add('hidden');
@@ -298,7 +503,7 @@
             }
         }
 
-        // --- イベント制御 ---
+        // --- 各種クリック・送信イベント ---
 
         document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         document.getElementById('btnBack').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
@@ -311,7 +516,7 @@
             }
         });
 
-        // 新しいスレッドを立てる（Supabaseへ送信）
+        // 新しいスレッドを立てる
         document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const title = document.getElementById('newThreadTitle').value.trim();
@@ -319,15 +524,24 @@
             const message = document.getElementById('firstMessage').value;
             const newThreadId = 'thread-' + Date.now();
 
-            // スレッドの最初の1個目の投稿を保存
             const { error } = await _supabase
                 .from('posts')
-                .insert([
-                    { name: name, subject: title, message: message, thread_id: newThreadId }
-                ]);
+                .insert([{
+                    name: name,
+                    subject: title,
+                    message: message,
+                    thread_id: newThreadId,
+                    creator_secret: userSecret,
+                    link_url: document.getElementById('threadLinkUrl').value.trim(),
+                    link_title: document.getElementById('threadLinkTitle').value.trim(),
+                    html_code: document.getElementById('threadHtmlCode').value,
+                    css_code: document.getElementById('threadCssCode').value,
+                    js_code: document.getElementById('threadJsCode').value,
+                    is_deleted: false
+                }]);
 
             if (error) {
-                alert("投稿に失敗しました。Supabaseの設定（Row Level Security等）を確認してください。");
+                alert("送信に失敗しました。");
                 console.error(error);
                 return;
             }
@@ -338,15 +552,7 @@
             showScreen('thread');
         });
 
-        // スレッド内で返信ボタンを押した時
-        document.getElementById('resContainer').addEventListener('click', e => {
-            if (e.target.classList.contains('reply-btn')) {
-                document.getElementById('message').value += `>>${e.target.getAttribute('data-resnum')}\n`;
-                document.getElementById('message').focus();
-            }
-        });
-
-        // コメントを書き込む（Supabaseへ送信）
+        // コメント送信
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const name = document.getElementById('name').value.trim() || "名無しさん";
@@ -355,51 +561,115 @@
 
             const { error } = await _supabase
                 .from('posts')
-                .insert([
-                    { name: name, subject: subject, message: message, thread_id: activeThreadId }
-                ]);
+                .insert([{
+                    name: name,
+                    subject: subject,
+                    message: message,
+                    thread_id: activeThreadId,
+                    creator_secret: userSecret,
+                    link_url: document.getElementById('linkUrl').value.trim(),
+                    link_title: document.getElementById('linkTitle').value.trim(),
+                    html_code: document.getElementById('htmlCode').value,
+                    css_code: document.getElementById('cssCode').value,
+                    js_code: document.getElementById('jsCode').value,
+                    image: attachedImageB64 || "",
+                    video: attachedVideoB64 || "",
+                    audio: attachedAudioB64 || "",
+                    is_deleted: false
+                }]);
 
             if (error) {
-                alert("投稿に失敗しました。");
+                alert("書き込みに失敗しました。");
                 console.error(error);
                 return;
             }
 
             this.reset();
+            clearAttachments();
+            document.getElementById('mediaFile').value = "";
             renderActiveThread();
         });
 
-        // 共有リンクの取得
+        // スレッド内の要素クリックイベント（返信、拡大、削除）
+        document.getElementById('resContainer').addEventListener('click', async e => {
+            // 画像クリックで拡大
+            if (e.target.classList.contains('uploaded-img')) {
+                imgModal.style.display = "flex";
+                document.getElementById('modalTargetImage').src = e.target.src;
+            }
+            
+            // ミニサイトを全画面拡大
+            if (e.target.classList.contains('expand-site-btn')) {
+                const id = e.target.getAttribute('data-id');
+                const { data, error } = await _supabase.from('posts').select('*').eq('id', id).single();
+                if (data) {
+                    modalTargetSite.srcdoc = buildFullSrcdoc(data.html_code, data.css_code, data.js_code);
+                    siteModal.style.display = "flex";
+                }
+            }
+
+            // 返信アンカー
+            if (e.target.classList.contains('reply-btn')) {
+                document.getElementById('message').value += `>>${e.target.getAttribute('data-resnum')}\n`;
+                document.getElementById('message').focus();
+            }
+
+            // レス削除（あぼーん処理）
+            if (e.target.classList.contains('delete-btn')) {
+                if (confirm("本当にこの投稿を削除しますか？")) {
+                    const id = e.target.getAttribute('data-id');
+                    const { error } = await _supabase
+                        .from('posts')
+                        .update({ name: "あぼーん", message: "（削除されました）", is_deleted: true, image: "", video: "", audio: "", html_code: "", css_code: "", js_code: "", link_url: "", link_title: "" })
+                        .eq('id', id);
+
+                    if (error) {
+                        alert("削除に失敗しました。");
+                    } else {
+                        renderActiveThread();
+                    }
+                }
+            }
+        });
+
+        // スレッド全体の削除
+        document.getElementById('btnDeleteThread').addEventListener('click', async () => {
+            if (confirm("このスレッドおよび含まれるすべての書き込みを完全に削除しますか？")) {
+                const { error } = await _supabase
+                    .from('posts')
+                    .delete()
+                    .eq('thread_id', activeThreadId);
+
+                if (error) {
+                    alert("スレッドの削除に失敗しました。");
+                } else {
+                    activeThreadId = null;
+                    window.location.hash = "";
+                    showScreen('lobby');
+                }
+            }
+        });
+
+        // 共有リンク取得
         document.getElementById('btnShare').addEventListener('click', () => {
             const baseUrl = window.location.href.split('#')[0];
             const shareUrl = `${baseUrl}#${activeThreadId}`;
-            
             navigator.clipboard.writeText(shareUrl).then(() => {
-                alert(`リンクをクリップボードにコピーしました！\nスマホや別のパソコンからアクセスしてみてください。\n\nURL: ${shareUrl}`);
+                alert(`リンクをクリップボードにコピーしました！\n別のスマホやPCからアクセスしてみてください。\n\nURL: ${shareUrl}`);
             }).catch(() => {
                 prompt('以下のURLをコピーして共有してください：', shareUrl);
             });
         });
 
-        // ハッシュ（URLの#以降）の変化を監視
+        // URLハッシュ監視
         window.addEventListener('hashchange', () => {
             const hash = window.location.hash.substring(1);
-            if (hash) {
-                activeThreadId = hash;
-                showScreen('thread');
-            } else {
-                showScreen('lobby');
-            }
+            if (hash) { activeThreadId = hash; showScreen('thread'); } else { showScreen('lobby'); }
         });
 
         window.addEventListener('DOMContentLoaded', () => {
             const hash = window.location.hash.substring(1);
-            if (hash) {
-                activeThreadId = hash;
-                showScreen('thread');
-            } else {
-                showScreen('lobby');
-            }
+            if (hash) { activeThreadId = hash; showScreen('thread'); } else { showScreen('lobby'); }
         });
     </script>
 </body>
