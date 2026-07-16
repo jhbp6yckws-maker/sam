@@ -256,8 +256,10 @@
                             <input type="file" id="mediaFile" accept="image/*,video/*,audio/*">
                         </div>
                         <div class="form-row" style="margin-bottom: 10px;">
-                            <button type="button" class="btn" id="btnStartCamPhoto">📷 写真撮影</button>
-                            <button type="button" class="btn" id="btnStartCamVideo">🎥 動画撮影(最大30秒)</button>
+                            <button type="button" class="btn" id="btnStartCamPhotoUser">📷 写真 (内カメラ)</button>
+                            <button type="button" class="btn" id="btnStartCamPhotoEnv">📷 写真 (外カメラ)</button>
+                            <button type="button" class="btn" id="btnStartCamVideoUser">🎥 動画 (内カメラ・最大30s)</button>
+                            <button type="button" class="btn" id="btnStartCamVideoEnv">🎥 動画 (外カメラ・最大30s)</button>
                             <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 録音(最大60秒)</button>
                         </div>
                     </div>
@@ -265,8 +267,8 @@
                     <div id="cameraArea" class="media-capture-area hidden">
                         <video id="webcam" autoplay playsinline muted></video><br>
                         <div id="recTimer" class="recording-timer hidden">🔴 REC: 0秒 / 30秒</div>
-                        <button type="button" class="btn" id="btnShutter">📸 撮影する</button>
-                        <button type="button" class="btn hidden" id="btnStartVideoRec" style="color: red;">🔴 撮影開始</button>
+                        <button type="button" class="btn" id="btnShutter">📸 写真を撮影する</button>
+                        <button type="button" class="btn hidden" id="btnStartVideoRec" style="color: red;">🔴 動画撮影スタート</button>
                         <button type="button" class="btn hidden" id="btnStopVideoRec">■ 停止</button>
                         <button type="button" class="btn" id="btnStopCamera">中止</button>
                         <canvas id="captureCanvas" class="hidden"></canvas>
@@ -342,16 +344,18 @@
             reader.readAsDataURL(file);
         });
 
-        // --- カメラ起動（写真 or 動画兼用） ---
-        async function startCamera(forVideo = false) {
+        // --- カメラ起動（内カメラ・外カメラ / 写真・動画兼用） ---
+        async function startCamera(facingMode, forVideo = false) {
             stopCamera(); stopAudio(); clearAttachments();
             try {
-                // 動画の場合はマイク(audio)も一緒に起動
-                const constraints = { video: { facingMode: "user" }, audio: forVideo };
+                const constraints = { 
+                    video: { facingMode: facingMode }, 
+                    audio: forVideo 
+                };
                 cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
                 const videoEl = document.getElementById('webcam');
                 videoEl.srcObject = cameraStream;
-                videoEl.muted = !forVideo; // 録画中はハウリング防止のため自身の音はミュート
+                videoEl.muted = !forVideo; // 録画中のループハウリング防止
 
                 document.getElementById('cameraArea').classList.remove('hidden');
 
@@ -367,13 +371,16 @@
                     document.getElementById('btnStopVideoRec').classList.add('hidden');
                     document.getElementById('recTimer').classList.add('hidden');
                 }
-            } catch (e) { alert("カメラ・マイクの起動に失敗しました。カメラの使用を許可してください。"); }
+            } catch (e) { alert("カメラ・マイクの起動に失敗しました。カメラ使用を許可してください。"); }
         }
 
-        document.getElementById('btnStartCamPhoto').addEventListener('click', () => startCamera(false));
-        document.getElementById('btnStartCamVideo').addEventListener('click', () => startCamera(true));
+        // カメラボタンのイベント登録
+        document.getElementById('btnStartCamPhotoUser').addEventListener('click', () => startCamera("user", false));
+        document.getElementById('btnStartCamPhotoEnv').addEventListener('click', () => startCamera("environment", false));
+        document.getElementById('btnStartCamVideoUser').addEventListener('click', () => startCamera("user", true));
+        document.getElementById('btnStartCamVideoEnv').addEventListener('click', () => startCamera("environment", true));
 
-        // 写真シャッター
+        // 写真撮影
         document.getElementById('btnShutter').addEventListener('click', () => {
             const canvas = document.getElementById('captureCanvas'), video = document.getElementById('webcam');
             canvas.width = video.videoWidth; canvas.height = video.videoHeight;
@@ -383,10 +390,9 @@
             stopCamera();
         });
 
-        // --- 🎥 動画撮影（最大30秒）の制御 ---
+        // 動画撮影（最大30秒）
         document.getElementById('btnStartVideoRec').addEventListener('click', () => {
             chunks = [];
-            // カメラと音声を含めたストリームから録画
             mediaRecorder = new MediaRecorder(cameraStream, { mimeType: 'video/webm;codecs=vp9,opus' });
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
             mediaRecorder.onstop = () => {
@@ -404,7 +410,6 @@
             document.getElementById('btnStartVideoRec').classList.add('hidden');
             document.getElementById('btnStopVideoRec').classList.remove('hidden');
 
-            // 30秒タイマースタート
             recordSeconds = 0;
             recordInterval = setInterval(() => {
                 recordSeconds++;
@@ -430,7 +435,7 @@
             document.getElementById('cameraArea').classList.add('hidden');
         }
 
-        // --- 🎙️ 録音（最大60秒）の制御 ---
+        // --- 🎙️ 録音（最大60秒） ---
         document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
             stopCamera(); stopAudio(); clearAttachments();
             try {
@@ -459,7 +464,6 @@
             document.getElementById('btnAudioStart').classList.add('hidden');
             document.getElementById('btnAudioStop').classList.remove('hidden');
 
-            // 60秒タイマースタート
             recordSeconds = 0;
             recordInterval = setInterval(() => {
                 recordSeconds++;
@@ -488,14 +492,12 @@
         document.getElementById('btnStopCamera').addEventListener('click', stopCamera);
         document.getElementById('btnStopAudio').addEventListener('click', stopAudio);
 
-        // モーダル
+        // モーダル設定
         const imgModal = document.getElementById('imageModal'), siteModal = document.getElementById('siteModal'), modalTargetSite = document.getElementById('modalTargetSite');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
         document.getElementById('siteModalClose').addEventListener('click', () => { siteModal.style.display = "none"; modalTargetSite.srcdoc = ""; });
 
-        // --- Supabase 読み書き処理 ---
-
-        // スレッド一覧表示
+        // --- Supabase 処理 ---
         async function fetchThreads() {
             const { data, error } = await _supabase
                 .from('posts')
@@ -537,7 +539,6 @@
             });
         }
 
-        // 個別スレッドの描画
         async function renderActiveThread() {
             const { data, error } = await _supabase
                 .from('posts')
@@ -558,7 +559,6 @@
                 const resNum = index + 1;
                 const isOp = (res.creator_secret === userSecret);
 
-                // メディアタグの作成
                 let media = "";
                 if (res.image) {
                     media = `<img src="${res.image}" class="uploaded-img">`;
@@ -568,16 +568,10 @@
                     media = `<audio src="${res.audio}" class="uploaded-audio" controls></audio>`;
                 }
 
-                // リンク
                 let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
-
-                // ミニサイト埋め込み
                 let embed = (res.html_code || res.css_code || res.js_code) ? `<div class="embed-site-container"><div class="embed-site-title">🌐 埋め込みミニサイト: <button class="btn expand-site-btn" data-id="${res.id}">🔍 拡大</button></div><iframe sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox" srcdoc="${escapeHtml(buildFullSrcdoc(res.html_code, res.css_code, res.js_code))}" class="embed-site-frame"></iframe></div>` : '';
-
-                // 訂正タグ
                 let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
 
-                // アクションボタン（削除・訂正）
                 let actions = "";
                 if (isOp && !res.is_deleted) {
                     actions = `
@@ -626,32 +620,25 @@
             }
         }
 
-        // --- フォーム送信制御（投稿 ＆ 訂正） ---
+        // フォーム処理
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const editId = document.getElementById('editPostId').value;
             const message = document.getElementById('message').value;
 
             if (editId) {
-                // 【訂正処理】
                 const { error } = await _supabase
                     .from('posts')
-                    .update({
-                        message: message,
-                        is_edited: true
-                    })
+                    .update({ message: message, is_edited: true })
                     .eq('id', editId);
 
-                if (error) {
-                    alert("訂正に失敗しました。");
-                    console.error(error);
-                } else {
+                if (error) alert("訂正に失敗しました。");
+                else {
                     alert("投稿を訂正しました。");
                     cancelEditMode();
                     renderActiveThread();
                 }
             } else {
-                // 【新規書き込み処理】
                 const name = document.getElementById('name').value.trim() || "名無しさん";
                 const subject = document.getElementById('subject').value.trim();
 
@@ -677,7 +664,6 @@
 
                 if (error) {
                     alert("書き込みに失敗しました。");
-                    console.error(error);
                     return;
                 }
 
@@ -688,7 +674,6 @@
             }
         });
 
-        // 訂正モードへの切り替え
         async function enterEditMode(id) {
             const { data, error } = await _supabase.from('posts').select('*').eq('id', id).single();
             if (error || !data) return;
@@ -697,7 +682,6 @@
             document.getElementById('message').value = data.message;
             document.getElementById('message').focus();
 
-            // 訂正中は他の入力フィールドを隠す
             document.getElementById('writeFormTitle').innerText = "✍️ 投稿を訂正中...";
             document.getElementById('subject').parentElement.classList.add('hidden');
             document.getElementById('name').parentElement.classList.add('hidden');
@@ -706,7 +690,6 @@
             document.getElementById('btnCancelEdit').classList.remove('hidden');
         }
 
-        // 訂正モードの解除
         function cancelEditMode() {
             document.getElementById('editPostId').value = "";
             document.getElementById('message').value = "";
@@ -720,7 +703,6 @@
 
         document.getElementById('btnCancelEdit').addEventListener('click', cancelEditMode);
 
-        // スレッド一覧の遷移
         document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         document.getElementById('btnBack').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         
@@ -732,7 +714,6 @@
             }
         });
 
-        // スレッド新規作成
         document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const title = document.getElementById('newThreadTitle').value.trim();
@@ -759,7 +740,6 @@
 
             if (error) {
                 alert("送信に失敗しました。");
-                console.error(error);
                 return;
             }
 
@@ -769,7 +749,6 @@
             showScreen('thread');
         });
 
-        // 掲示板内でのクリック判定（返信、削除、訂正、拡大）
         document.getElementById('resContainer').addEventListener('click', async e => {
             if (e.target.classList.contains('uploaded-img')) {
                 imgModal.style.display = "flex";
@@ -790,13 +769,10 @@
                 document.getElementById('message').focus();
             }
 
-            // ✍️ 訂正ボタンが押された時
             if (e.target.classList.contains('edit-btn')) {
-                const id = e.target.getAttribute('data-id');
-                enterEditMode(id);
+                enterEditMode(e.target.getAttribute('data-id'));
             }
 
-            // 🗑️ 削除
             if (e.target.classList.contains('delete-btn')) {
                 if (confirm("本当にこの投稿を削除しますか？")) {
                     const id = e.target.getAttribute('data-id');
@@ -811,7 +787,6 @@
             }
         });
 
-        // スレッド全体の削除
         document.getElementById('btnDeleteThread').addEventListener('click', async () => {
             if (confirm("このスレッド内のすべての書き込みを完全に削除しますか？")) {
                 const { error } = await _supabase
@@ -828,7 +803,6 @@
             }
         });
 
-        // 共有リンク取得
         document.getElementById('btnShare').addEventListener('click', () => {
             const baseUrl = window.location.href.split('#')[0];
             const shareUrl = `${baseUrl}#${activeThreadId}`;
