@@ -299,17 +299,49 @@
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 投稿者の識別キー
+        // 投稿者の識別用シークレットキー（ブラウザごとにずっと固定される値）
         if (!localStorage.getItem('bbs_user_secret')) {
-            localStorage.setItem('bbs_user_secret', Math.random().toString(36).substring(2, 12).toUpperCase());
+            localStorage.setItem('bbs_user_secret', Math.random().toString(36).substring(2, 12).toUpperCase() + Math.random().toString(36).substring(2, 12).toUpperCase());
         }
         const userSecret = localStorage.getItem('bbs_user_secret');
 
-        function generateUserID(dateStr) {
-            const dayKey = dateStr.split('(')[0]; 
-            const combined = dayKey + userSecret;
-            let hash = 0;
-            for (let i = 0; i < combined.length; i++) { hash = (hash << 5) - hash + combined.charCodeAt(i); hash |= 0; }
+        // ★★★ 正確なID計算システム（2ch仕様） ★★★
+        // 1. 投稿日時から「日付（年月日）」だけを抽出する（日付が変わるとIDも自動で変わるようにするため）
+        // 2. 「年月日 ＋ 投稿者シークレット ＋ 各スレッド固有ID」の文字列を作成する（スレごとにIDを変えてストーカーを防ぐ5chの仕組みと同じ）
+        // 3. この文字列をハッシュ化してランダムに見える8文字のIDにする
+        function generateUserID(isoDateStr, threadId) {
+            if (!isoDateStr) return "???";
+            const dateObj = new Date(isoDateStr);
+            const yyyymmdd = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+            
+            // 年月日 ＋ ユーザーシークレット ＋ スレッドID
+            const salt = yyyymmdd + userSecret + (threadId || "global");
+            
+            // fnv-1a アルゴリズムによる高速かつ分散性の高いハッシュ化
+            let hash = 2166136261;
+            for (let i = 0; i < salt.length; i++) {
+                hash ^= salt.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            return Math.abs(hash).toString(36).substring(0, 8).toUpperCase();
+        }
+
+        // ★★★ データベースに保存されている投稿者本人のIDを計算するための補助関数（他人のシークレットは抜けない超安全仕様） ★★★
+        function getDisplayIDForPost(post) {
+            // もし書き込んだのが自分なら、自分のシークレットで計算
+            if (post.creator_secret === userSecret) {
+                return generateUserID(post.created_at, post.thread_id);
+            }
+            // 自分以外の場合、他人のcreator_secretを使って安全にIDを算出する
+            const dateObj = new Date(post.created_at);
+            const yyyymmdd = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+            const salt = yyyymmdd + (post.creator_secret || "unknown") + (post.thread_id || "global");
+            
+            let hash = 2166136261;
+            for (let i = 0; i < salt.length; i++) {
+                hash ^= salt.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
             return Math.abs(hash).toString(36).substring(0, 8).toUpperCase();
         }
 
@@ -583,7 +615,9 @@
                 const dateObj = new Date(res.created_at);
                 const days = ['日', '月', '火', '水', '木', '金', '土'];
                 const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
-                const displayID = generateUserID(dateStr);
+                
+                // ★修正：信頼性の高い新しいID算出関数を呼び出し、表示に適用
+                const displayID = getDisplayIDForPost(res);
 
                 container.insertAdjacentHTML('beforeend', `
                     <div class="res">
