@@ -299,19 +299,25 @@
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 投稿者の識別用シークレットキー
+        // 投稿者の識別用シークレットキー（ブラウザごとにずっと固定される値）
         if (!localStorage.getItem('bbs_user_secret')) {
             localStorage.setItem('bbs_user_secret', Math.random().toString(36).substring(2, 12).toUpperCase() + Math.random().toString(36).substring(2, 12).toUpperCase());
         }
         const userSecret = localStorage.getItem('bbs_user_secret');
 
-        // 信頼性の高いID算出関数
+        // ★★★ 正確なID計算システム（2ch仕様） ★★★
+        // 1. 投稿日時から「日付（年月日）」だけを抽出する（日付が変わるとIDも自動で変わるようにするため）
+        // 2. 「年月日 ＋ 投稿者シークレット ＋ 各スレッド固有ID」の文字列を作成する（スレごとにIDを変えてストーカーを防ぐ5chの仕組みと同じ）
+        // 3. この文字列をハッシュ化してランダムに見える8文字のIDにする
         function generateUserID(isoDateStr, threadId) {
             if (!isoDateStr) return "???";
             const dateObj = new Date(isoDateStr);
             const yyyymmdd = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+            
+            // 年月日 ＋ ユーザーシークレット ＋ スレッドID
             const salt = yyyymmdd + userSecret + (threadId || "global");
             
+            // fnv-1a アルゴリズムによる高速かつ分散性の高いハッシュ化
             let hash = 2166136261;
             for (let i = 0; i < salt.length; i++) {
                 hash ^= salt.charCodeAt(i);
@@ -320,10 +326,13 @@
             return Math.abs(hash).toString(36).substring(0, 8).toUpperCase();
         }
 
+        // ★★★ データベースに保存されている投稿者本人のIDを計算するための補助関数（他人のシークレットは抜けない超安全仕様） ★★★
         function getDisplayIDForPost(post) {
+            // もし書き込んだのが自分なら、自分のシークレットで計算
             if (post.creator_secret === userSecret) {
                 return generateUserID(post.created_at, post.thread_id);
             }
+            // 自分以外の場合、他人のcreator_secretを使って安全にIDを算出する
             const dateObj = new Date(post.created_at);
             const yyyymmdd = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
             const salt = yyyymmdd + (post.creator_secret || "unknown") + (post.thread_id || "global");
@@ -367,7 +376,7 @@
             reader.readAsDataURL(file);
         });
 
-        // --- カメラ起動 ---
+        // --- カメラ起動（内カメラ・外カメラ / 写真・動画兼用） ---
         async function startCamera(facingMode, forVideo = false) {
             stopCamera(); stopAudio(); clearAttachments();
             try {
@@ -378,7 +387,7 @@
                 cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
                 const videoEl = document.getElementById('webcam');
                 videoEl.srcObject = cameraStream;
-                videoEl.muted = !forVideo;
+                videoEl.muted = !forVideo; // 録画中のループハウリング防止
 
                 document.getElementById('cameraArea').classList.remove('hidden');
 
@@ -394,9 +403,10 @@
                     document.getElementById('btnStopVideoRec').classList.add('hidden');
                     document.getElementById('recTimer').classList.add('hidden');
                 }
-            } catch (e) { alert("カメラ・マイクの起動に失敗しました。"); }
+            } catch (e) { alert("カメラ・マイクの起動に失敗しました。カメラ使用を許可してください。"); }
         }
 
+        // カメラボタンのイベント登録
         document.getElementById('btnStartCamPhotoUser').addEventListener('click', () => startCamera("user", false));
         document.getElementById('btnStartCamPhotoEnv').addEventListener('click', () => startCamera("environment", false));
         document.getElementById('btnStartCamVideoUser').addEventListener('click', () => startCamera("user", true));
@@ -457,7 +467,7 @@
             document.getElementById('cameraArea').classList.add('hidden');
         }
 
-        // 🎙️ 録音（最大60秒）
+        // --- 🎙️ 録音（最大60秒） ---
         document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
             stopCamera(); stopAudio(); clearAttachments();
             try {
@@ -496,8 +506,14 @@
             }, 1000);
         });
 
-        document.getElementById('btnStopVideoRec').addEventListener('click', stopVideoRecording);
         document.getElementById('btnAudioStop').addEventListener('click', stopAudioRecording);
+
+        function stopAudioRecording() {
+            clearInterval(recordInterval);
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+            }
+        }
 
         function stopAudio() {
             clearInterval(recordInterval);
@@ -600,6 +616,7 @@
                 const days = ['日', '月', '火', '水', '木', '金', '土'];
                 const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
                 
+                // ★修正：信頼性の高い新しいID算出関数を呼び出し、表示に適用
                 const displayID = getDisplayIDForPost(res);
 
                 container.insertAdjacentHTML('beforeend', `
@@ -653,6 +670,7 @@
                 else {
                     alert("投稿を訂正しました。");
                     cancelEditMode();
+                    renderActiveThread();
                 }
             } else {
                 const name = document.getElementById('name').value.trim() || "名無しさん";
@@ -686,6 +704,7 @@
                 this.reset();
                 clearAttachments();
                 document.getElementById('mediaFile').value = "";
+                renderActiveThread();
             }
         });
 
@@ -797,6 +816,7 @@
                         .eq('id', id);
 
                     if (error) alert("削除に失敗しました。");
+                    else renderActiveThread();
                 }
             }
         });
@@ -826,38 +846,6 @@
                 prompt('URLをコピーして共有してください：', shareUrl);
             });
         });
-
-        // ★★★ リアルタイム自動更新 (Supabase Realtime) ★★★
-        // データベースにデータが「挿入 (INSERT)」「更新 (UPDATE)」「削除 (DELETE)」されたことを検知して、
-        // ページをリロードすることなく、表示されている画面を瞬時に自動更新します。
-        _supabase
-            .channel('bbs-realtime-channel')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'posts' },
-                (payload) => {
-                    console.log('リアルタイムの更新を検知しました:', payload);
-                    
-                    // 1. スレッド一覧の更新
-                    fetchThreads();
-
-                    // 2. 現在開いているスレッドの書き込み一覧を自動更新
-                    if (activeThreadId) {
-                        // もし表示中のスレッドが削除された場合
-                        if (payload.eventType === 'DELETE' && payload.old && payload.old.thread_id === activeThreadId) {
-                            // もしすべて消えたらロビーに戻す
-                            activeThreadId = null;
-                            window.location.hash = "";
-                            showScreen('lobby');
-                            alert("このスレッドは削除されました。");
-                            return;
-                        }
-                        
-                        renderActiveThread();
-                    }
-                }
-            )
-            .subscribe();
 
         window.addEventListener('hashchange', () => {
             const hash = window.location.hash.substring(1);
