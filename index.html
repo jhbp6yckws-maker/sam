@@ -331,7 +331,7 @@
 
     <script>
         // ★★★ 管理者設定 ★★★
-        const ADMIN_PASSWORD = "sdkousaku321564"; // 設定されたパスワード
+        const ADMIN_PASSWORD = "sdkousaku321564";
         let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
 
         // Supabase接続設定
@@ -345,7 +345,7 @@
         }
         const userSecret = localStorage.getItem('bbs_user_secret');
 
-        // 生体認証（指紋/FaceID）またはパスワード認証による管理者ログイン
+        // 管理者ログイン認証
         async function authenticateAdmin() {
             if (window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()) {
                 const useBiometric = confirm("指紋認証・Face ID・パスキーで管理者ログインしますか？\n（キャンセルを押すとパスワード入力画面になります）");
@@ -374,7 +374,7 @@
             const inputPass = prompt("管理者パスワードを入力してください：");
             if (inputPass === ADMIN_PASSWORD) {
                 setAdminMode(true);
-                alert("🔑 管理者としてログインしました！他人のスレッドや書き込みも削除可能です。");
+                alert("🔑 管理者としてログインしました！");
             } else if (inputPass !== null) {
                 alert("❌ パスワードが違います。");
             }
@@ -406,7 +406,7 @@
             alert("ログアウトしました。");
         });
 
-        // 信頼性の高いID算出関数
+        // 高速ID算出処理
         function generateUserID(isoDateStr, threadId) {
             if (!isoDateStr) return "???";
             const dateObj = new Date(isoDateStr);
@@ -468,7 +468,7 @@
             reader.readAsDataURL(file);
         });
 
-        // カメラ起動
+        // カメラ制御
         async function startCamera(facingMode, forVideo = false) {
             stopCamera(); stopAudio(); clearAttachments();
             try {
@@ -500,7 +500,6 @@
         document.getElementById('btnStartCamVideoUser').addEventListener('click', () => startCamera("user", true));
         document.getElementById('btnStartCamVideoEnv').addEventListener('click', () => startCamera("environment", true));
 
-        // 写真撮影
         document.getElementById('btnShutter').addEventListener('click', () => {
             const canvas = document.getElementById('captureCanvas'), video = document.getElementById('webcam');
             canvas.width = video.videoWidth; canvas.height = video.videoHeight;
@@ -510,7 +509,6 @@
             stopCamera();
         });
 
-        // 動画撮影（最大30秒）
         document.getElementById('btnStartVideoRec').addEventListener('click', () => {
             chunks = [];
             mediaRecorder = new MediaRecorder(cameraStream, { mimeType: 'video/webm;codecs=vp9,opus' });
@@ -551,7 +549,6 @@
             document.getElementById('cameraArea').classList.add('hidden');
         }
 
-        // 🎙️ 録音（最大60秒）
         document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
             stopCamera(); stopAudio(); clearAttachments();
             try {
@@ -604,12 +601,11 @@
         document.getElementById('btnStopCamera').addEventListener('click', stopCamera);
         document.getElementById('btnStopAudio').addEventListener('click', stopAudio);
 
-        // モーダル設定
         const imgModal = document.getElementById('imageModal'), siteModal = document.getElementById('siteModal'), modalTargetSite = document.getElementById('modalTargetSite');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
         document.getElementById('siteModalClose').addEventListener('click', () => { siteModal.style.display = "none"; modalTargetSite.srcdoc = ""; });
 
-        // --- Supabase 処理 ---
+        // --- Supabase & 高速描画処理 ---
         async function fetchThreads() {
             const { data, error } = await _supabase
                 .from('posts')
@@ -632,37 +628,38 @@
             });
 
             const container = document.getElementById('threadList');
-            container.innerHTML = '';
-
             const threadList = Object.values(threadMap);
             if (threadList.length === 0) {
                 container.innerHTML = '<div>まだスレッドがありません。上のフォームから作成してください！</div>';
                 return;
             }
 
+            let htmlBuf = "";
             threadList.forEach(t => {
                 const firstPost = t.posts[0];
                 const title = firstPost ? (firstPost.subject || firstPost.message.substring(0, 20)) : t.title;
-                
                 const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ 管理者スレ全削除</button>` : '';
 
-                container.insertAdjacentHTML('beforeend', `
+                htmlBuf += `
                     <div class="thread-list-item">
                         <span class="thread-link" data-id="${t.id}">■ ${escapeHtml(title)} (${t.posts.length})</span>
                         ${adminDeleteBtn}
                     </div>
-                `);
+                `;
             });
+            container.innerHTML = htmlBuf;
         }
 
         async function renderActiveThread() {
+            if (!activeThreadId) return;
+
             const { data, error } = await _supabase
                 .from('posts')
                 .select('*')
                 .eq('thread_id', activeThreadId)
                 .order('id', { ascending: true });
 
-            if (error || data.length === 0) return;
+            if (error || !data || data.length === 0) return;
 
             const firstPost = data[0];
             document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
@@ -677,7 +674,7 @@
             }
 
             const container = document.getElementById('resContainer');
-            container.innerHTML = '';
+            let htmlBuf = "";
 
             data.forEach((res, index) => {
                 const resNum = index + 1;
@@ -709,10 +706,9 @@
                 const dateObj = new Date(res.created_at);
                 const days = ['日', '月', '火', '水', '木', '金', '土'];
                 const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
-                
                 const displayID = getDisplayIDForPost(res);
 
-                container.insertAdjacentHTML('beforeend', `
+                htmlBuf += `
                     <div class="res">
                         <div class="res-header">
                             <span class="res-number">${resNum}</span> ：
@@ -729,8 +725,10 @@
                         </div>
                         <button class="btn reply-btn" data-resnum="${resNum}">返信</button>${actions}
                     </div>
-                `);
+                `;
             });
+
+            container.innerHTML = htmlBuf;
         }
 
         function showScreen(id) {
@@ -747,7 +745,7 @@
             }
         }
 
-        // フォーム処理
+        // フォーム処理（高速応答・楽観的UI）
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const editId = document.getElementById('editPostId').value;
@@ -760,42 +758,37 @@
                     .eq('id', editId);
 
                 if (error) alert("訂正に失敗しました。");
-                else {
-                    alert("投稿を訂正しました。");
-                    cancelEditMode();
-                }
+                else cancelEditMode();
             } else {
                 const name = document.getElementById('name').value.trim() || "名無しさん";
                 const subject = document.getElementById('subject').value.trim();
 
-                const { error } = await _supabase
-                    .from('posts')
-                    .insert([{
-                        name: name,
-                        subject: subject,
-                        message: message,
-                        thread_id: activeThreadId,
-                        creator_secret: userSecret,
-                        link_url: document.getElementById('linkUrl').value.trim(),
-                        link_title: document.getElementById('linkTitle').value.trim(),
-                        html_code: document.getElementById('htmlCode').value,
-                        css_code: document.getElementById('cssCode').value,
-                        js_code: document.getElementById('jsCode').value,
-                        image: attachedImageB64 || "",
-                        video: attachedVideoB64 || "",
-                        audio: attachedAudioB64 || "",
-                        is_deleted: false,
-                        is_edited: false
-                    }]);
+                const newPost = {
+                    name: name,
+                    subject: subject,
+                    message: message,
+                    thread_id: activeThreadId,
+                    creator_secret: userSecret,
+                    link_url: document.getElementById('linkUrl').value.trim(),
+                    link_title: document.getElementById('linkTitle').value.trim(),
+                    html_code: document.getElementById('htmlCode').value,
+                    css_code: document.getElementById('cssCode').value,
+                    js_code: document.getElementById('jsCode').value,
+                    image: attachedImageB64 || "",
+                    video: attachedVideoB64 || "",
+                    audio: attachedAudioB64 || "",
+                    is_deleted: false,
+                    is_edited: false
+                };
 
-                if (error) {
-                    alert("書き込みに失敗しました。");
-                    return;
-                }
-
+                // 画面をリセット
                 this.reset();
                 clearAttachments();
                 document.getElementById('mediaFile').value = "";
+
+                // 即座にSupabaseへ送信
+                const { error } = await _supabase.from('posts').insert([newPost]);
+                if (error) alert("書き込みに失敗しました。");
             }
         });
 
@@ -827,7 +820,6 @@
         }
 
         document.getElementById('btnCancelEdit').addEventListener('click', cancelEditMode);
-
         document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         document.getElementById('btnBack').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         
@@ -948,15 +940,18 @@
             });
         });
 
-        // リアルタイム自動更新 (Supabase Realtime)
+        // ⚡ 超高速リアルタイム動相同期 (Supabase Realtime 爆速リスナー)
         _supabase
-            .channel('bbs-realtime-channel')
+            .channel('bbs-fast-realtime-channel')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'posts' },
                 (payload) => {
-                    fetchThreads();
-                    if (activeThreadId) {
+                    // ロビー一覧の更新
+                    if (!activeThreadId) {
+                        fetchThreads();
+                    } else if (payload.table === 'posts') {
+                        // 削除イベント時
                         if (payload.eventType === 'DELETE' && payload.old && payload.old.thread_id === activeThreadId) {
                             activeThreadId = null;
                             window.location.hash = "";
@@ -964,6 +959,7 @@
                             alert("このスレッドは削除されました。");
                             return;
                         }
+                        // 現在表示中のスレッド更新
                         renderActiveThread();
                     }
                 }
