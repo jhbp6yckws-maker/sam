@@ -94,6 +94,18 @@
         }
         .res-attached-link a { color: #0066CC; font-weight: bold; text-decoration: underline; }
         
+        /* YouTube 埋め込み用スタイル */
+        .youtube-embed-container {
+            margin-top: 10px;
+            max-width: 480px;
+            width: 100%;
+        }
+        .youtube-embed-frame {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            border: none;
+        }
+
         .btn {
             font-size: 12px;
             padding: 4px 10px;
@@ -208,7 +220,7 @@
                     </div>
                     <div class="form-row" style="margin-bottom: 10px;">
                         <label for="firstMessage">最初の本文 :</label>
-                        <textarea id="firstMessage" placeholder="スレッドの解説など" required></textarea>
+                        <textarea id="firstMessage" placeholder="スレッドの解説やYouTubeのURLなど" required></textarea>
                     </div>
                     <div class="form-row" style="margin-bottom: 10px;">
                         <label for="threadLinkUrl">リンクURL :</label>
@@ -264,7 +276,7 @@
                         <input type="text" id="name" placeholder="名無しさん">
                     </div>
                     <div class="form-row" style="margin-bottom: 10px;">
-                        <textarea id="message" placeholder="本文を入力してください" required></textarea>
+                        <textarea id="message" placeholder="本文を入力してください (YouTube URLで自動埋め込み)" required></textarea>
                     </div>
                     
                     <div id="mediaFieldsGroup">
@@ -467,7 +479,33 @@
         let recordSeconds = 0, recordInterval = null;
 
         function escapeHtml(str) { return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : ''; }
-        function convertLinksAndAnchors(raw) { let html = escapeHtml(raw).replace(/&gt;&gt;(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>'); return html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>').replace(/\n/g, '<br>'); }
+        
+        // 🎬 YouTube URLを検知して埋め込みプレイヤータグを生成する関数
+        function parseYouTubeEmbeds(rawText) {
+            const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/g;
+            let match;
+            let embedsHtml = "";
+            const matchedIds = new Set();
+
+            while ((match = ytRegex.exec(rawText)) !== null) {
+                const videoId = match[1];
+                if (!matchedIds.has(videoId)) {
+                    matchedIds.add(videoId);
+                    embedsHtml += `
+                        <div class="youtube-embed-container">
+                            <iframe class="youtube-embed-frame" src="https://www.youtube.com/embed/${videoId}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    `;
+                }
+            }
+            return embedsHtml;
+        }
+
+        function convertLinksAndAnchors(raw) { 
+            let html = escapeHtml(raw).replace(/&gt;&gt;(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>'); 
+            return html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>').replace(/\n/g, '<br>'); 
+        }
+
         function buildFullSrcdoc(h, c, j) { return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:10px;font-family:sans-serif;}${c||''}</style></head><body>${h||''}<script>try{${j||''}}catch(e){console.error(e)}<\/script></body></html>`; }
         function clearAttachments() { attachedImageB64 = null; attachedVideoB64 = null; attachedAudioB64 = null; document.getElementById('attachmentPreview').innerText = ""; }
 
@@ -630,7 +668,7 @@
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
         document.getElementById('siteModalClose').addEventListener('click', () => { siteModal.style.display = "none"; modalTargetSite.srcdoc = ""; });
 
-        // --- Supabase & 超高速データ更新処理 ---
+        // --- Supabase & データ取得処理 ---
         async function fetchThreads() {
             const { data, error } = await _supabase
                 .from('posts')
@@ -717,6 +755,10 @@
 
                 let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
                 let embed = (res.html_code || res.css_code || res.js_code) ? `<div class="embed-site-container"><div class="embed-site-title">🌐 埋め込みミニサイト: <button class="btn expand-site-btn" data-id="${res.id}">🔍 拡大</button></div><iframe sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox" srcdoc="${escapeHtml(buildFullSrcdoc(res.html_code, res.css_code, res.js_code))}" class="embed-site-frame"></iframe></div>` : '';
+                
+                // 🎬 YouTubeプレイヤーの自動解析＆挿入
+                let ytEmbeds = res.is_deleted ? '' : parseYouTubeEmbeds(res.message);
+
                 let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
 
                 let actions = "";
@@ -745,6 +787,7 @@
                         <div class="res-body">
                             ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
                             <span id="text-body-${res.id}">${res.is_deleted ? '（削除されました）' : convertLinksAndAnchors(res.message)}</span>
+                            ${ytEmbeds}
                             ${res.is_deleted ? '' : link}
                             ${res.is_deleted ? '' : media}
                             ${res.is_deleted ? '' : embed}
@@ -772,7 +815,7 @@
             }
         }
 
-        // 🚀 爆速投稿フォーム処理
+        // 投稿フォーム処理
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('btnSubmitPost');
@@ -821,7 +864,6 @@
                     clearAttachments();
                     document.getElementById('mediaFile').value = "";
 
-                    // レスポンスのデータ軽量化（select: idのみ取得）
                     const { error } = await _supabase.from('posts').insert([newPost]).select('id');
                     if (error) alert("書き込みに失敗しました。");
                     else {
@@ -996,7 +1038,7 @@
             });
         });
 
-        // ⚡ WebSocketによる即時更新リスナー
+        // ⚡ Realtime Channel
         _supabase
             .channel('bbs-fast-realtime-channel')
             .on(
@@ -1012,7 +1054,7 @@
             )
             .subscribe();
 
-        // ⚡ 1.5秒間隔の自動ポーリング
+        // ⚡ 1.5秒ごとのポーリング
         setInterval(() => {
             if (activeThreadId) {
                 renderActiveThread();
