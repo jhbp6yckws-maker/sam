@@ -665,16 +665,23 @@
 
         async function renderActiveThread() {
             if (!activeThreadId) return;
+            
+            // ★ リクエスト開始時のターゲットスレッドIDを保持
+            const targetThreadId = activeThreadId;
 
             const { data, error } = await _supabase
                 .from('posts')
                 .select('*')
-                .eq('thread_id', activeThreadId)
+                .eq('thread_id', targetThreadId)
                 .order('id', { ascending: true });
+
+            // ★ データ取得中に別のスレッドに切り替わった場合は描画をスキップ（残像防止）
+            if (targetThreadId !== activeThreadId) return;
 
             if (error || !data || data.length === 0) return;
 
-            const currentHash = data.length + "_" + (data[data.length - 1]?.is_edited ? '1' : '0') + "_" + (data[data.length - 1]?.is_deleted ? '1' : '0');
+            // ★ ハッシュ値に activeThreadId も含めて判定
+            const currentHash = targetThreadId + "_" + data.length + "_" + (data[data.length - 1]?.is_edited ? '1' : '0') + "_" + (data[data.length - 1]?.is_deleted ? '1' : '0');
             if (lastRenderHash === currentHash) return;
             lastRenderHash = currentHash;
 
@@ -756,7 +763,7 @@
             cancelEditMode();
             lastRenderHash = "";
 
-            // ★ 画面遷移の瞬間に前スレッドの残像を即時消去する
+            // ★ 画面表示切り替え時にコンテンツを即時初期化
             document.getElementById('resContainer').innerHTML = "";
             document.getElementById('activeThreadTitle').innerText = "読み込み中...";
 
