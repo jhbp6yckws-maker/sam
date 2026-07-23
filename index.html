@@ -160,23 +160,38 @@
         }
         .form-title { font-weight: bold; margin-bottom: 10px; font-size: 14px; }
         .form-box label { display: inline-block; width: 75px; }
-        input[type="text"], select, textarea { padding: 4px; box-sizing: border-box; }
+        input[type="text"], select { padding: 4px; box-sizing: border-box; }
         input[type="text"] { width: 80%; }
-        textarea { width: 100%; height: 100px; }
         
-        /* フォント・文字色設定エリア */
-        .style-selector-bar {
-            background-color: #F7F7F7;
-            border: 1px solid #DDDDDD;
-            padding: 8px;
+        /* リッチテキスト入力領域 */
+        .editor-container {
+            border: 1px solid #CCCCCC;
+            background: #FFFFFF;
             margin-bottom: 10px;
+        }
+        .editor-toolbar {
+            background-color: #F7F7F7;
+            border-bottom: 1px solid #DDDDDD;
+            padding: 6px;
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
             font-size: 12px;
         }
-        .style-selector-bar label { width: auto !important; font-weight: bold; }
+        .editor-toolbar label { width: auto !important; font-weight: bold; }
+        .editor-body {
+            min-height: 100px;
+            padding: 8px;
+            outline: none;
+            overflow-y: auto;
+            line-height: 1.5;
+            font-size: 16px;
+        }
+        .editor-body[placeholder]:empty:before {
+            content: attr(placeholder);
+            color: #AAAAAA;
+        }
 
         .media-capture-area {
             border: 1px dashed #666; padding: 10px; margin-top: 10px;
@@ -225,7 +240,33 @@
                     </div>
                     <div class="form-row" style="margin-bottom: 10px;">
                         <label for="firstMessage">最初の本文 :</label>
-                        <textarea id="firstMessage" placeholder="スレッドの解説やYouTubeのURLなど" required></textarea>
+                        <div class="editor-container">
+                            <div class="editor-toolbar">
+                                <div>
+                                    <label>🎨 色:</label>
+                                    <select id="lobbyFmtColor">
+                                        <option value="">黒(標準)</option>
+                                        <option value="red" style="color:red;">赤色</option>
+                                        <option value="blue" style="color:blue;">青色</option>
+                                        <option value="green" style="color:green;">緑色</option>
+                                        <option value="purple" style="color:purple;">紫色</option>
+                                        <option value="orange" style="color:orange;">橙色</option>
+                                        <option value="deeppink" style="color:deeppink;">ピンク</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label>🔤 書体:</label>
+                                    <select id="lobbyFmtFont">
+                                        <option value="">標準(ゴシック)</option>
+                                        <option value="'Shippori Mincho', serif">明朝体</option>
+                                        <option value="'M PLUS Rounded 1c', sans-serif">ポップ体</option>
+                                        <option value="'Kiwi Maru', cursive">手書き風</option>
+                                        <option value="monospace">等幅</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="firstMessage" class="editor-body" contenteditable="true" placeholder="スレッドの解説やYouTubeのURLなど"></div>
+                        </div>
                     </div>
                     <div class="form-row" style="margin-bottom: 10px;">
                         <label for="threadLinkUrl">リンクURL :</label>
@@ -269,41 +310,40 @@
                         <input type="text" id="name" placeholder="名無しさん">
                     </div>
 
-                    <div class="style-selector-bar">
-                        <div>
-                            <label>🎨 文字色:</label>
-                            <select id="fmtColor">
-                                <option value="">標準(黒)</option>
-                                <option value="red" style="color:red;">赤色</option>
-                                <option value="blue" style="color:blue;">青色</option>
-                                <option value="green" style="color:green;">緑色</option>
-                                <option value="purple" style="color:purple;">紫色</option>
-                                <option value="orange" style="color:orange;">橙色</option>
-                                <option value="pink" style="color:deeppink;">ピンク</option>
-                            </select>
+                    <div class="editor-container">
+                        <div class="editor-toolbar">
+                            <div>
+                                <label>🎨 文字色:</label>
+                                <select id="fmtColor">
+                                    <option value="">黒(標準)</option>
+                                    <option value="red" style="color:red;">赤色</option>
+                                    <option value="blue" style="color:blue;">青色</option>
+                                    <option value="green" style="color:green;">緑色</option>
+                                    <option value="purple" style="color:purple;">紫色</option>
+                                    <option value="orange" style="color:orange;">橙色</option>
+                                    <option value="deeppink" style="color:deeppink;">ピンク</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>🔤 書体:</label>
+                                <select id="fmtFont">
+                                    <option value="">標準(ゴシック)</option>
+                                    <option value="'Shippori Mincho', serif">明朝体</option>
+                                    <option value="'M PLUS Rounded 1c', sans-serif">ポップ体</option>
+                                    <option value="'Kiwi Maru', cursive">手書き風</option>
+                                    <option value="monospace">等幅</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>📏 サイズ:</label>
+                                <select id="fmtSize">
+                                    <option value="3">標準</option>
+                                    <option value="5">大</option>
+                                    <option value="6">特大</option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label>🔤 書体:</label>
-                            <select id="fmtFont">
-                                <option value="">標準(ゴシック)</option>
-                                <option value="mincho">明朝体</option>
-                                <option value="pop">ポップ体/丸ゴ</option>
-                                <option value="hand">手書き風</option>
-                                <option value="mono">等幅(コード)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label>📏 サイズ:</label>
-                            <select id="fmtSize">
-                                <option value="">標準</option>
-                                <option value="large">大</option>
-                                <option value="xlarge">特大</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <textarea id="message" placeholder="本文を入力してください" required></textarea>
+                        <div id="editorBody" class="editor-body" contenteditable="true" placeholder="本文を入力してください（文字を選択して色やフォントを個別変更できます）"></div>
                     </div>
                     
                     <div id="mediaFieldsGroup">
@@ -433,6 +473,30 @@
             alert("ログアウトしました。");
         });
 
+        // 🎨 文字装飾の一括適用処理 (選んだ文字または今後の入力に適用)
+        function applyStyleToEditor(editorId, command, value) {
+            const editor = document.getElementById(editorId);
+            editor.focus();
+            document.execCommand(command, false, value);
+        }
+
+        document.getElementById('fmtColor').addEventListener('change', function() {
+            applyStyleToEditor('editorBody', 'foreColor', this.value || '#000000');
+        });
+        document.getElementById('fmtFont').addEventListener('change', function() {
+            applyStyleToEditor('editorBody', 'fontName', this.value || 'inherit');
+        });
+        document.getElementById('fmtSize').addEventListener('change', function() {
+            applyStyleToEditor('editorBody', 'fontSize', this.value);
+        });
+
+        document.getElementById('lobbyFmtColor').addEventListener('change', function() {
+            applyStyleToEditor('firstMessage', 'foreColor', this.value || '#000000');
+        });
+        document.getElementById('lobbyFmtFont').addEventListener('change', function() {
+            applyStyleToEditor('firstMessage', 'fontName', this.value || 'inherit');
+        });
+
         // 画像高速軽量化（リサイズ＆圧縮）処理
         function compressImage(base64Str, maxWidth = 800, quality = 0.5) {
             return new Promise((resolve) => {
@@ -494,6 +558,15 @@
 
         function escapeHtml(str) { return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : ''; }
         
+        // 安全なHTMLクリーンナップ
+        function sanitizeHtml(html) {
+            const template = document.createElement('div');
+            template.innerHTML = html;
+            const scripts = template.querySelectorAll('script, iframe, object, embed');
+            scripts.forEach(s => s.remove());
+            return template.innerHTML;
+        }
+
         // 🎬 YouTube URLを検知して埋め込みプレイヤータグを生成する関数
         function parseYouTubeEmbeds(rawText) {
             const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/g;
@@ -515,28 +588,10 @@
             return embedsHtml;
         }
 
-        // 🎨 文字装飾BBコードをHTMLスタイルタグへ安全に変換
-        function parseCustomFormatting(escapedText) {
-            let res = escapedText;
-            
-            res = res.replace(/\[color=(red|blue|green|purple|orange|pink)\](.*?)\[\/color\]/gis, '<span style="color:$1;">$2</span>');
-            
-            const fontMap = { mincho: 'ff-mincho', pop: 'ff-pop', hand: 'ff-hand', mono: 'ff-mono' };
-            res = res.replace(/\[font=(mincho|pop|hand|mono)\](.*?)\[\/font\]/gis, (match, fKey, content) => {
-                return `<span class="${fontMap[fKey]}">${content}</span>`;
-            });
-
-            res = res.replace(/\[size=large\](.*?)\[\/size\]/gis, '<span style="font-size: 1.25em; font-weight: bold;">$1</span>');
-            res = res.replace(/\[size=xlarge\](.*?)\[\/size\]/gis, '<span style="font-size: 1.5em; font-weight: bold;">$1</span>');
-
-            return res;
-        }
-
-        function convertLinksAndAnchors(raw) { 
-            let html = escapeHtml(raw);
-            html = parseCustomFormatting(html);
+        function convertLinksAndAnchors(htmlContent) { 
+            let html = sanitizeHtml(htmlContent);
             html = html.replace(/&gt;&gt;(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>'); 
-            return html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>').replace(/\n/g, '<br>'); 
+            return html; 
         }
 
         function clearAttachments() { attachedImageB64 = null; attachedVideoB64 = null; attachedAudioB64 = null; document.getElementById('attachmentPreview').innerText = ""; }
@@ -859,23 +914,21 @@
             submitBtn.innerText = "送信中...";
 
             const editId = document.getElementById('editPostId').value;
-            let rawMessage = document.getElementById('message').value;
+            const editorEl = document.getElementById('editorBody');
+            const messageHtml = editorEl.innerHTML.trim();
 
-            // 🎨 ドロップダウンの選択値を読み込んで自動で装飾を適用
-            const selectedColor = document.getElementById('fmtColor').value;
-            const selectedFont = document.getElementById('fmtFont').value;
-            const selectedSize = document.getElementById('fmtSize').value;
-
-            let formattedMessage = rawMessage;
-            if (selectedColor) formattedMessage = `[color=${selectedColor}]${formattedMessage}[/color]`;
-            if (selectedFont) formattedMessage = `[font=${selectedFont}]${formattedMessage}[/font]`;
-            if (selectedSize) formattedMessage = `[size=${selectedSize}]${formattedMessage}[/size]`;
+            if (!messageHtml) {
+                alert("本文を入力してください。");
+                submitBtn.disabled = false;
+                submitBtn.innerText = editId ? "訂正内容を保存する" : "書き込む";
+                return;
+            }
 
             try {
                 if (editId) {
                     const { error } = await _supabase
                         .from('posts')
-                        .update({ message: formattedMessage, is_edited: true })
+                        .update({ message: messageHtml, is_edited: true })
                         .eq('id', editId);
 
                     if (error) alert("訂正に失敗しました。");
@@ -891,7 +944,7 @@
                     const newPost = {
                         name: name,
                         subject: subject,
-                        message: formattedMessage,
+                        message: messageHtml,
                         thread_id: activeThreadId,
                         creator_secret: userSecret,
                         link_url: document.getElementById('linkUrl').value.trim(),
@@ -904,6 +957,7 @@
                     };
 
                     this.reset();
+                    editorEl.innerHTML = "";
                     clearAttachments();
                     document.getElementById('mediaFile').value = "";
 
@@ -925,11 +979,8 @@
             if (error || !data) return;
 
             document.getElementById('editPostId').value = id;
-            
-            // タグを取り去ったプレーンテキストを編集欄に表示
-            let cleanMsg = data.message.replace(/\[\/?(color|font|size)[^\]]*\]/gi, '');
-            document.getElementById('message').value = cleanMsg;
-            document.getElementById('message').focus();
+            document.getElementById('editorBody').innerHTML = data.message;
+            document.getElementById('editorBody').focus();
 
             document.getElementById('writeFormTitle').innerText = "✍️ 投稿を訂正中...";
             document.getElementById('subject').parentElement.classList.add('hidden');
@@ -941,7 +992,7 @@
 
         function cancelEditMode() {
             document.getElementById('editPostId').value = "";
-            document.getElementById('message').value = "";
+            document.getElementById('editorBody').innerHTML = "";
             document.getElementById('writeFormTitle').innerText = "このスレッドに書き込む";
             document.getElementById('subject').parentElement.classList.remove('hidden');
             document.getElementById('name').parentElement.classList.remove('hidden');
@@ -979,7 +1030,15 @@
 
             const title = document.getElementById('newThreadTitle').value.trim();
             const name = document.getElementById('creatorName').value.trim() || "名無しさん";
-            const message = document.getElementById('firstMessage').value;
+            const message = document.getElementById('firstMessage').innerHTML.trim();
+            
+            if (!message) {
+                alert("最初の本文を入力してください。");
+                btn.disabled = false;
+                btn.innerText = "新規スレッドを立てる";
+                return;
+            }
+
             const newThreadId = 'thread-' + Date.now();
 
             try {
@@ -1003,6 +1062,7 @@
                 }
 
                 this.reset();
+                document.getElementById('firstMessage').innerHTML = "";
                 activeThreadId = newThreadId;
                 window.location.hash = newThreadId;
                 showScreen('thread');
@@ -1019,8 +1079,9 @@
             }
 
             if (e.target.classList.contains('reply-btn')) {
-                document.getElementById('message').value += `>>${e.target.getAttribute('data-resnum')}\n`;
-                document.getElementById('message').focus();
+                const editor = document.getElementById('editorBody');
+                editor.innerHTML += `>>${e.target.getAttribute('data-resnum')}<br>`;
+                editor.focus();
             }
 
             if (e.target.classList.contains('edit-btn')) {
