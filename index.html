@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>321掲示板</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru&family=M+PLUS+Rounded+1c:wght@500&family=Shippori+Mincho&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: "ＭＳ Ｐゴシック", "MS PGothic", "ヒラギノ角ゴ Pro W3", sans-serif;
@@ -77,12 +80,19 @@
         .res-number { color: #000000; }
         .res-name { color: #008000; font-weight: bold; }
         .res-date-id { color: #666666; font-size: 12px; }
-        .res-body { font-size: 16px; margin-left: 2em; line-height: 1.4; }
+        .res-body { font-size: 16px; margin-left: 2em; line-height: 1.5; }
         .res-subject { font-weight: bold; color: #CC0000; font-size: 16px; }
         .edited-tag { color: #FF6600; font-size: 11px; font-weight: bold; margin-left: 5px; }
         .anchor { color: #0000FF; text-decoration: underline; cursor: pointer; }
         
         .res-body a { color: #0000FF; text-decoration: underline; }
+
+        /* 装飾用フォント定義クラス */
+        .ff-default { font-family: inherit; }
+        .ff-mincho { font-family: 'Shippori Mincho', "游明朝", "Yu Mincho", serif; }
+        .ff-pop { font-family: 'M PLUS Rounded 1c', "ヒラギノ丸ゴ Pro W4", sans-serif; }
+        .ff-hand { font-family: 'Kiwi Maru', cursive; }
+        .ff-mono { font-family: "Courier New", Courier, monospace; }
         
         .res-attached-link {
             margin-top: 12px;
@@ -146,13 +156,28 @@
         .form-box {
             margin-top: 20px; background-color: #FFFFFF; padding: 15px;
             border: 1px solid #CCCCCC; display: inline-block; width: 100%;
-            box-sizing: border-box; max-width: 500px;
+            box-sizing: border-box; max-width: 550px;
         }
         .form-title { font-weight: bold; margin-bottom: 10px; font-size: 14px; }
         .form-box label { display: inline-block; width: 75px; }
-        input[type="text"], textarea { width: 80%; padding: 4px; box-sizing: border-box; }
-        textarea { height: 100px; }
+        input[type="text"], select, textarea { padding: 4px; box-sizing: border-box; }
+        input[type="text"] { width: 80%; }
+        textarea { width: 100%; height: 100px; }
         
+        /* フォント・文字色ツールバー */
+        .formatting-toolbar {
+            background-color: #F7F7F7;
+            border: 1px solid #DDDDDD;
+            padding: 6px;
+            margin-bottom: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            font-size: 12px;
+        }
+        .formatting-toolbar label { width: auto !important; font-weight: bold; }
+
         .media-capture-area {
             border: 1px dashed #666; padding: 10px; margin-top: 10px;
             background: #F9F9F9; text-align: center;
@@ -243,8 +268,43 @@
                         <label for="name">名前 :</label>
                         <input type="text" id="name" placeholder="名無しさん">
                     </div>
+
+                    <div class="formatting-toolbar">
+                        <div>
+                            <label>🎨 色:</label>
+                            <select id="fmtColor">
+                                <option value="">標準(黒)</option>
+                                <option value="red" style="color:red;">赤色</option>
+                                <option value="blue" style="color:blue;">青色</option>
+                                <option value="green" style="color:green;">緑色</option>
+                                <option value="purple" style="color:purple;">紫色</option>
+                                <option value="orange" style="color:orange;">橙色</option>
+                                <option value="pink" style="color:deeppink;">ピンク</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>🔤 書体:</label>
+                            <select id="fmtFont">
+                                <option value="">標準(ゴシック)</option>
+                                <option value="mincho">明朝体</option>
+                                <option value="pop">ポップ体/丸ゴ</option>
+                                <option value="hand">手書き風</option>
+                                <option value="mono">等幅(コード)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>📏 サイズ:</label>
+                            <select id="fmtSize">
+                                <option value="">標準</option>
+                                <option value="large">大</option>
+                                <option value="xlarge">特大</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn" id="btnApplyFormat">装飾タグを挿入</button>
+                    </div>
+
                     <div class="form-row" style="margin-bottom: 10px;">
-                        <textarea id="message" placeholder="本文を入力してください (YouTube URLで自動埋め込み)" required></textarea>
+                        <textarea id="message" placeholder="本文を入力してください (選択部分に装飾タグを適用できます)" required></textarea>
                     </div>
                     
                     <div id="mediaFieldsGroup">
@@ -456,10 +516,60 @@
             return embedsHtml;
         }
 
+        // 🎨 文字装飾BBコード（[color],[font],[size]）をHTMLタグへ安全に変換
+        function parseCustomFormatting(escapedText) {
+            let res = escapedText;
+            
+            // [color=xxx]...[/color]
+            res = res.replace(/\[color=(red|blue|green|purple|orange|pink)\](.*?)\[\/color\]/gis, '<span style="color:$1;">$2</span>');
+            
+            // [font=xxx]...[/font]
+            const fontMap = { mincho: 'ff-mincho', pop: 'ff-pop', hand: 'ff-hand', mono: 'ff-mono' };
+            res = res.replace(/\[font=(mincho|pop|hand|mono)\](.*?)\[\/font\]/gis, (match, fKey, content) => {
+                return `<span class="${fontMap[fKey]}">${content}</span>`;
+            });
+
+            // [size=xxx]...[/size]
+            res = res.replace(/\[size=large\](.*?)\[\/size\]/gis, '<span style="font-size: 1.25em; font-weight: bold;">$1</span>');
+            res = res.replace(/\[size=xlarge\](.*?)\[\/size\]/gis, '<span style="font-size: 1.5em; font-weight: bold;">$1</span>');
+
+            return res;
+        }
+
         function convertLinksAndAnchors(raw) { 
-            let html = escapeHtml(raw).replace(/&gt;&gt;(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>'); 
+            let html = escapeHtml(raw);
+            html = parseCustomFormatting(html);
+            html = html.replace(/&gt;&gt;(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>'); 
             return html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>').replace(/\n/g, '<br>'); 
         }
+
+        // 🎨 ボタンクリックでテキストエリアに装飾タグを挿入
+        document.getElementById('btnApplyFormat').addEventListener('click', () => {
+            const txtArea = document.getElementById('message');
+            const color = document.getElementById('fmtColor').value;
+            const font = document.getElementById('fmtFont').value;
+            const size = document.getElementById('fmtSize').value;
+
+            if (!color && !font && !size) {
+                alert("色、書体、またはサイズのいずれかを選択してください。");
+                return;
+            }
+
+            const start = txtArea.selectionStart;
+            const end = txtArea.selectionEnd;
+            let selectedText = txtArea.value.substring(start, end) || "装飾テキスト";
+
+            let openTags = "", closeTags = "";
+
+            if (color) { openTags += `[color=${color}]`; closeTags = `[/color]` + closeTags; }
+            if (font) { openTags += `[font=${font}]`; closeTags = `[/font]` + closeTags; }
+            if (size) { openTags += `[size=${size}]`; closeTags = `[/size]` + closeTags; }
+
+            const replacement = openTags + selectedText + closeTags;
+            txtArea.value = txtArea.value.substring(0, start) + replacement + txtArea.value.substring(end);
+            txtArea.focus();
+            txtArea.setSelectionRange(start + openTags.length, start + openTags.length + selectedText.length);
+        });
 
         function clearAttachments() { attachedImageB64 = null; attachedVideoB64 = null; attachedAudioB64 = null; document.getElementById('attachmentPreview').innerText = ""; }
 
@@ -666,7 +776,6 @@
         async function renderActiveThread() {
             if (!activeThreadId) return;
             
-            // ★ リクエスト開始時のターゲットスレッドIDを保持
             const targetThreadId = activeThreadId;
 
             const { data, error } = await _supabase
@@ -675,12 +784,11 @@
                 .eq('thread_id', targetThreadId)
                 .order('id', { ascending: true });
 
-            // ★ データ取得中に別のスレッドに切り替わった場合は描画をスキップ（残像防止）
+            // データ取得中に別のスレッドに切り替わった場合は描画をキャンセルの上描画スキップ（残像完全防護）
             if (targetThreadId !== activeThreadId) return;
 
             if (error || !data || data.length === 0) return;
 
-            // ★ ハッシュ値に activeThreadId も含めて判定
             const currentHash = targetThreadId + "_" + data.length + "_" + (data[data.length - 1]?.is_edited ? '1' : '0') + "_" + (data[data.length - 1]?.is_deleted ? '1' : '0');
             if (lastRenderHash === currentHash) return;
             lastRenderHash = currentHash;
