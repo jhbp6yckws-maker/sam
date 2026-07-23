@@ -80,20 +80,13 @@
         .res-number { color: #000000; }
         .res-name { color: #008000; font-weight: bold; }
         .res-date-id { color: #666666; font-size: 12px; }
-        .res-body { font-size: 16px; margin-left: 2em; line-height: 1.5; }
+        .res-body { font-size: 16px; margin-left: 2em; line-height: 1.5; word-break: break-word; }
         .res-subject { font-weight: bold; color: #CC0000; font-size: 16px; }
         .edited-tag { color: #FF6600; font-size: 11px; font-weight: bold; margin-left: 5px; }
         .anchor { color: #0000FF; text-decoration: underline; cursor: pointer; }
         
         .res-body a { color: #0000FF; text-decoration: underline; }
 
-        /* 装飾用フォント定義クラス */
-        .ff-default { font-family: inherit; }
-        .ff-mincho { font-family: 'Shippori Mincho', "游明朝", "Yu Mincho", serif; }
-        .ff-pop { font-family: 'M PLUS Rounded 1c', "ヒラギノ丸ゴ Pro W4", sans-serif; }
-        .ff-hand { font-family: 'Kiwi Maru', cursive; }
-        .ff-mono { font-family: "Courier New", Courier, monospace; }
-        
         .res-attached-link {
             margin-top: 12px;
             padding: 6px 12px;
@@ -104,16 +97,22 @@
         }
         .res-attached-link a { color: #0066CC; font-weight: bold; text-decoration: underline; }
         
-        /* YouTube 埋め込み用スタイル */
+        /* 🎬 YouTubeプレイヤーレイヤー */
         .youtube-embed-container {
-            margin-top: 10px;
-            max-width: 480px;
+            margin-top: 12px;
+            margin-bottom: 12px;
+            max-width: 520px;
             width: 100%;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            background: #000;
         }
         .youtube-embed-frame {
             width: 100%;
             aspect-ratio: 16 / 9;
             border: none;
+            display: block;
         }
 
         .btn {
@@ -139,7 +138,7 @@
         .share-btn { color: #0066CC; font-weight: bold; }
         .delete-btn { color: #CC0000; }
         .admin-delete-btn { color: #FFFFFF; background-color: #CC0000; border-color: #990000; font-weight: bold; }
-        .edit-btn { color: #0066CC; }
+        .edit-btn { color: #0066CC; font-weight: bold; }
 
         .uploaded-img { cursor: zoom-in; transition: transform 0.2s; }
         .uploaded-img:hover { opacity: 0.8; }
@@ -157,13 +156,18 @@
             margin-top: 20px; background-color: #FFFFFF; padding: 15px;
             border: 1px solid #CCCCCC; display: inline-block; width: 100%;
             box-sizing: border-box; max-width: 550px;
+            transition: border-color 0.3s;
+        }
+        .form-box.editing-mode {
+            border: 2px solid #FF6600;
+            background-color: #FFFDF9;
         }
         .form-title { font-weight: bold; margin-bottom: 10px; font-size: 14px; }
         .form-box label { display: inline-block; width: 75px; }
         input[type="text"], select { padding: 4px; box-sizing: border-box; }
         input[type="text"] { width: 80%; }
         
-        /* リッチテキスト入力領域 */
+        /* エディタ枠 */
         .editor-container {
             border: 1px solid #CCCCCC;
             background: #FFFFFF;
@@ -181,8 +185,8 @@
         }
         .editor-toolbar label { width: auto !important; font-weight: bold; }
         .editor-body {
-            min-height: 100px;
-            padding: 8px;
+            min-height: 120px;
+            padding: 10px;
             outline: none;
             overflow-y: auto;
             line-height: 1.5;
@@ -296,7 +300,7 @@
                 <div id="resContainer"></div>
             </div>
 
-            <div class="form-box">
+            <div class="form-box" id="postFormBox">
                 <div class="form-title" id="writeFormTitle">このスレッドに書き込む</div>
                 <form id="postForm">
                     <input type="hidden" id="editPostId" value="">
@@ -343,7 +347,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div id="editorBody" class="editor-body" contenteditable="true" placeholder="本文を入力してください（文字を選択して色やフォントを個別変更できます）"></div>
+                        <div id="editorBody" class="editor-body" contenteditable="true" placeholder="本文を入力してください（文字を選択して色やフォントを部分変更できます）"></div>
                     </div>
                     
                     <div id="mediaFieldsGroup">
@@ -385,10 +389,10 @@
                         <button type="button" class="btn" id="btnStopAudio">中止</button>
                     </div>
 
-                    <div id="attachmentPreview" style="margin: 5px 0; color: #008000; font-weight: bold; font-size: 12px;"></div>
+                    <div id="attachmentPreview" style="margin: 8px 0; color: #008000; font-weight: bold; font-size: 12px;"></div>
                     
                     <button type="submit" class="btn" id="btnSubmitPost">書き込む</button>
-                    <button type="button" class="btn hidden" id="btnCancelEdit" style="background-color: #CCCCCC;">訂正をキャンセル</button>
+                    <button type="button" class="btn hidden" id="btnCancelEdit" style="background-color: #FF6600; color: white;">訂正をキャンセル</button>
                 </form>
             </div>
         </div>
@@ -473,10 +477,11 @@
             alert("ログアウトしました。");
         });
 
-        // 🎨 文字装飾の一括適用処理 (選んだ文字または今後の入力に適用)
+        // 🎨 文字装飾コマンド処理
         function applyStyleToEditor(editorId, command, value) {
             const editor = document.getElementById(editorId);
             editor.focus();
+            document.execCommand('styleWithCSS', false, true);
             document.execCommand(command, false, value);
         }
 
@@ -553,28 +558,40 @@
         let activeThreadId = null;
         let lastRenderHash = ""; 
         let attachedImageB64 = null, attachedVideoB64 = null, attachedAudioB64 = null;
+        let isMediaClearedInEdit = false; // 訂正モードで既存メディアを削除フラグ
         let cameraStream = null, audioStream = null, mediaRecorder = null, chunks = [];
         let recordSeconds = 0, recordInterval = null;
 
         function escapeHtml(str) { return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : ''; }
         
-        // 安全なHTMLクリーンナップ
-        function sanitizeHtml(html) {
-            const template = document.createElement('div');
-            template.innerHTML = html;
-            const scripts = template.querySelectorAll('script, iframe, object, embed');
+        // 安全なHTML表示用フィルタ
+        function sanitizeAndFormatHtml(html) {
+            if (!html) return '';
+            const container = document.createElement('div');
+            container.innerHTML = html;
+            
+            const scripts = container.querySelectorAll('script, iframe, object, embed');
             scripts.forEach(s => s.remove());
-            return template.innerHTML;
+
+            let cleanHtml = container.innerHTML;
+            cleanHtml = cleanHtml.replace(/&gt;&gt;(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>');
+            cleanHtml = cleanHtml.replace(/>>(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>');
+            return cleanHtml;
         }
 
-        // 🎬 YouTube URLを検知して埋め込みプレイヤータグを生成する関数
+        // 🎬 YouTube URLの自動埋め込みレイヤー生成処理
         function parseYouTubeEmbeds(rawText) {
-            const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/g;
+            if (!rawText) return "";
+            // watch?v=, youtu.be/, shorts/, embed/ に対応
+            const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/gi;
             let match;
             let embedsHtml = "";
             const matchedIds = new Set();
 
-            while ((match = ytRegex.exec(rawText)) !== null) {
+            // HTMLタグ記号などを除去して抽出
+            const plainText = rawText.replace(/<[^>]+>/g, ' ');
+
+            while ((match = ytRegex.exec(plainText)) !== null) {
                 const videoId = match[1];
                 if (!matchedIds.has(videoId)) {
                     matchedIds.add(videoId);
@@ -588,15 +605,25 @@
             return embedsHtml;
         }
 
-        function convertLinksAndAnchors(htmlContent) { 
-            let html = sanitizeHtml(htmlContent);
-            html = html.replace(/&gt;&gt;(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>'); 
-            return html; 
+        function clearAttachments() { 
+            attachedImageB64 = null; 
+            attachedVideoB64 = null; 
+            attachedAudioB64 = null; 
+            isMediaClearedInEdit = false;
+            document.getElementById('attachmentPreview').innerHTML = ""; 
         }
 
-        function clearAttachments() { attachedImageB64 = null; attachedVideoB64 = null; attachedAudioB64 = null; document.getElementById('attachmentPreview').innerText = ""; }
+        // 添付解除ボタン動作
+        function removeCurrentAttachedMedia() {
+            attachedImageB64 = "";
+            attachedVideoB64 = "";
+            attachedAudioB64 = "";
+            isMediaClearedInEdit = true;
+            document.getElementById('mediaFile').value = "";
+            document.getElementById('attachmentPreview').innerHTML = `<span style="color:#CC0000;">🗑️ 添付メディアを消去しました</span>`;
+        }
 
-        // ファイル入力
+        // ファイル添付処理
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             clearAttachments();
             const file = e.target.files[0];
@@ -605,19 +632,19 @@
             reader.onload = async function(evt) {
                 if (file.type.startsWith('image/')) {
                     attachedImageB64 = await compressImage(evt.target.result);
-                    document.getElementById('attachmentPreview').innerText = "🖼️ 画像（圧縮済）を添付しました";
+                    document.getElementById('attachmentPreview').innerHTML = "🖼️ 新しい画像（圧縮済）を添付しました";
                 } else if (file.type.startsWith('video/')) {
                     attachedVideoB64 = evt.target.result;
-                    document.getElementById('attachmentPreview').innerText = "🎥 動画ファイルを選択しました";
+                    document.getElementById('attachmentPreview').innerHTML = "🎥 新しい動画ファイルを選択しました";
                 } else if (file.type.startsWith('audio/')) {
                     attachedAudioB64 = evt.target.result;
-                    document.getElementById('attachmentPreview').innerText = "🎵 音声ファイルを選択しました";
+                    document.getElementById('attachmentPreview').innerHTML = "🎵 新しい音声ファイルを選択しました";
                 }
             };
             reader.readAsDataURL(file);
         });
 
-        // カメラ制御
+        // カメラ・音声制御
         async function startCamera(facingMode, forVideo = false) {
             stopCamera(); stopAudio(); clearAttachments();
             try {
@@ -655,7 +682,7 @@
             canvas.getContext('2d').drawImage(video, 0, 0);
             const rawB64 = canvas.toDataURL('image/jpeg', 0.6);
             attachedImageB64 = await compressImage(rawB64);
-            document.getElementById('attachmentPreview').innerText = "📸 写真を撮影して添付しました";
+            document.getElementById('attachmentPreview').innerHTML = "📸 写真を撮影して添付しました";
             stopCamera();
         });
 
@@ -668,7 +695,7 @@
                 let r = new FileReader();
                 r.onload = e => {
                     attachedVideoB64 = e.target.result;
-                    document.getElementById('attachmentPreview').innerText = "🎥 録画動画（最大30秒）を添付しました";
+                    document.getElementById('attachmentPreview').innerHTML = "🎥 録画動画（最大30秒）を添付しました";
                 };
                 r.readAsDataURL(blob);
                 stopCamera();
@@ -718,7 +745,7 @@
                 let r = new FileReader();
                 r.onload = e => {
                     attachedAudioB64 = e.target.result;
-                    document.getElementById('attachmentPreview').innerText = "🎙️ ボイスメモ（最大60秒）を添付しました";
+                    document.getElementById('attachmentPreview').innerHTML = "🎙️ ボイスメモ（最大60秒）を添付しました";
                 };
                 r.readAsDataURL(blob);
                 stopAudio();
@@ -754,7 +781,7 @@
         const imgModal = document.getElementById('imageModal');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
-        // --- Supabase & データ取得処理 ---
+        // --- データ取得・表示処理 ---
         async function fetchThreads() {
             const { data, error } = await _supabase
                 .from('posts')
@@ -811,7 +838,7 @@
 
             if (error || !data || data.length === 0) return;
 
-            const currentHash = targetThreadId + "_" + data.length + "_" + (data[data.length - 1]?.is_edited ? '1' : '0') + "_" + (data[data.length - 1]?.is_deleted ? '1' : '0');
+            const currentHash = targetThreadId + "_" + data.length + "_" + JSON.stringify(data.map(d => d.message + d.is_edited + d.is_deleted + d.image + d.video + d.audio + d.link_url));
             if (lastRenderHash === currentHash) return;
             lastRenderHash = currentHash;
 
@@ -852,7 +879,7 @@
                 let actions = "";
                 if (!res.is_deleted) {
                     if (isOp) {
-                        actions += `<button class="btn edit-btn" data-id="${res.id}">✍️ 訂正</button>`;
+                        actions += `<button class="btn edit-btn" data-id="${res.id}" data-resnum="${resNum}">✍️ 訂正</button>`;
                         actions += `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>`;
                     } else if (isAdmin) {
                         actions += `<button class="btn admin-delete-btn delete-btn" data-id="${res.id}">🗑️ 【管理者】コメント削除</button>`;
@@ -874,7 +901,7 @@
                         </div>
                         <div class="res-body">
                             ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
-                            <span id="text-body-${res.id}">${res.is_deleted ? '（削除されました）' : convertLinksAndAnchors(res.message)}</span>
+                            <div id="text-body-${res.id}">${res.is_deleted ? '（削除されました）' : sanitizeAndFormatHtml(res.message)}</div>
                             ${ytEmbeds}
                             ${res.is_deleted ? '' : link}
                             ${res.is_deleted ? '' : media}
@@ -906,7 +933,7 @@
             }
         }
 
-        // 投稿フォーム処理
+        // 投稿・訂正送信処理
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('btnSubmitPost');
@@ -917,7 +944,7 @@
             const editorEl = document.getElementById('editorBody');
             const messageHtml = editorEl.innerHTML.trim();
 
-            if (!messageHtml) {
+            if (!messageHtml || messageHtml === '<br>') {
                 alert("本文を入力してください。");
                 submitBtn.disabled = false;
                 submitBtn.innerText = editId ? "訂正内容を保存する" : "書き込む";
@@ -926,18 +953,33 @@
 
             try {
                 if (editId) {
+                    // ★ 訂正保存の処理（文章＋画像・動画・音声・リンクの変更・差し替えに対応）
+                    const updateData = { 
+                        message: messageHtml, 
+                        is_edited: true,
+                        link_url: document.getElementById('linkUrl').value.trim(),
+                        link_title: document.getElementById('linkTitle').value.trim()
+                    };
+
+                    // 新しいファイルが添付または撮影された場合は差し替え
+                    if (attachedImageB64 !== null) updateData.image = attachedImageB64;
+                    if (attachedVideoB64 !== null) updateData.video = attachedVideoB64;
+                    if (attachedAudioB64 !== null) updateData.audio = attachedAudioB64;
+
                     const { error } = await _supabase
                         .from('posts')
-                        .update({ message: messageHtml, is_edited: true })
+                        .update(updateData)
                         .eq('id', editId);
 
-                    if (error) alert("訂正に失敗しました。");
-                    else {
+                    if (error) {
+                        alert("訂正の保存に失敗しました。");
+                    } else {
                         cancelEditMode();
                         lastRenderHash = "";
                         await renderActiveThread();
                     }
                 } else {
+                    // ★ 新規投稿の処理
                     const name = document.getElementById('name').value.trim() || "名無しさん";
                     const subject = document.getElementById('subject').value.trim();
 
@@ -974,25 +1016,63 @@
             }
         });
 
-        async function enterEditMode(id) {
+        // ✍️ 改良版・メディア対応の訂正モード開始処理
+        async function enterEditMode(id, resNum) {
             const { data, error } = await _supabase.from('posts').select('*').eq('id', id).single();
-            if (error || !data) return;
+            if (error || !data) {
+                alert("データの取得に失敗しました。");
+                return;
+            }
 
             document.getElementById('editPostId').value = id;
-            document.getElementById('editorBody').innerHTML = data.message;
-            document.getElementById('editorBody').focus();
+            
+            // 本文をセット
+            const editor = document.getElementById('editorBody');
+            editor.innerHTML = data.message;
 
-            document.getElementById('writeFormTitle').innerText = "✍️ 投稿を訂正中...";
+            // リンク情報をフォームに復元
+            document.getElementById('linkUrl').value = data.link_url || "";
+            document.getElementById('linkTitle').value = data.link_title || "";
+            
+            // 既存の添付メディア情報の表示＆削除／差し替えオプション
+            clearAttachments();
+            let previewMsg = "";
+            if (data.image) previewMsg = "🖼️ 既存の画像が添付されています";
+            else if (data.video) previewMsg = "🎥 既存の動画が添付されています";
+            else if (data.audio) previewMsg = "🎙️ 既存の音声が添付されています";
+
+            if (previewMsg) {
+                document.getElementById('attachmentPreview').innerHTML = `
+                    ${previewMsg} 
+                    <button type="button" class="btn delete-btn" onclick="removeCurrentAttachedMedia()" style="margin-left: 10px; font-size:11px;">🗑️ 添付を消去する</button>
+                    <div style="font-size:11px; color:#666; font-weight:normal; margin-top:2px;">※新しいファイルを選択・撮影すると上書き差し替えされます。</div>
+                `;
+            }
+            
+            // UIの編集状態切り替え
+            document.getElementById('postFormBox').classList.add('editing-mode');
+            document.getElementById('writeFormTitle').innerText = `✍️ レス >>${resNum} を訂正中...`;
             document.getElementById('subject').parentElement.classList.add('hidden');
             document.getElementById('name').parentElement.classList.add('hidden');
-            document.getElementById('mediaFieldsGroup').classList.add('hidden');
+            document.getElementById('mediaFieldsGroup').classList.remove('hidden'); // メディア領域を表示
             document.getElementById('btnSubmitPost').innerText = "訂正内容を保存する";
             document.getElementById('btnCancelEdit').classList.remove('hidden');
+
+            // エディタへスムーズにスクロール＆フォーカス
+            document.getElementById('postFormBox').scrollIntoView({ behavior: 'smooth' });
+            editor.focus();
         }
 
+        // 訂正モード解除
         function cancelEditMode() {
             document.getElementById('editPostId').value = "";
             document.getElementById('editorBody').innerHTML = "";
+            document.getElementById('linkUrl').value = "";
+            document.getElementById('linkTitle').value = "";
+            clearAttachments();
+            document.getElementById('mediaFile').value = "";
+
+            document.getElementById('postFormBox').classList.remove('editing-mode');
             document.getElementById('writeFormTitle').innerText = "このスレッドに書き込む";
             document.getElementById('subject').parentElement.classList.remove('hidden');
             document.getElementById('name').parentElement.classList.remove('hidden');
@@ -1022,6 +1102,7 @@
             }
         });
 
+        // 新規スレッド作成
         document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('btnCreateThread');
@@ -1032,7 +1113,7 @@
             const name = document.getElementById('creatorName').value.trim() || "名無しさん";
             const message = document.getElementById('firstMessage').innerHTML.trim();
             
-            if (!message) {
+            if (!message || message === '<br>') {
                 alert("最初の本文を入力してください。");
                 btn.disabled = false;
                 btn.innerText = "新規スレッドを立てる";
@@ -1072,6 +1153,7 @@
             }
         });
 
+        // 返信・訂正・削除クリックイベント
         document.getElementById('resContainer').addEventListener('click', async e => {
             if (e.target.classList.contains('uploaded-img')) {
                 imgModal.style.display = "flex";
@@ -1085,7 +1167,7 @@
             }
 
             if (e.target.classList.contains('edit-btn')) {
-                enterEditMode(e.target.getAttribute('data-id'));
+                enterEditMode(e.target.getAttribute('data-id'), e.target.getAttribute('data-resnum'));
             }
 
             if (e.target.classList.contains('delete-btn')) {
