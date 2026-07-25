@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru&family=M+PLUS+Rounded+1c:wght@500&family=Shippori+Mincho&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Kiwi+Maru:wght@500&family=Lobster&family=M+PLUS+Rounded+1c:wght@500;800&family=Pacifico&family=Shippori+Mincho:wght@600&family=Yuji+Syuku&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: "ＭＳ Ｐゴシック", "MS PGothic", "ヒラギノ角ゴ Pro W3", sans-serif;
@@ -333,23 +333,32 @@
                                 <div>
                                     <label>🎨 色:</label>
                                     <select id="lobbyFmtColor">
-                                        <option value="">黒(標準)</option>
-                                        <option value="red" style="color:red;">赤色</option>
-                                        <option value="blue" style="color:blue;">青色</option>
-                                        <option value="green" style="color:green;">緑色</option>
-                                        <option value="purple" style="color:purple;">紫色</option>
-                                        <option value="orange" style="color:orange;">橙色</option>
-                                        <option value="deeppink" style="color:deeppink;">ピンク</option>
+                                        <option value="">黒 (標準)</option>
+                                        <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
+                                        <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
+                                        <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
+                                        <option value="#8A2BE2" style="color:#8A2BE2; font-weight:bold;">紫色</option>
+                                        <option value="#FF8C00" style="color:#FF8C00; font-weight:bold;">橙色</option>
+                                        <option value="#FF1493" style="color:#FF1493; font-weight:bold;">ピンク</option>
+                                        <option value="#000080" style="color:#000080; font-weight:bold;">ネイビー</option>
+                                        <option value="#008080" style="color:#008080; font-weight:bold;">ティール</option>
+                                        <option value="#800000" style="color:#800000; font-weight:bold;">ワインレッド</option>
+                                        <option value="#D4AF37" style="color:#B8860B; font-weight:bold;">ゴールド</option>
+                                        <option value="#666666" style="color:#666666; font-weight:bold;">グレー</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label>🔤 書体:</label>
                                     <select id="lobbyFmtFont">
                                         <option value="">標準(ゴシック)</option>
-                                        <option value="'Shippori Mincho', serif">明朝体</option>
-                                        <option value="'M PLUS Rounded 1c', sans-serif">ポップ体</option>
-                                        <option value="'Kiwi Maru', cursive">手書き風</option>
-                                        <option value="monospace">等幅</option>
+                                        <option value="'Shippori Mincho', serif">明朝体 (しっぽり)</option>
+                                        <option value="'M PLUS Rounded 1c', sans-serif">ポップ体 (丸ゴ)</option>
+                                        <option value="'Kiwi Maru', cursive">手書き風 (キウイ)</option>
+                                        <option value="'Yuji Syuku', serif">毛筆・和風 (手書き)</option>
+                                        <option value="monospace">等幅 (プログラミング)</option>
+                                        <option value="'Pacifico', cursive">英字ポップ (Pacifico)</option>
+                                        <option value="'Lobster', cursive">英字レトロ (Lobster)</option>
+                                        <option value="'Cinzel', serif">英字高級 (Cinzel)</option>
                                     </select>
                                 </div>
                             </div>
@@ -403,23 +412,32 @@
                             <div>
                                 <label>🎨 文字色:</label>
                                 <select id="fmtColor">
-                                    <option value="">黒(標準)</option>
-                                    <option value="red" style="color:red;">赤色</option>
-                                    <option value="blue" style="color:blue;">青色</option>
-                                    <option value="green" style="color:green;">緑色</option>
-                                    <option value="purple" style="color:purple;">紫色</option>
-                                    <option value="orange" style="color:orange;">橙色</option>
-                                    <option value="deeppink" style="color:deeppink;">ピンク</option>
+                                    <option value="">黒 (標準)</option>
+                                    <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
+                                    <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
+                                    <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
+                                    <option value="#8A2BE2" style="color:#8A2BE2; font-weight:bold;">紫色</option>
+                                    <option value="#FF8C00" style="color:#FF8C00; font-weight:bold;">橙色</option>
+                                    <option value="#FF1493" style="color:#FF1493; font-weight:bold;">ピンク</option>
+                                    <option value="#000080" style="color:#000080; font-weight:bold;">ネイビー</option>
+                                    <option value="#008080" style="color:#008080; font-weight:bold;">ティール</option>
+                                    <option value="#800000" style="color:#800000; font-weight:bold;">ワインレッド</option>
+                                    <option value="#D4AF37" style="color:#B8860B; font-weight:bold;">ゴールド</option>
+                                    <option value="#666666" style="color:#666666; font-weight:bold;">グレー</option>
                                 </select>
                             </div>
                             <div>
                                 <label>🔤 書体:</label>
                                 <select id="fmtFont">
                                     <option value="">標準(ゴシック)</option>
-                                    <option value="'Shippori Mincho', serif">明朝体</option>
-                                    <option value="'M PLUS Rounded 1c', sans-serif">ポップ体</option>
-                                    <option value="'Kiwi Maru', cursive">手書き风</option>
-                                    <option value="monospace">等幅</option>
+                                    <option value="'Shippori Mincho', serif">明朝体 (しっぽり)</option>
+                                    <option value="'M PLUS Rounded 1c', sans-serif">ポップ体 (丸ゴ)</option>
+                                    <option value="'Kiwi Maru', cursive">手書き風 (キウイ)</option>
+                                    <option value="'Yuji Syuku', serif">毛筆・和風 (手書き)</option>
+                                    <option value="monospace">等幅 (プログラミング)</option>
+                                    <option value="'Pacifico', cursive">英字ポップ (Pacifico)</option>
+                                    <option value="'Lobster', cursive">英字レトロ (Lobster)</option>
+                                    <option value="'Cinzel', serif">英字高級 (Cinzel)</option>
                                 </select>
                             </div>
                             <div>
@@ -523,8 +541,8 @@
         }
         const userSecret = localStorage.getItem('bbs_user_secret');
 
-        let currentPostsData = []; // 現在描画中のレスデータ保持用
-        let unreadNewPostsCount = 0; // 未読レス件数
+        let currentPostsData = [];
+        let unreadNewPostsCount = 0;
 
         function getUserReactions() {
             try { return JSON.parse(localStorage.getItem('bbs_user_reactions')) || {}; } catch(e) { return {}; }
@@ -593,7 +611,7 @@
             alert("ログアウトしました。");
         });
 
-        // 🎨 装飾機能
+        // 🎨 スムーズ文字装飾（リアルタイム適用）
         function applyStyleToEditor(editorId, command, value) {
             const editor = document.getElementById(editorId);
             editor.focus();
@@ -601,11 +619,13 @@
             document.execCommand(command, false, value);
         }
 
-        document.getElementById('fmtColor').addEventListener('change', function() { applyStyleToEditor('editorBody', 'foreColor', this.value || '#000000'); });
-        document.getElementById('fmtFont').addEventListener('change', function() { applyStyleToEditor('editorBody', 'fontName', this.value || 'inherit'); });
-        document.getElementById('fmtSize').addEventListener('change', function() { applyStyleToEditor('editorBody', 'fontSize', this.value); });
-        document.getElementById('lobbyFmtColor').addEventListener('change', function() { applyStyleToEditor('firstMessage', 'foreColor', this.value || '#000000'); });
-        document.getElementById('lobbyFmtFont').addEventListener('change', function() { applyStyleToEditor('firstMessage', 'fontName', this.value || 'inherit'); });
+        ['change', 'input'].forEach(evtType => {
+            document.getElementById('fmtColor').addEventListener(evtType, function() { applyStyleToEditor('editorBody', 'foreColor', this.value || '#000000'); });
+            document.getElementById('fmtFont').addEventListener(evtType, function() { applyStyleToEditor('editorBody', 'fontName', this.value || 'inherit'); });
+            document.getElementById('fmtSize').addEventListener(evtType, function() { applyStyleToEditor('editorBody', 'fontSize', this.value); });
+            document.getElementById('lobbyFmtColor').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'foreColor', this.value || '#000000'); });
+            document.getElementById('lobbyFmtFont').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'fontName', this.value || 'inherit'); });
+        });
 
         function compressImage(base64Str, maxWidth = 800, quality = 0.5) {
             return new Promise((resolve) => {
@@ -901,7 +921,6 @@
             const { data, error } = await _supabase.from('posts').select('*').eq('thread_id', targetThreadId).order('id', { ascending: true });
             if (targetThreadId !== activeThreadId || error || !data || data.length === 0) return;
 
-            // 新着レス検知
             if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
                 const diff = data.length - currentPostsData.length;
                 const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 300);
@@ -992,7 +1011,6 @@
             container.innerHTML = htmlBuf;
         }
 
-        // 🔔 新着通知バーをクリックしたときのスクロール処理
         document.getElementById('newPostsBar').addEventListener('click', () => {
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
             document.getElementById('newPostsBar').classList.add('hidden');
@@ -1018,7 +1036,6 @@
             }
         }
 
-        // ✍️ 訂正モードの開始処理
         function startEditingPost(postId, resNum) {
             const targetPost = currentPostsData.find(p => String(p.id) === String(postId));
             if (!targetPost) return;
@@ -1038,7 +1055,6 @@
             document.getElementById('postFormBox').scrollIntoView({ behavior: 'smooth' });
         }
 
-        // 訂正キャンセルの処理
         function cancelEditing() {
             document.getElementById('postForm').reset();
             document.getElementById('editPostId').value = "";
@@ -1051,7 +1067,6 @@
 
         document.getElementById('btnCancelEdit').addEventListener('click', cancelEditing);
 
-        // 投稿フォーム送信処理
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const editId = document.getElementById('editPostId').value;
@@ -1059,7 +1074,6 @@
             if (!messageHtml || messageHtml === '<br>') return alert("本文を入力してください。");
 
             if (editId) {
-                // 訂正更新
                 const updateData = {
                     message: messageHtml,
                     subject: document.getElementById('subject').value.trim(),
@@ -1074,7 +1088,6 @@
                 await _supabase.from('posts').update(updateData).eq('id', editId);
                 cancelEditing();
             } else {
-                // 新規書き込み
                 await _supabase.from('posts').insert([{
                     name: document.getElementById('name').value.trim() || "名無しさん",
                     subject: document.getElementById('subject').value.trim(),
@@ -1096,7 +1109,6 @@
             renderActiveThread();
         });
 
-        // レスコンテナ内の各種ボタン・アンカー等のイベント処理
         document.getElementById('resContainer').addEventListener('click', async e => {
             if (e.target.classList.contains('uploaded-img')) {
                 imgModal.style.display = "flex";
@@ -1120,7 +1132,6 @@
             }
         });
 
-        // 💬 アンカーのホバー/タップポップアップ処理
         const anchorPopup = document.getElementById('anchorPreviewPopup');
 
         document.getElementById('resContainer').addEventListener('mouseover', e => {
