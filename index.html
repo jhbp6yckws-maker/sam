@@ -133,8 +133,14 @@
         }
         .btn:hover { background-color: #E0E0E0; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* リアクションボタンのアクティブ表示 */
         .btn-like { color: #008000; font-weight: bold; }
+        .btn-like.active { background-color: #C8E6C9; border-color: #2E7D32; }
+        
         .btn-dislike { color: #CC0000; font-weight: bold; }
+        .btn-dislike.active { background-color: #FFCDD2; border-color: #C62828; }
+
         .btn-admin {
             background-color: #333333;
             color: #FFFFFF;
@@ -459,6 +465,17 @@
         }
         const userSecret = localStorage.getItem('bbs_user_secret');
 
+        // リアクション（いいね・バッド）のローカル記録を取得・保存
+        function getUserReactions() {
+            try { return JSON.parse(localStorage.getItem('bbs_user_reactions')) || {}; } catch(e) { return {}; }
+        }
+        function setUserReaction(postId, type) {
+            const reactions = getUserReactions();
+            if (type === null) delete reactions[postId];
+            else reactions[postId] = type;
+            localStorage.setItem('bbs_user_reactions', JSON.stringify(reactions));
+        }
+
         async function authenticateAdmin() {
             if (window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()) {
                 const useBiometric = confirm("指紋認証・Face ID・パスキーで管理者ログインしますか？");
@@ -545,16 +562,6 @@
                 };
                 img.onerror = () => resolve(base64Str);
             });
-        }
-
-        function generateUserID(isoDateStr, threadId) {
-            if (!isoDateStr) return "???";
-            const dateObj = new Date(isoDateStr);
-            const yyyymmdd = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-            const salt = yyyymmdd + userSecret + (threadId || "global");
-            let hash = 2166136261;
-            for (let i = 0; i < salt.length; i++) { hash ^= salt.charCodeAt(i); hash = Math.imul(hash, 16777619); }
-            return Math.abs(hash).toString(36).substring(0, 8).toUpperCase();
         }
 
         function getDisplayIDForPost(post) {
@@ -722,16 +729,34 @@
         const imgModal = document.getElementById('imageModal');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
-        // 👍 いいね / 👎 バッドの増分処理
-        async function updateReaction(postId, type) {
+        // 👍 いいね / 👎 バッドのトグル処理（1人1回・切り替え・再タップで取り消し）
+        async function updateReaction(postId, clickedType) {
             const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
             if (error || !data) return;
 
-            const updateData = {};
-            if (type === 'like') updateData.likes = (data.likes || 0) + 1;
-            if (type === 'dislike') updateData.dislikes = (data.dislikes || 0) + 1;
+            const userReactions = getUserReactions();
+            const currentReaction = userReactions[postId] || null;
 
-            await _supabase.from('posts').update(updateData).eq('id', postId);
+            let likesCount = data.likes || 0;
+            let dislikesCount = data.dislikes || 0;
+
+            if (currentReaction === clickedType) {
+                // ① 同じボタンを再度押した場合：取り消し
+                if (clickedType === 'like') likesCount = Math.max(0, likesCount - 1);
+                if (clickedType === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
+                setUserReaction(postId, null);
+            } else {
+                // ② 別のボタンに切り替える場合・新規で押す場合
+                if (currentReaction === 'like') likesCount = Math.max(0, likesCount - 1);
+                if (currentReaction === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
+
+                if (clickedType === 'like') likesCount++;
+                if (clickedType === 'dislike') dislikesCount++;
+
+                setUserReaction(postId, clickedType);
+            }
+
+            await _supabase.from('posts').update({ likes: likesCount, dislikes: dislikesCount }).eq('id', postId);
             lastRenderHash = "";
             renderActiveThread();
         }
@@ -820,7 +845,8 @@
             const { data, error } = await _supabase.from('posts').select('*').eq('thread_id', targetThreadId).order('id', { ascending: true });
             if (targetThreadId !== activeThreadId || error || !data || data.length === 0) return;
 
-            const currentHash = targetThreadId + "_" + data.length + "_" + JSON.stringify(data.map(d => d.message + d.likes + d.dislikes + d.is_edited + d.is_deleted));
+            const userReactions = getUserReactions();
+            const currentHash = targetThreadId + "_" + data.length + "_" + JSON.stringify(data.map(d => d.message + d.likes + d.dislikes + d.is_edited + d.is_deleted)) + "_" + JSON.stringify(userReactions);
             if (lastRenderHash === currentHash) return;
             lastRenderHash = currentHash;
 
@@ -863,6 +889,10 @@
                 const likesCount = res.likes || 0;
                 const dislikesCount = res.dislikes || 0;
 
+                const userReaction = userReactions[res.id] || null;
+                const likeActiveClass = userReaction === 'like' ? 'active' : '';
+                const dislikeActiveClass = userReaction === 'dislike' ? 'active' : '';
+
                 htmlBuf += `
                     <div class="res">
                         <div class="res-header">
@@ -881,8 +911,8 @@
                         <div class="res-actions">
                             <button class="btn reply-btn" data-resnum="${resNum}">返信</button>
                             ${!res.is_deleted ? `
-                                <button class="btn btn-like like-btn" data-id="${res.id}">👍 ${likesCount}</button>
-                                <button class="btn btn-dislike dislike-btn" data-id="${res.id}">👎 ${dislikesCount}</button>
+                                <button class="btn btn-like like-btn ${likeActiveClass}" data-id="${res.id}">👍 ${likesCount}</button>
+                                <button class="btn btn-dislike dislike-btn ${dislikeActiveClass}" data-id="${res.id}">👎 ${dislikesCount}</button>
                             ` : ''}
                             ${actions}
                         </div>
