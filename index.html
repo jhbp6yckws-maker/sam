@@ -14,6 +14,7 @@
             background-color: #EFEFEF;
             color: #000000;
             padding: 20px;
+            padding-bottom: 80px;
         }
         .header-bar {
             display: flex;
@@ -62,6 +63,7 @@
             border: 1px solid #CCCCCC;
             padding: 15px;
             margin-bottom: 20px;
+            position: relative;
         }
         .thread-title {
             color: #CC0000;
@@ -75,6 +77,7 @@
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 1px dashed #DDDDDD;
+            position: relative;
         }
         .res-header { font-size: 14px; margin-bottom: 5px; }
         .res-number { color: #000000; }
@@ -83,7 +86,14 @@
         .res-body { font-size: 16px; margin-left: 2em; line-height: 1.5; word-break: break-word; }
         .res-subject { font-weight: bold; color: #CC0000; font-size: 16px; }
         .edited-tag { color: #FF6600; font-size: 11px; font-weight: bold; margin-left: 5px; }
-        .anchor { color: #0000FF; text-decoration: underline; cursor: pointer; }
+        
+        .anchor {
+            color: #0000FF;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: bold;
+            position: relative;
+        }
         
         .res-body a { color: #0000FF; text-decoration: underline; }
 
@@ -134,7 +144,7 @@
         .btn:hover { background-color: #E0E0E0; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
-        /* リアクションボタンのアクティブ表示 */
+        /* リアクションボタン */
         .btn-like { color: #008000; font-weight: bold; }
         .btn-like.active { background-color: #C8E6C9; border-color: #2E7D32; }
         
@@ -170,11 +180,11 @@
             margin-top: 20px; background-color: #FFFFFF; padding: 15px;
             border: 1px solid #CCCCCC; display: inline-block; width: 100%;
             box-sizing: border-box; max-width: 550px;
-            transition: border-color 0.3s;
+            transition: all 0.3s;
         }
         .form-box.editing-mode {
-            border: 2px solid #FF6600;
-            background-color: #FFFDF9;
+            border: 2px solid #FF6600 !important;
+            background-color: #FFFDF9 !important;
         }
         .form-title { font-weight: bold; margin-bottom: 10px; font-size: 14px; }
         .form-box label { display: inline-block; width: 75px; }
@@ -232,8 +242,49 @@
             font-size: 13px;
         }
 
+        /* 💬 アンカーポップアップスタイル */
+        #anchorPreviewPopup {
+            position: absolute;
+            z-index: 2000;
+            background-color: #FFFFE0;
+            border: 1px solid #999999;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+            padding: 10px;
+            max-width: 400px;
+            width: 90%;
+            font-size: 14px;
+            border-radius: 4px;
+            display: none;
+            pointer-events: none;
+        }
+
+        /* 🔔 新着通知バー */
+        #newPostsBar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #0066CC;
+            color: #FFFFFF;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 1500;
+            transition: transform 0.2s, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #newPostsBar:hover {
+            background-color: #0052A3;
+            transform: translateX(-50%) scale(1.05);
+        }
+
         .modal {
-            display: none; position: fixed; z-index: 1000; top: 0; left: 0;
+            display: none; position: fixed; z-index: 3000; top: 0; left: 0;
             width: 100%; height: 100%; background-color: rgba(0,0,0,0.85);
             justify-content: center; align-items: center;
         }
@@ -241,7 +292,7 @@
         .modal-content { max-width: 90%; max-height: 90%; box-shadow: 0 0 20px rgba(255,255,255,0.2); border-radius: 4px; }
         .modal-close {
             position: absolute; top: 20px; right: 25px; color: #fff;
-            font-size: 35px; font-weight: bold; cursor: pointer; z-index: 1010;
+            font-size: 35px; font-weight: bold; cursor: pointer; z-index: 3010;
         }
         .hidden { display: none !important; }
     </style>
@@ -367,7 +418,7 @@
                                     <option value="">標準(ゴシック)</option>
                                     <option value="'Shippori Mincho', serif">明朝体</option>
                                     <option value="'M PLUS Rounded 1c', sans-serif">ポップ体</option>
-                                    <option value="'Kiwi Maru', cursive">手書き風</option>
+                                    <option value="'Kiwi Maru', cursive">手書き风</option>
                                     <option value="monospace">等幅</option>
                                 </select>
                             </div>
@@ -450,6 +501,13 @@
         </div>
     </div>
 
+    <div id="anchorPreviewPopup"></div>
+
+    <div id="newPostsBar" class="hidden">
+        <span>📩 <span id="newPostsCount">0</span>件の新着レスがあります</span>
+        <span style="font-size:11px; text-decoration:underline; margin-left:5px;">[最新へ移動]</span>
+    </div>
+
     <div id="imageModal" class="modal image-modal-mode"><span class="modal-close" id="modalClose">&times;</span><img class="modal-content" id="modalTargetImage"></div>
 
     <script>
@@ -465,7 +523,9 @@
         }
         const userSecret = localStorage.getItem('bbs_user_secret');
 
-        // リアクション（いいね・バッド）のローカル記録を取得・保存
+        let currentPostsData = []; // 現在描画中のレスデータ保持用
+        let unreadNewPostsCount = 0; // 未読レス件数
+
         function getUserReactions() {
             try { return JSON.parse(localStorage.getItem('bbs_user_reactions')) || {}; } catch(e) { return {}; }
         }
@@ -587,7 +647,7 @@
             container.innerHTML = html;
             container.querySelectorAll('script, iframe, object, embed').forEach(s => s.remove());
             let cleanHtml = container.innerHTML;
-            cleanHtml = cleanHtml.replace(/&gt;&gt;(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>').replace(/>>(\d+)/g, '<span class="anchor">&gt;&gt;$1</span>');
+            cleanHtml = cleanHtml.replace(/&gt;&gt;(\d+)/g, '<span class="anchor" data-resnum="$1">&gt;&gt;$1</span>').replace(/>>(\d+)/g, '<span class="anchor" data-resnum="$1">&gt;&gt;$1</span>');
             return cleanHtml;
         }
 
@@ -729,7 +789,7 @@
         const imgModal = document.getElementById('imageModal');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
-        // 👍 いいね / 👎 バッドのトグル処理（1人1回・切り替え・再タップで取り消し）
+        // リアクション更新
         async function updateReaction(postId, clickedType) {
             const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
             if (error || !data) return;
@@ -741,12 +801,10 @@
             let dislikesCount = data.dislikes || 0;
 
             if (currentReaction === clickedType) {
-                // ① 同じボタンを再度押した場合：取り消し
                 if (clickedType === 'like') likesCount = Math.max(0, likesCount - 1);
                 if (clickedType === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
                 setUserReaction(postId, null);
             } else {
-                // ② 別のボタンに切り替える場合・新規で押す場合
                 if (currentReaction === 'like') likesCount = Math.max(0, likesCount - 1);
                 if (currentReaction === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
 
@@ -761,7 +819,7 @@
             renderActiveThread();
         }
 
-        // 📩 問い合わせ送信処理
+        // 📩 問い合わせ送信
         document.getElementById('inquiryForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('btnSendInquiry');
@@ -785,7 +843,6 @@
             btn.disabled = false;
         });
 
-        // 📩 管理者問い合わせ取得一覧
         async function fetchInquiries() {
             if (!isAdmin) return;
             const { data, error } = await _supabase.from('inquiries').select('*').order('id', { ascending: false });
@@ -810,7 +867,6 @@
             container.innerHTML = html;
         }
 
-        // 描画・更新処理
         async function fetchThreads() {
             const { data, error } = await _supabase.from('posts').select('id, thread_id, subject').order('id', { ascending: true });
             if (error) return;
@@ -844,6 +900,19 @@
 
             const { data, error } = await _supabase.from('posts').select('*').eq('thread_id', targetThreadId).order('id', { ascending: true });
             if (targetThreadId !== activeThreadId || error || !data || data.length === 0) return;
+
+            // 新着レス検知
+            if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
+                const diff = data.length - currentPostsData.length;
+                const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 300);
+                if (!isNearBottom) {
+                    unreadNewPostsCount += diff;
+                    document.getElementById('newPostsCount').innerText = unreadNewPostsCount;
+                    document.getElementById('newPostsBar').classList.remove('hidden');
+                }
+            }
+
+            currentPostsData = data;
 
             const userReactions = getUserReactions();
             const currentHash = targetThreadId + "_" + data.length + "_" + JSON.stringify(data.map(d => d.message + d.likes + d.dislikes + d.is_edited + d.is_deleted)) + "_" + JSON.stringify(userReactions);
@@ -894,7 +963,7 @@
                 const dislikeActiveClass = userReaction === 'dislike' ? 'active' : '';
 
                 htmlBuf += `
-                    <div class="res">
+                    <div class="res" id="res-${resNum}">
                         <div class="res-header">
                             <span class="res-number">${resNum}</span> ：
                             <span class="res-name">${escapeHtml(res.name)}</span> ：
@@ -923,9 +992,19 @@
             container.innerHTML = htmlBuf;
         }
 
+        // 🔔 新着通知バーをクリックしたときのスクロール処理
+        document.getElementById('newPostsBar').addEventListener('click', () => {
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            document.getElementById('newPostsBar').classList.add('hidden');
+            unreadNewPostsCount = 0;
+        });
+
         function showScreen(id) {
             stopCamera(); stopAudio(); clearAttachments();
             lastRenderHash = "";
+            currentPostsData = [];
+            unreadNewPostsCount = 0;
+            document.getElementById('newPostsBar').classList.add('hidden');
             document.getElementById('resContainer').innerHTML = "";
 
             if (id === 'lobby') {
@@ -939,7 +1018,40 @@
             }
         }
 
-        // イベントリスナー関係
+        // ✍️ 訂正モードの開始処理
+        function startEditingPost(postId, resNum) {
+            const targetPost = currentPostsData.find(p => String(p.id) === String(postId));
+            if (!targetPost) return;
+
+            document.getElementById('editPostId').value = targetPost.id;
+            document.getElementById('subject').value = targetPost.subject || '';
+            document.getElementById('name').value = targetPost.name || '';
+            document.getElementById('editorBody').innerHTML = targetPost.message || '';
+            document.getElementById('linkUrl').value = targetPost.link_url || '';
+            document.getElementById('linkTitle').value = targetPost.link_title || '';
+
+            document.getElementById('writeFormTitle').innerText = `>>${resNum} の書き込みを訂正中`;
+            document.getElementById('btnSubmitPost').innerText = "訂正内容を保存する";
+            document.getElementById('btnCancelEdit').classList.remove('hidden');
+            document.getElementById('postFormBox').classList.add('editing-mode');
+
+            document.getElementById('postFormBox').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 訂正キャンセルの処理
+        function cancelEditing() {
+            document.getElementById('postForm').reset();
+            document.getElementById('editPostId').value = "";
+            document.getElementById('editorBody').innerHTML = "";
+            document.getElementById('writeFormTitle').innerText = "このスレッドに書き込む";
+            document.getElementById('btnSubmitPost').innerText = "書き込む";
+            document.getElementById('btnCancelEdit').classList.add('hidden');
+            document.getElementById('postFormBox').classList.remove('editing-mode');
+        }
+
+        document.getElementById('btnCancelEdit').addEventListener('click', cancelEditing);
+
+        // 投稿フォーム送信処理
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const editId = document.getElementById('editPostId').value;
@@ -947,14 +1059,22 @@
             if (!messageHtml || messageHtml === '<br>') return alert("本文を入力してください。");
 
             if (editId) {
-                const updateData = { message: messageHtml, is_edited: true, link_url: document.getElementById('linkUrl').value.trim(), link_title: document.getElementById('linkTitle').value.trim() };
+                // 訂正更新
+                const updateData = {
+                    message: messageHtml,
+                    subject: document.getElementById('subject').value.trim(),
+                    is_edited: true,
+                    link_url: document.getElementById('linkUrl').value.trim(),
+                    link_title: document.getElementById('linkTitle').value.trim()
+                };
                 if (attachedImageB64 !== null) updateData.image = attachedImageB64;
                 if (attachedVideoB64 !== null) updateData.video = attachedVideoB64;
                 if (attachedAudioB64 !== null) updateData.audio = attachedAudioB64;
 
                 await _supabase.from('posts').update(updateData).eq('id', editId);
-                document.getElementById('editPostId').value = "";
+                cancelEditing();
             } else {
+                // 新規書き込み
                 await _supabase.from('posts').insert([{
                     name: document.getElementById('name').value.trim() || "名無しさん",
                     subject: document.getElementById('subject').value.trim(),
@@ -967,15 +1087,16 @@
                     video: attachedVideoB64 || "",
                     audio: attachedAudioB64 || ""
                 }]);
+                this.reset();
+                document.getElementById('editorBody').innerHTML = "";
             }
 
-            this.reset();
-            document.getElementById('editorBody').innerHTML = "";
             clearAttachments();
             lastRenderHash = "";
             renderActiveThread();
         });
 
+        // レスコンテナ内の各種ボタン・アンカー等のイベント処理
         document.getElementById('resContainer').addEventListener('click', async e => {
             if (e.target.classList.contains('uploaded-img')) {
                 imgModal.style.display = "flex";
@@ -988,11 +1109,45 @@
             }
             if (e.target.classList.contains('like-btn')) updateReaction(e.target.getAttribute('data-id'), 'like');
             if (e.target.classList.contains('dislike-btn')) updateReaction(e.target.getAttribute('data-id'), 'dislike');
+            if (e.target.classList.contains('edit-btn')) {
+                startEditingPost(e.target.getAttribute('data-id'), e.target.getAttribute('data-resnum'));
+            }
             if (e.target.classList.contains('delete-btn')) {
                 if (confirm("削除しますか？")) {
                     await _supabase.from('posts').update({ message: "（削除されました）", is_deleted: true, image: "", video: "", audio: "" }).eq('id', e.target.getAttribute('data-id'));
                     lastRenderHash = ""; renderActiveThread();
                 }
+            }
+        });
+
+        // 💬 アンカーのホバー/タップポップアップ処理
+        const anchorPopup = document.getElementById('anchorPreviewPopup');
+
+        document.getElementById('resContainer').addEventListener('mouseover', e => {
+            if (e.target.classList.contains('anchor')) {
+                const resNum = e.target.getAttribute('data-resnum');
+                const targetPost = currentPostsData[resNum - 1];
+                if (targetPost) {
+                    const rect = e.target.getBoundingClientRect();
+                    const dateObj = new Date(targetPost.created_at);
+                    const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+                    
+                    anchorPopup.innerHTML = `
+                        <div style="font-size:12px; font-weight:bold; color:#008000; border-bottom:1px dashed #ccc; padding-bottom:4px; margin-bottom:4px;">
+                            ${resNum} : ${escapeHtml(targetPost.name)} (${dateStr})
+                        </div>
+                        <div>${targetPost.is_deleted ? '（削除されました）' : sanitizeAndFormatHtml(targetPost.message)}</div>
+                    `;
+                    anchorPopup.style.display = 'block';
+                    anchorPopup.style.top = (window.scrollY + rect.bottom + 5) + 'px';
+                    anchorPopup.style.left = Math.min(window.scrollX + rect.left, window.innerWidth - 320) + 'px';
+                }
+            }
+        });
+
+        document.getElementById('resContainer').addEventListener('mouseout', e => {
+            if (e.target.classList.contains('anchor')) {
+                anchorPopup.style.display = 'none';
             }
         });
 
