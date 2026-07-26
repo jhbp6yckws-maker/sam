@@ -86,6 +86,7 @@
         .res-body { font-size: 16px; margin-left: 2em; line-height: 1.5; word-break: break-word; }
         .res-subject { font-weight: bold; color: #CC0000; font-size: 16px; }
         .edited-tag { color: #FF6600; font-size: 11px; font-weight: bold; margin-left: 5px; }
+        .ng-masked { color: #999999; font-style: italic; }
         
         .anchor {
             color: #0000FF;
@@ -242,7 +243,7 @@
             font-size: 13px;
         }
 
-        /* 💬 アンカーポップアップスタイル */
+        /* アンカーポップアップスタイル */
         #anchorPreviewPopup {
             position: absolute;
             z-index: 2000;
@@ -258,7 +259,7 @@
             pointer-events: none;
         }
 
-        /* 🔔 新着通知バー */
+        /* 新着通知バー */
         #newPostsBar {
             position: fixed;
             bottom: 20px;
@@ -315,6 +316,22 @@
 
     <div class="container">
         <div id="lobbyScreen">
+            <div id="adminNgPanel" class="menu-box hidden" style="background-color: #FFF0F0; border-left: 4px solid #CC0000;">
+                <h4 style="margin: 0 0 8px 0; cursor: pointer; color: #CC0000;" id="toggleNgPanel">🚫 掲示板 NGワード・NG ID設定（管理者専用）▼</h4>
+                <div id="ngPanelBody">
+                    <p style="font-size: 12px; color: #555; margin-bottom: 8px;">カンマ(,)区切りで非表示にしたいキーワードやIDを設定します。</p>
+                    <div style="margin-bottom: 6px;">
+                        <label style="font-size: 12px; font-weight: bold;">NGワード:</label><br>
+                        <input type="text" id="ngWordsInput" placeholder="例: 暴言, スパム" style="width:100%; font-size:12px;">
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <label style="font-size: 12px; font-weight: bold;">NG ID:</label><br>
+                        <input type="text" id="ngIdsInput" placeholder="例: A1B2C3D4, X9Y8Z7W6" style="width:100%; font-size:12px;">
+                    </div>
+                    <button class="btn btn-admin" id="btnSaveNgSettings" style="font-weight: bold;">NG設定を保存する</button>
+                </div>
+            </div>
+
             <div class="menu-box">
                 <h3>新しいお題でスレッドを立てる</h3>
                 <form id="createThreadForm">
@@ -378,7 +395,17 @@
             </div>
 
             <div class="menu-box">
-                <h3>スレッド一覧（自動更新中）</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                    <h3 style="margin:0;">スレッド一覧</h3>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <input type="text" id="threadSearchInput" placeholder="🔍 キーワード検索..." style="font-size:12px; width:140px; padding:3px 6px;">
+                        <select id="threadSortSelect" style="font-size:12px; padding:3px 6px;">
+                            <option value="updated">最終更新順 (デフォルト)</option>
+                            <option value="count">勢い順 (レス数が多い順)</option>
+                            <option value="created">作成日時順 (新しい順)</option>
+                        </select>
+                    </div>
+                </div>
                 <div id="threadList">読み込み中...</div>
             </div>
         </div>
@@ -541,6 +568,24 @@
         }
         const userSecret = localStorage.getItem('bbs_user_secret');
 
+        // 🚫 NGワード・NG ID管理
+        let ngWords = JSON.parse(localStorage.getItem('bbs_ng_words') || '[]');
+        let ngIds = JSON.parse(localStorage.getItem('bbs_ng_ids') || '[]');
+
+        document.getElementById('ngWordsInput').value = ngWords.join(', ');
+        document.getElementById('ngIdsInput').value = ngIds.join(', ');
+
+        document.getElementById('btnSaveNgSettings').addEventListener('click', () => {
+            if (!isAdmin) return;
+            ngWords = document.getElementById('ngWordsInput').value.split(',').map(s => s.trim()).filter(Boolean);
+            ngIds = document.getElementById('ngIdsInput').value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+            localStorage.setItem('bbs_ng_words', JSON.stringify(ngWords));
+            localStorage.setItem('bbs_ng_ids', JSON.stringify(ngIds));
+            alert("🚫 管理者NG設定を保存しました。");
+            lastRenderHash = "";
+            if (activeThreadId) renderActiveThread();
+        });
+
         let currentPostsData = [];
         let unreadNewPostsCount = 0;
 
@@ -596,12 +641,14 @@
                 document.getElementById('btnAdminLogin').classList.add('hidden');
                 document.getElementById('btnAdminLogout').classList.remove('hidden');
                 document.getElementById('adminInquiryPanel').classList.remove('hidden');
+                document.getElementById('adminNgPanel').classList.remove('hidden'); // 管理者専用NG設定パネルを表示
                 fetchInquiries();
             } else {
                 document.getElementById('adminStatusBadge').classList.add('hidden');
                 document.getElementById('btnAdminLogin').classList.remove('hidden');
                 document.getElementById('btnAdminLogout').classList.add('hidden');
                 document.getElementById('adminInquiryPanel').classList.add('hidden');
+                document.getElementById('adminNgPanel').classList.add('hidden'); // 一般ユーザーには非表示
             }
         }
 
@@ -887,21 +934,46 @@
             container.innerHTML = html;
         }
 
+        // スレッド検索とソートイベント
+        document.getElementById('threadSearchInput').addEventListener('input', fetchThreads);
+        document.getElementById('threadSortSelect').addEventListener('change', fetchThreads);
+
         async function fetchThreads() {
-            const { data, error } = await _supabase.from('posts').select('id, thread_id, subject').order('id', { ascending: true });
+            const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, created_at').order('id', { ascending: true });
             if (error) return;
 
             const threadMap = {};
             data.forEach(post => {
                 const tId = post.thread_id;
-                if (!threadMap[tId]) threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0 };
+                if (!threadMap[tId]) {
+                    threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, createdAt: new Date(post.created_at), updatedAt: new Date(post.created_at) };
+                }
                 threadMap[tId].count++;
+                const postDate = new Date(post.created_at);
+                if (postDate > threadMap[tId].updatedAt) threadMap[tId].updatedAt = postDate;
             });
 
+            let threadList = Object.values(threadMap);
+
+            // 🔍 キーワード検索フィルター
+            const keyword = document.getElementById('threadSearchInput').value.trim().toLowerCase();
+            if (keyword) {
+                threadList = threadList.filter(t => t.title.toLowerCase().includes(keyword));
+            }
+
+            // ↕️ 並び替え（ソート）
+            const sortBy = document.getElementById('threadSortSelect').value;
+            if (sortBy === 'count') {
+                threadList.sort((a, b) => b.count - a.count);
+            } else if (sortBy === 'created') {
+                threadList.sort((a, b) => b.createdAt - a.createdAt);
+            } else {
+                threadList.sort((a, b) => b.updatedAt - a.updatedAt);
+            }
+
             const container = document.getElementById('threadList');
-            const threadList = Object.values(threadMap);
             if (threadList.length === 0) {
-                container.innerHTML = '<div>まだスレッドがありません。</div>';
+                container.innerHTML = '<div>該当するスレッドがありません。</div>';
                 return;
             }
 
@@ -934,7 +1006,7 @@
             currentPostsData = data;
 
             const userReactions = getUserReactions();
-            const currentHash = targetThreadId + "_" + data.length + "_" + JSON.stringify(data.map(d => d.message + d.likes + d.dislikes + d.is_edited + d.is_deleted)) + "_" + JSON.stringify(userReactions);
+            const currentHash = targetThreadId + "_" + data.length + "_" + JSON.stringify(data.map(d => d.message + d.likes + d.dislikes + d.is_edited + d.is_deleted)) + "_" + JSON.stringify(userReactions) + "_" + JSON.stringify(ngWords) + "_" + JSON.stringify(ngIds);
             if (lastRenderHash === currentHash) return;
             lastRenderHash = currentHash;
 
@@ -949,6 +1021,15 @@
             data.forEach((res, index) => {
                 const resNum = index + 1;
                 const isOp = (res.creator_secret === userSecret);
+                const displayID = getDisplayIDForPost(res);
+
+                // 🚫 NG判定 (管理者設定のNG ID / NGワード)
+                let isNg = false;
+                if (ngIds.includes(displayID)) isNg = true;
+                if (!isNg && ngWords.length > 0) {
+                    const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
+                    if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
+                }
 
                 let media = "";
                 if (res.image) media = `<img src="${res.image}" class="uploaded-img">`;
@@ -956,7 +1037,7 @@
                 else if (res.audio) media = `<audio src="${res.audio}" class="uploaded-audio" controls></audio>`;
 
                 let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
-                let ytEmbeds = res.is_deleted ? '' : parseYouTubeEmbeds(res.message);
+                let ytEmbeds = (res.is_deleted || isNg) ? '' : parseYouTubeEmbeds(res.message);
                 let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
 
                 let actions = "";
@@ -972,7 +1053,6 @@
                 const dateObj = new Date(res.created_at);
                 const days = ['日', '月', '火', '水', '木', '金', '土'];
                 const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
-                const displayID = getDisplayIDForPost(res);
 
                 const likesCount = res.likes || 0;
                 const dislikesCount = res.dislikes || 0;
@@ -980,6 +1060,15 @@
                 const userReaction = userReactions[res.id] || null;
                 const likeActiveClass = userReaction === 'like' ? 'active' : '';
                 const dislikeActiveClass = userReaction === 'dislike' ? 'active' : '';
+
+                let bodyContent = "";
+                if (res.is_deleted) {
+                    bodyContent = "（削除されました）";
+                } else if (isNg) {
+                    bodyContent = `<span class="ng-masked">*** (管理者設定のNGフィルターにより非表示) ***</span>`;
+                } else {
+                    bodyContent = sanitizeAndFormatHtml(res.message);
+                }
 
                 htmlBuf += `
                     <div class="res" id="res-${resNum}">
@@ -991,10 +1080,10 @@
                         </div>
                         <div class="res-body">
                             ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
-                            <div>${res.is_deleted ? '（削除されました）' : sanitizeAndFormatHtml(res.message)}</div>
+                            <div>${bodyContent}</div>
                             ${ytEmbeds}
-                            ${res.is_deleted ? '' : link}
-                            ${res.is_deleted ? '' : media}
+                            ${(res.is_deleted || isNg) ? '' : link}
+                            ${(res.is_deleted || isNg) ? '' : media}
                         </div>
                         <div class="res-actions">
                             <button class="btn reply-btn" data-resnum="${resNum}">返信</button>
