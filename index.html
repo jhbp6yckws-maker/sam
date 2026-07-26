@@ -73,21 +73,6 @@
             border-bottom: 2px solid #CC0000;
             padding-bottom: 5px;
         }
-
-        /* 📹 スレッド内 通話部屋案内バナー */
-        .call-room-banner {
-            background-color: #111111;
-            color: #FFFFFF;
-            border: 2px solid #CC0000;
-            border-radius: 6px;
-            padding: 12px 15px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 10px rgba(204, 0, 0, 0.2);
-        }
-
         .res {
             margin-bottom: 20px;
             padding-bottom: 10px;
@@ -294,7 +279,7 @@
             transform: translateX(-50%) scale(1.05);
         }
 
-        /* 📹 スレッド内通話部屋モーダルスタイル */
+        /* 📹 管理者専用ビデオ通話モーダルスタイル */
         .video-modal {
             display: none;
             position: fixed;
@@ -324,6 +309,13 @@
             border-radius: 4px;
             object-fit: cover;
         }
+        .video-controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
 
         .modal {
             display: none; position: fixed; z-index: 3000; top: 0; left: 0;
@@ -345,6 +337,7 @@
         <h1 id="siteTitle">■ 321掲示板 ■</h1>
         <div>
             <span id="adminStatusBadge" class="admin-badge hidden">🔑 管理者モード有効中</span>
+            <button id="btnAdminCall" class="btn btn-admin hidden" style="background-color:#008000; border-color:#006000;">📹 管理者ビデオ通話起動</button>
             <button id="btnAdminLogin" class="btn btn-admin">🔐 管理者ログイン</button>
             <button id="btnAdminLogout" class="btn hidden">🔓 ログアウト</button>
         </div>
@@ -456,16 +449,6 @@
             <button class="btn back-btn share-btn" id="btnShare">🔗 このスレッドの共有リンクを取得</button>
             <button class="btn back-btn delete-btn hidden" id="btnDeleteThread">🗑️ このスレッドを削除</button>
             
-            <button class="btn back-btn hidden" id="btnCreateCallRoom" style="background-color:#008000; color:#FFF; font-weight:bold;">📹 通話部屋を開設する（管理者限定）</button>
-
-            <div id="callRoomBanner" class="call-room-banner hidden">
-                <div>
-                    <span style="color:#FF3333; font-weight:bold; font-size:15px;">🔴 管理者ライブ通話部屋が開設されています</span>
-                    <div style="font-size:12px; color:#CCC; margin-top:3px;">※管理者のライブ通話部屋に入室して視聴・参加が可能です</div>
-                </div>
-                <button class="btn" id="btnJoinCallRoom" style="background-color:#CC0000; color:#FFF; font-weight:bold; padding:6px 14px; font-size:13px;">🚪 通話部屋に入室する</button>
-            </div>
-
             <div class="thread-box">
                 <div class="thread-title" id="activeThreadTitle">読み込み中...</div>
                 <div id="resContainer"></div>
@@ -597,15 +580,15 @@
         </div>
     </div>
 
-    <div id="videoRoomModal" class="video-modal">
+    <div id="adminVideoModal" class="video-modal">
         <div class="video-container">
-            <h3 id="roomTitle" style="margin-top:0; color:#FF3333;">📹 管理者通話部屋</h3>
-            <video id="roomVideo" class="video-screen" autoplay playsinline muted></video>
-            <div id="roomStatus" style="font-size:12px; margin-top:8px; color:#AAA;">接続中...</div>
-            <div style="margin-top:15px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
-                <button class="btn hidden" id="btnRoomToggleMic">🎙️ マイク: ON</button>
-                <button class="btn hidden" id="btnRoomToggleCam">📷 カメラ: ON</button>
-                <button class="btn" id="btnLeaveRoom" style="background-color:#CC0000; color:#FFF; font-weight:bold;">🚪 部屋を退出</button>
+            <h3 style="margin-top:0; color:#FF3333;">📹 管理者ビデオ通話（配信・対話）</h3>
+            <video id="adminCallVideo" class="video-screen" autoplay playsinline muted></video>
+            <div id="callStatus" style="font-size:12px; margin-top:8px; color:#AAA;">カメラとマイクを接続中...</div>
+            <div class="video-controls">
+                <button class="btn" id="btnToggleMic">🎙️ マイク: ON</button>
+                <button class="btn" id="btnToggleCam">📷 カメラ: ON</button>
+                <button class="btn" id="btnEndAdminCall" style="background-color:#CC0000; color:#FFF; font-weight:bold;">🛑 通話を終了</button>
             </div>
         </div>
     </div>
@@ -636,11 +619,14 @@
         let ngWords = JSON.parse(localStorage.getItem('bbs_ng_words') || '[]');
         let ngIds = JSON.parse(localStorage.getItem('bbs_ng_ids') || '[]');
 
+        // 初期表示時：改行区切りで表示
         document.getElementById('ngWordsInput').value = ngWords.join('\n');
         document.getElementById('ngIdsInput').value = ngIds.join('\n');
 
+        // 複数NG設定の保存処理
         document.getElementById('btnSaveNgSettings').addEventListener('click', () => {
             if (!isAdmin) return;
+            
             const rawWords = document.getElementById('ngWordsInput').value;
             const rawIds = document.getElementById('ngIdsInput').value;
 
@@ -660,15 +646,6 @@
 
         let currentPostsData = [];
         let unreadNewPostsCount = 0;
-        let activeThreadId = null;
-        let lastRenderHash = ""; 
-        let attachedImageB64 = null, attachedVideoB64 = null, attachedAudioB64 = null;
-        let cameraStream = null, audioStream = null, mediaRecorder = null, chunks = [];
-        let recordSeconds = 0, recordInterval = null;
-
-        // 📹 通話部屋ストリーム管理
-        let roomStream = null;
-        let isRoomMicOn = true, isRoomCamOn = true;
 
         function getUserReactions() {
             try { return JSON.parse(localStorage.getItem('bbs_user_reactions')) || {}; } catch(e) { return {}; }
@@ -719,19 +696,19 @@
         function updateAdminUI() {
             if (isAdmin) {
                 document.getElementById('adminStatusBadge').classList.remove('hidden');
+                document.getElementById('btnAdminCall').classList.remove('hidden');
                 document.getElementById('btnAdminLogin').classList.add('hidden');
                 document.getElementById('btnAdminLogout').classList.remove('hidden');
                 document.getElementById('adminInquiryPanel').classList.remove('hidden');
                 document.getElementById('adminNgPanel').classList.remove('hidden');
-                document.getElementById('btnCreateCallRoom').classList.remove('hidden');
                 fetchInquiries();
             } else {
                 document.getElementById('adminStatusBadge').classList.add('hidden');
+                document.getElementById('btnAdminCall').classList.add('hidden');
                 document.getElementById('btnAdminLogin').classList.remove('hidden');
                 document.getElementById('btnAdminLogout').classList.add('hidden');
                 document.getElementById('adminInquiryPanel').classList.add('hidden');
                 document.getElementById('adminNgPanel').classList.add('hidden');
-                document.getElementById('btnCreateCallRoom').classList.add('hidden');
             }
         }
 
@@ -741,76 +718,49 @@
             alert("ログアウトしました。");
         });
 
-        // 📹 スレッド内通話部屋の開設 (管理者限定)
-        document.getElementById('btnCreateCallRoom').addEventListener('click', async () => {
+        // 📹 管理者直接ビデオ通話システム
+        let adminCallStream = null;
+        let isMicOn = true, isCamOn = true;
+
+        document.getElementById('btnAdminCall').addEventListener('click', async () => {
             if (!isAdmin) return;
             try {
-                roomStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                const videoEl = document.getElementById('roomVideo');
-                videoEl.srcObject = roomStream;
-                videoEl.muted = true; // 管理者本人はハウリング防止のためミュート
-                document.getElementById('roomTitle').innerText = "📹 管理者通話部屋（ライブ配信中）";
-                document.getElementById('roomStatus').innerText = "🟢 カメラ・マイクを起動して部屋を開設中";
-                document.getElementById('btnRoomToggleMic').classList.remove('hidden');
-                document.getElementById('btnRoomToggleCam').classList.remove('hidden');
-                document.getElementById('videoRoomModal').style.display = 'flex';
-                
-                // バナーの表示
-                document.getElementById('callRoomBanner').classList.remove('hidden');
+                adminCallStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const videoEl = document.getElementById('adminCallVideo');
+                videoEl.srcObject = adminCallStream;
+                document.getElementById('adminVideoModal').style.display = 'flex';
+                document.getElementById('callStatus').innerText = "🟢 カメラ・マイク起動中 (管理者通信中)";
             } catch (err) {
-                alert("カメラまたはマイクの接続に失敗しました。");
+                alert("カメラまたはマイクの接続に失敗しました。アクセス許可を確認してください。");
             }
         });
 
-        // 📹 通話部屋に入室 (一般ユーザー)
-        document.getElementById('btnJoinCallRoom').addEventListener('click', () => {
-            document.getElementById('roomTitle').innerText = "📹 管理者通話部屋（入室中）";
-            document.getElementById('roomStatus').innerText = "🟢 管理者のライブ通話部屋に入室しました";
-            document.getElementById('btnRoomToggleMic').classList.add('hidden');
-            document.getElementById('btnRoomToggleCam').classList.add('hidden');
-            
-            const videoEl = document.getElementById('roomVideo');
-            if (roomStream) {
-                videoEl.srcObject = roomStream;
-                videoEl.muted = false;
-            }
-            document.getElementById('videoRoomModal').style.display = 'flex';
-        });
-
-        // 📹 マイク切替
-        document.getElementById('btnRoomToggleMic').addEventListener('click', () => {
-            if (!roomStream) return;
-            const audioTrack = roomStream.getAudioTracks()[0];
+        document.getElementById('btnToggleMic').addEventListener('click', () => {
+            if (!adminCallStream) return;
+            const audioTrack = adminCallStream.getAudioTracks()[0];
             if (audioTrack) {
-                isRoomMicOn = !isRoomMicOn;
-                audioTrack.enabled = isRoomMicOn;
-                document.getElementById('btnRoomToggleMic').innerText = `🎙️ マイク: ${isRoomMicOn ? 'ON' : 'OFF'}`;
+                isMicOn = !isMicOn;
+                audioTrack.enabled = isMicOn;
+                document.getElementById('btnToggleMic').innerText = `🎙️ マイク: ${isMicOn ? 'ON' : 'OFF'}`;
             }
         });
 
-        // 📹 カメラ切替
-        document.getElementById('btnRoomToggleCam').addEventListener('click', () => {
-            if (!roomStream) return;
-            const videoTrack = roomStream.getVideoTracks()[0];
+        document.getElementById('btnToggleCam').addEventListener('click', () => {
+            if (!adminCallStream) return;
+            const videoTrack = adminCallStream.getVideoTracks()[0];
             if (videoTrack) {
-                isRoomCamOn = !isRoomCamOn;
-                videoTrack.enabled = isRoomCamOn;
-                document.getElementById('btnRoomToggleCam').innerText = `📷 カメラ: ${isRoomCamOn ? 'ON' : 'OFF'}`;
+                isCamOn = !isCamOn;
+                videoTrack.enabled = isCamOn;
+                document.getElementById('btnToggleCam').innerText = `📷 カメラ: ${isCamOn ? 'ON' : 'OFF'}`;
             }
         });
 
-        // 📹 通話部屋退出
-        document.getElementById('btnLeaveRoom').addEventListener('click', () => {
-            if (isAdmin && roomStream) {
-                if (confirm("通話を完全に終了して部屋を閉じますか？")) {
-                    roomStream.getTracks().forEach(track => track.stop());
-                    roomStream = null;
-                    document.getElementById('callRoomBanner').classList.add('hidden');
-                    document.getElementById('videoRoomModal').style.display = 'none';
-                }
-            } else {
-                document.getElementById('videoRoomModal').style.display = 'none';
+        document.getElementById('btnEndAdminCall').addEventListener('click', () => {
+            if (adminCallStream) {
+                adminCallStream.getTracks().forEach(track => track.stop());
+                adminCallStream = null;
             }
+            document.getElementById('adminVideoModal').style.display = 'none';
         });
 
         function applyStyleToEditor(editorId, command, value) {
@@ -853,6 +803,12 @@
             for (let i = 0; i < salt.length; i++) { hash ^= salt.charCodeAt(i); hash = Math.imul(hash, 16777619); }
             return Math.abs(hash).toString(36).substring(0, 8).toUpperCase();
         }
+
+        let activeThreadId = null;
+        let lastRenderHash = ""; 
+        let attachedImageB64 = null, attachedVideoB64 = null, attachedAudioB64 = null;
+        let cameraStream = null, audioStream = null, mediaRecorder = null, chunks = [];
+        let recordSeconds = 0, recordInterval = null;
 
         function escapeHtml(str) { return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : ''; }
         
@@ -1128,7 +1084,7 @@
             if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
         }
 
-        // 🗑️ スレッドの一括削除（注意換気ダイアログ付き）
+        // 🗑️ スレッドの一括削除（管理者向け警告・注意喚起付き）
         async function deleteThreadWithWarning(threadId, threadTitle) {
             const warningMsg = `⚠️【管理者確認・警告】⚠️\n\nスレッド: 「${threadTitle || threadId}」\n\nこの操作を実行すると、スレッドに含まれる全てのレス・画像・動画データが永久に削除されます。\n※一度削除したデータは復元できません。\n\n本当に削除を実行しますか？`;
             if (confirm(warningMsg)) {
