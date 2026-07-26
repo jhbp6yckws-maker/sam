@@ -108,6 +108,7 @@
         }
         .res-attached-link a { color: #0066CC; font-weight: bold; text-decoration: underline; }
         
+        /* YouTube 埋め込み */
         .youtube-embed-container {
             margin-top: 12px;
             margin-bottom: 12px;
@@ -144,6 +145,7 @@
         .btn:hover { background-color: #E0E0E0; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
+        /* リアクションボタン */
         .btn-like { color: #008000; font-weight: bold; }
         .btn-like.active { background-color: #C8E6C9; border-color: #2E7D32; }
         
@@ -191,6 +193,7 @@
         input[type="text"] { width: 80%; }
         textarea { width: 100%; height: 80px; resize: vertical; }
         
+        /* エディタ枠 */
         .editor-container {
             border: 1px solid #CCCCCC;
             background: #FFFFFF;
@@ -240,6 +243,7 @@
             font-size: 13px;
         }
 
+        /* アンカーポップアップスタイル */
         #anchorPreviewPopup {
             position: absolute;
             z-index: 2000;
@@ -255,6 +259,7 @@
             pointer-events: none;
         }
 
+        /* 新着通知バー */
         #newPostsBar {
             position: fixed;
             bottom: 20px;
@@ -279,44 +284,6 @@
             transform: translateX(-50%) scale(1.05);
         }
 
-        /* 📹 管理者専用ビデオ通話モーダルスタイル */
-        .video-modal {
-            display: none;
-            position: fixed;
-            z-index: 4000;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #fff;
-        }
-        .video-container {
-            position: relative;
-            width: 90%;
-            max-width: 640px;
-            background: #222;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
-            text-align: center;
-            padding: 15px;
-        }
-        .video-screen {
-            width: 100%;
-            height: 320px;
-            background: #000;
-            border-radius: 4px;
-            object-fit: cover;
-        }
-        .video-controls {
-            margin-top: 15px;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
         .modal {
             display: none; position: fixed; z-index: 3000; top: 0; left: 0;
             width: 100%; height: 100%; background-color: rgba(0,0,0,0.85);
@@ -337,7 +304,6 @@
         <h1 id="siteTitle">■ 321掲示板 ■</h1>
         <div>
             <span id="adminStatusBadge" class="admin-badge hidden">🔑 管理者モード有効中</span>
-            <button id="btnAdminCall" class="btn btn-admin hidden" style="background-color:#008000; border-color:#006000;">📹 管理者ビデオ通話起動</button>
             <button id="btnAdminLogin" class="btn btn-admin">🔐 管理者ログイン</button>
             <button id="btnAdminLogout" class="btn hidden">🔓 ログアウト</button>
         </div>
@@ -351,18 +317,18 @@
     <div class="container">
         <div id="lobbyScreen">
             <div id="adminNgPanel" class="menu-box hidden" style="background-color: #FFF0F0; border-left: 4px solid #CC0000;">
-                <h4 style="margin: 0 0 8px 0; color: #CC0000;" id="toggleNgPanel">🚫 掲示板 NGワード・NG ID設定（管理者専用）</h4>
+                <h4 style="margin: 0 0 8px 0; cursor: pointer; color: #CC0000;" id="toggleNgPanel">🚫 掲示板 NGワード・NG ID設定（管理者専用）▼</h4>
                 <div id="ngPanelBody">
-                    <p style="font-size: 12px; color: #555; margin-bottom: 8px;">改行（またはカンマ）区切りで複数のNGワードやNG IDを設定できます。</p>
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 12px; font-weight: bold;">NGワード（1行に1つ）:</label><br>
-                        <textarea id="ngWordsInput" rows="4" placeholder="暴言&#10;スパム&#10;誹謗中傷" style="width:100%; font-size:12px; font-family:monospace;"></textarea>
+                    <p style="font-size: 12px; color: #555; margin-bottom: 8px;">カンマ(,)区切りで非表示にしたいキーワードやIDを設定します。</p>
+                    <div style="margin-bottom: 6px;">
+                        <label style="font-size: 12px; font-weight: bold;">NGワード:</label><br>
+                        <input type="text" id="ngWordsInput" placeholder="例: 暴言, スパム" style="width:100%; font-size:12px;">
                     </div>
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 12px; font-weight: bold;">NG ID（1行に1つ）:</label><br>
-                        <textarea id="ngIdsInput" rows="4" placeholder="A1B2C3D4&#10;X9Y8Z7W6" style="width:100%; font-size:12px; font-family:monospace;"></textarea>
+                    <div style="margin-bottom: 8px;">
+                        <label style="font-size: 12px; font-weight: bold;">NG ID:</label><br>
+                        <input type="text" id="ngIdsInput" placeholder="例: A1B2C3D4, X9Y8Z7W6" style="width:100%; font-size:12px;">
                     </div>
-                    <button class="btn btn-admin" id="btnSaveNgSettings" style="font-weight: bold;">設定したNG項目を保存する</button>
+                    <button class="btn btn-admin" id="btnSaveNgSettings" style="font-weight: bold;">NG設定を保存する</button>
                 </div>
             </div>
 
@@ -580,19 +546,6 @@
         </div>
     </div>
 
-    <div id="adminVideoModal" class="video-modal">
-        <div class="video-container">
-            <h3 style="margin-top:0; color:#FF3333;">📹 管理者ビデオ通話（配信・対話）</h3>
-            <video id="adminCallVideo" class="video-screen" autoplay playsinline muted></video>
-            <div id="callStatus" style="font-size:12px; margin-top:8px; color:#AAA;">カメラとマイクを接続中...</div>
-            <div class="video-controls">
-                <button class="btn" id="btnToggleMic">🎙️ マイク: ON</button>
-                <button class="btn" id="btnToggleCam">📷 カメラ: ON</button>
-                <button class="btn" id="btnEndAdminCall" style="background-color:#CC0000; color:#FFF; font-weight:bold;">🛑 通話を終了</button>
-            </div>
-        </div>
-    </div>
-
     <div id="anchorPreviewPopup"></div>
 
     <div id="newPostsBar" class="hidden">
@@ -615,31 +568,20 @@
         }
         const userSecret = localStorage.getItem('bbs_user_secret');
 
-        // 🚫 複数NGワード・NG ID管理 (配列で保持)
+        // 🚫 NGワード・NG ID管理
         let ngWords = JSON.parse(localStorage.getItem('bbs_ng_words') || '[]');
         let ngIds = JSON.parse(localStorage.getItem('bbs_ng_ids') || '[]');
 
-        // 初期表示時：改行区切りで表示
-        document.getElementById('ngWordsInput').value = ngWords.join('\n');
-        document.getElementById('ngIdsInput').value = ngIds.join('\n');
+        document.getElementById('ngWordsInput').value = ngWords.join(', ');
+        document.getElementById('ngIdsInput').value = ngIds.join(', ');
 
-        // 複数NG設定の保存処理
         document.getElementById('btnSaveNgSettings').addEventListener('click', () => {
             if (!isAdmin) return;
-            
-            const rawWords = document.getElementById('ngWordsInput').value;
-            const rawIds = document.getElementById('ngIdsInput').value;
-
-            ngWords = rawWords.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
-            ngIds = rawIds.split(/[\n,]/).map(s => s.trim().toUpperCase()).filter(Boolean);
-
+            ngWords = document.getElementById('ngWordsInput').value.split(',').map(s => s.trim()).filter(Boolean);
+            ngIds = document.getElementById('ngIdsInput').value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
             localStorage.setItem('bbs_ng_words', JSON.stringify(ngWords));
             localStorage.setItem('bbs_ng_ids', JSON.stringify(ngIds));
-            
-            document.getElementById('ngWordsInput').value = ngWords.join('\n');
-            document.getElementById('ngIdsInput').value = ngIds.join('\n');
-
-            alert(`🚫 管理者NG設定を保存しました。\n・NGワード: ${ngWords.length}件\n・NG ID: ${ngIds.length}件`);
+            alert("🚫 管理者NG設定を保存しました。");
             lastRenderHash = "";
             if (activeThreadId) renderActiveThread();
         });
@@ -696,19 +638,17 @@
         function updateAdminUI() {
             if (isAdmin) {
                 document.getElementById('adminStatusBadge').classList.remove('hidden');
-                document.getElementById('btnAdminCall').classList.remove('hidden');
                 document.getElementById('btnAdminLogin').classList.add('hidden');
                 document.getElementById('btnAdminLogout').classList.remove('hidden');
                 document.getElementById('adminInquiryPanel').classList.remove('hidden');
-                document.getElementById('adminNgPanel').classList.remove('hidden');
+                document.getElementById('adminNgPanel').classList.remove('hidden'); // 管理者専用NG設定パネルを表示
                 fetchInquiries();
             } else {
                 document.getElementById('adminStatusBadge').classList.add('hidden');
-                document.getElementById('btnAdminCall').classList.add('hidden');
                 document.getElementById('btnAdminLogin').classList.remove('hidden');
                 document.getElementById('btnAdminLogout').classList.add('hidden');
                 document.getElementById('adminInquiryPanel').classList.add('hidden');
-                document.getElementById('adminNgPanel').classList.add('hidden');
+                document.getElementById('adminNgPanel').classList.add('hidden'); // 一般ユーザーには非表示
             }
         }
 
@@ -718,51 +658,7 @@
             alert("ログアウトしました。");
         });
 
-        // 📹 管理者直接ビデオ通話システム
-        let adminCallStream = null;
-        let isMicOn = true, isCamOn = true;
-
-        document.getElementById('btnAdminCall').addEventListener('click', async () => {
-            if (!isAdmin) return;
-            try {
-                adminCallStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                const videoEl = document.getElementById('adminCallVideo');
-                videoEl.srcObject = adminCallStream;
-                document.getElementById('adminVideoModal').style.display = 'flex';
-                document.getElementById('callStatus').innerText = "🟢 カメラ・マイク起動中 (管理者通信中)";
-            } catch (err) {
-                alert("カメラまたはマイクの接続に失敗しました。アクセス許可を確認してください。");
-            }
-        });
-
-        document.getElementById('btnToggleMic').addEventListener('click', () => {
-            if (!adminCallStream) return;
-            const audioTrack = adminCallStream.getAudioTracks()[0];
-            if (audioTrack) {
-                isMicOn = !isMicOn;
-                audioTrack.enabled = isMicOn;
-                document.getElementById('btnToggleMic').innerText = `🎙️ マイク: ${isMicOn ? 'ON' : 'OFF'}`;
-            }
-        });
-
-        document.getElementById('btnToggleCam').addEventListener('click', () => {
-            if (!adminCallStream) return;
-            const videoTrack = adminCallStream.getVideoTracks()[0];
-            if (videoTrack) {
-                isCamOn = !isCamOn;
-                videoTrack.enabled = isCamOn;
-                document.getElementById('btnToggleCam').innerText = `📷 カメラ: ${isCamOn ? 'ON' : 'OFF'}`;
-            }
-        });
-
-        document.getElementById('btnEndAdminCall').addEventListener('click', () => {
-            if (adminCallStream) {
-                adminCallStream.getTracks().forEach(track => track.stop());
-                adminCallStream = null;
-            }
-            document.getElementById('adminVideoModal').style.display = 'none';
-        });
-
+        // 🎨 スムーズ文字装飾（リアルタイム適用）
         function applyStyleToEditor(editorId, command, value) {
             const editor = document.getElementById(editorId);
             editor.focus();
@@ -859,6 +755,7 @@
             reader.readAsDataURL(file);
         });
 
+        // カメラ・録音機能
         async function startCamera(facingMode, forVideo = false) {
             stopCamera(); stopAudio(); clearAttachments();
             try {
@@ -959,6 +856,7 @@
         const imgModal = document.getElementById('imageModal');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
+        // リアクション更新
         async function updateReaction(postId, clickedType) {
             const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
             if (error || !data) return;
@@ -988,6 +886,7 @@
             renderActiveThread();
         }
 
+        // 📩 問い合わせ送信
         document.getElementById('inquiryForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('btnSendInquiry');
@@ -1035,6 +934,7 @@
             container.innerHTML = html;
         }
 
+        // スレッド検索とソートイベント
         document.getElementById('threadSearchInput').addEventListener('input', fetchThreads);
         document.getElementById('threadSortSelect').addEventListener('change', fetchThreads);
 
@@ -1055,11 +955,13 @@
 
             let threadList = Object.values(threadMap);
 
+            // 🔍 キーワード検索フィルター
             const keyword = document.getElementById('threadSearchInput').value.trim().toLowerCase();
             if (keyword) {
                 threadList = threadList.filter(t => t.title.toLowerCase().includes(keyword));
             }
 
+            // ↕️ 並び替え（ソート）
             const sortBy = document.getElementById('threadSortSelect').value;
             if (sortBy === 'count') {
                 threadList.sort((a, b) => b.count - a.count);
@@ -1077,50 +979,12 @@
 
             let htmlBuf = "";
             threadList.forEach(t => {
-                const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}" data-title="${escapeHtml(t.title)}">🗑️ スレ全削除</button>` : '';
+                const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ スレ全削除</button>` : '';
                 htmlBuf += `<div class="thread-list-item"><span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})</span>${adminDeleteBtn}</div>`;
             });
 
             if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
         }
-
-        // 🗑️ スレッドの一括削除（管理者向け警告・注意喚起付き）
-        async function deleteThreadWithWarning(threadId, threadTitle) {
-            const warningMsg = `⚠️【管理者確認・警告】⚠️\n\nスレッド: 「${threadTitle || threadId}」\n\nこの操作を実行すると、スレッドに含まれる全てのレス・画像・動画データが永久に削除されます。\n※一度削除したデータは復元できません。\n\n本当に削除を実行しますか？`;
-            if (confirm(warningMsg)) {
-                const secondConfirm = confirm("【最終確認】本当に削除してもよろしいですか？");
-                if (secondConfirm) {
-                    const { error } = await _supabase.from('posts').delete().eq('thread_id', threadId);
-                    if (error) {
-                        alert("削除処理に失敗しました: " + error.message);
-                    } else {
-                        alert("スレッドを完全に削除しました。");
-                        if (activeThreadId === threadId) {
-                            activeThreadId = null;
-                            window.location.hash = "";
-                            showScreen('lobby');
-                        } else {
-                            fetchThreads();
-                        }
-                    }
-                }
-            }
-        }
-
-        document.getElementById('threadList').addEventListener('click', e => {
-            if (e.target.classList.contains('admin-delete-thread-btn')) {
-                const tId = e.target.getAttribute('data-threadid');
-                const tTitle = e.target.getAttribute('data-title');
-                deleteThreadWithWarning(tId, tTitle);
-            }
-        });
-
-        document.getElementById('btnDeleteThread').addEventListener('click', () => {
-            if (activeThreadId) {
-                const title = document.getElementById('activeThreadTitle').innerText;
-                deleteThreadWithWarning(activeThreadId, title);
-            }
-        });
 
         async function renderActiveThread() {
             if (!activeThreadId) return;
@@ -1159,11 +1023,12 @@
                 const isOp = (res.creator_secret === userSecret);
                 const displayID = getDisplayIDForPost(res);
 
+                // 🚫 NG判定 (管理者設定のNG ID / NGワード)
                 let isNg = false;
                 if (ngIds.includes(displayID)) isNg = true;
                 if (!isNg && ngWords.length > 0) {
                     const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
-                    if (ngWords.some(word => word && plainMsg.includes(word))) isNg = true;
+                    if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
                 }
 
                 let media = "";
@@ -1349,7 +1214,7 @@
                 startEditingPost(e.target.getAttribute('data-id'), e.target.getAttribute('data-resnum'));
             }
             if (e.target.classList.contains('delete-btn')) {
-                if (confirm("この投稿を削除しますか？")) {
+                if (confirm("削除しますか？")) {
                     await _supabase.from('posts').update({ message: "（削除されました）", is_deleted: true, image: "", video: "", audio: "" }).eq('id', e.target.getAttribute('data-id'));
                     lastRenderHash = ""; renderActiveThread();
                 }
@@ -1411,6 +1276,9 @@
 
         document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         document.getElementById('btnBack').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
+        document.getElementById('threadList').addEventListener('click', e => {
+            if (e.target.classList.contains('thread-link')) { activeThreadId = e.target.getAttribute('data-id'); window.location.hash = activeThreadId; showScreen('thread'); }
+        });
 
         _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
             if (activeThreadId) { lastRenderHash = ""; renderActiveThread(); } else fetchThreads();
