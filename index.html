@@ -108,7 +108,7 @@
         }
         .res-attached-link a { color: #0066CC; font-weight: bold; text-decoration: underline; }
         
-        /* YouTube 埋め込みプレイヤー（横長動画） */
+        /* YouTube 埋め込みプレイヤー（高画質化最適化） */
         .youtube-embed-container {
             margin-top: 12px;
             margin-bottom: 12px;
@@ -118,34 +118,14 @@
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             background: #000;
-            transform: translateZ(0);
+            transform: translateZ(0); /* レンダリングボヤけ防止 */
         }
         .youtube-embed-frame {
             width: 100%;
             aspect-ratio: 16 / 9;
             border: none;
             display: block;
-            image-rendering: -webkit-optimize-contrast;
-        }
-
-        /* YouTube Shorts 用縦長プレイヤー（スマホ・PC両対応） */
-        .youtube-shorts-container {
-            margin-top: 12px;
-            margin-bottom: 12px;
-            max-width: 315px;
-            width: 100%;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            background: #000;
-            transform: translateZ(0);
-        }
-        .youtube-shorts-frame {
-            width: 100%;
-            aspect-ratio: 9 / 16;
-            border: none;
-            display: block;
-            image-rendering: -webkit-optimize-contrast;
+            image-rendering: -webkit-optimize-contrast; /* ディスプレイ劣化防止 */
         }
 
         .res-actions {
@@ -402,7 +382,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div id="firstMessage" class="editor-body" contenteditable="true" placeholder="スレッドの解説やYouTube・ShortsのURLなど"></div>
+                            <div id="firstMessage" class="editor-body" contenteditable="true" placeholder="スレッドの解説やYouTubeのURLなど"></div>
                         </div>
                     </div>
                     <div class="form-row" style="margin-bottom: 10px;">
@@ -744,44 +724,27 @@
             return cleanHtml;
         }
 
-        // 🎬 YouTube & YouTube Shorts 対応・高画質埋め込みパース関数
+        // 🎬 YouTube高画質再生対応埋め込みパース関数
         function parseYouTubeEmbeds(rawText) {
             if (!rawText) return "";
-            // 通常動画・Shorts・短縮URL・埋め込みURLの正規表現（タイプ判定付き）
-            const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|(shorts)\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/gi;
+            const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/gi;
             let match, embedsHtml = "", matchedIds = new Set();
             const plainText = rawText.replace(/<[^>]+>/g, ' ');
             
             while ((match = ytRegex.exec(plainText)) !== null) {
                 const videoId = match[1];
-                const isShorts = match[0].includes('/shorts/') || (match[2] === 'shorts');
-                
                 if (!matchedIds.has(videoId)) {
                     matchedIds.add(videoId);
-                    
-                    if (isShorts) {
-                        // YouTube Shorts 用（縦長プレイヤー）
-                        embedsHtml += `
-                            <div class="youtube-shorts-container">
-                                <iframe 
-                                    class="youtube-shorts-frame" 
-                                    src="https://www.youtube.com/embed/${videoId}?vq=hd1080&rel=0" 
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                                    allowfullscreen>
-                                </iframe>
-                            </div>`;
-                    } else {
-                        // 通常 YouTube 動画用（横長プレイヤー）
-                        embedsHtml += `
-                            <div class="youtube-embed-container">
-                                <iframe 
-                                    class="youtube-embed-frame" 
-                                    src="https://www.youtube.com/embed/${videoId}?vq=hd1080&rel=0" 
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                                    allowfullscreen>
-                                </iframe>
-                            </div>`;
-                    }
+                    // vq=hd1080 を指定して最高画質読み込みを試行し、各種メディア権限を付与
+                    embedsHtml += `
+                        <div class="youtube-embed-container">
+                            <iframe 
+                                class="youtube-embed-frame" 
+                                src="https://www.youtube.com/embed/${videoId}?vq=hd1080&rel=0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                allowfullscreen>
+                            </iframe>
+                        </div>`;
                 }
             }
             return embedsHtml;
