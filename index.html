@@ -168,12 +168,13 @@
         .uploaded-img { cursor: zoom-in; transition: transform 0.2s; }
         .uploaded-img:hover { opacity: 0.8; }
         .uploaded-img, .uploaded-video {
-            max-width: 300px;
+            max-width: 450px;
             width: 100%;
             height: auto;
             display: block;
             margin-top: 10px;
             border: 1px solid #CCCCCC;
+            border-radius: 4px;
         }
         .uploaded-audio { display: block; margin-top: 10px; }
 
@@ -227,7 +228,7 @@
             border: 1px dashed #666; padding: 10px; margin-top: 10px;
             background: #F9F9F9; text-align: center;
         }
-        #webcam { width: 100%; max-width: 280px; border: 1px solid #000; background: #000; }
+        #webcam { width: 100%; max-width: 480px; border: 1px solid #000; background: #000; border-radius: 4px; }
         .recording-timer { color: red; font-weight: bold; font-size: 14px; margin-top: 5px; }
         
         .inquiry-box {
@@ -641,14 +642,14 @@
                 document.getElementById('btnAdminLogin').classList.add('hidden');
                 document.getElementById('btnAdminLogout').classList.remove('hidden');
                 document.getElementById('adminInquiryPanel').classList.remove('hidden');
-                document.getElementById('adminNgPanel').classList.remove('hidden'); // 管理者専用NG設定パネルを表示
+                document.getElementById('adminNgPanel').classList.remove('hidden');
                 fetchInquiries();
             } else {
                 document.getElementById('adminStatusBadge').classList.add('hidden');
                 document.getElementById('btnAdminLogin').classList.remove('hidden');
                 document.getElementById('btnAdminLogout').classList.add('hidden');
                 document.getElementById('adminInquiryPanel').classList.add('hidden');
-                document.getElementById('adminNgPanel').classList.add('hidden'); // 一般ユーザーには非表示
+                document.getElementById('adminNgPanel').classList.add('hidden');
             }
         }
 
@@ -658,7 +659,7 @@
             alert("ログアウトしました。");
         });
 
-        // 🎨 スムーズ文字装飾（リアルタイム適用）
+        // 🎨 文字装飾
         function applyStyleToEditor(editorId, command, value) {
             const editor = document.getElementById(editorId);
             editor.focus();
@@ -674,7 +675,8 @@
             document.getElementById('lobbyFmtFont').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'fontName', this.value || 'inherit'); });
         });
 
-        function compressImage(base64Str, maxWidth = 800, quality = 0.5) {
+        // 🌟 画像高画質化処理 (Full HD 1920px / 画質 90%)
+        function compressImage(base64Str, maxWidth = 1920, quality = 0.9) {
             return new Promise((resolve) => {
                 const img = new Image();
                 img.src = base64Str;
@@ -684,6 +686,8 @@
                     if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
                     canvas.width = w; canvas.height = h;
                     const ctx = canvas.getContext('2d');
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
                     ctx.drawImage(img, 0, 0, w, h);
                     resolve(canvas.toDataURL('image/jpeg', quality));
                 };
@@ -742,8 +746,8 @@
             const reader = new FileReader();
             reader.onload = async function(evt) {
                 if (file.type.startsWith('image/')) {
-                    attachedImageB64 = await compressImage(evt.target.result);
-                    document.getElementById('attachmentPreview').innerHTML = "🖼️ 画像を添付しました";
+                    attachedImageB64 = await compressImage(evt.target.result, 1920, 0.9);
+                    document.getElementById('attachmentPreview').innerHTML = "🖼️ 高画質画像を添付しました";
                 } else if (file.type.startsWith('video/')) {
                     attachedVideoB64 = evt.target.result;
                     document.getElementById('attachmentPreview').innerHTML = "🎥 動画を選択しました";
@@ -755,11 +759,16 @@
             reader.readAsDataURL(file);
         });
 
-        // カメラ・録音機能
+        // 📹 高解像度カメラ起動機能 (Full HD 対応)
         async function startCamera(facingMode, forVideo = false) {
             stopCamera(); stopAudio(); clearAttachments();
             try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }, audio: forVideo });
+                const videoConstraints = {
+                    facingMode: facingMode,
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                };
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: forVideo });
                 const videoEl = document.getElementById('webcam');
                 videoEl.srcObject = cameraStream; videoEl.muted = !forVideo;
                 document.getElementById('cameraArea').classList.remove('hidden');
@@ -785,19 +794,29 @@
         document.getElementById('btnShutter').addEventListener('click', async () => {
             const canvas = document.getElementById('captureCanvas'), video = document.getElementById('webcam');
             canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            attachedImageB64 = await compressImage(canvas.toDataURL('image/jpeg', 0.6));
-            document.getElementById('attachmentPreview').innerHTML = "📸 写真を撮影しました";
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(video, 0, 0);
+            attachedImageB64 = await compressImage(canvas.toDataURL('image/jpeg', 0.9), 1920, 0.9);
+            document.getElementById('attachmentPreview').innerHTML = "📸 高画質写真を撮影しました";
             stopCamera();
         });
 
         document.getElementById('btnStartVideoRec').addEventListener('click', () => {
             chunks = [];
-            mediaRecorder = new MediaRecorder(cameraStream);
+            // 高画質動画エンコード（5Mbps指定）
+            const options = { videoBitsPerSecond: 5000000 };
+            try {
+                mediaRecorder = new MediaRecorder(cameraStream, options);
+            } catch(e) {
+                mediaRecorder = new MediaRecorder(cameraStream);
+            }
+            
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
             mediaRecorder.onstop = () => {
                 let r = new FileReader();
-                r.onload = e => { attachedVideoB64 = e.target.result; document.getElementById('attachmentPreview').innerHTML = "🎥 録画完了"; };
+                r.onload = e => { attachedVideoB64 = e.target.result; document.getElementById('attachmentPreview').innerHTML = "🎥 高画質録画完了"; };
                 r.readAsDataURL(new Blob(chunks, { type: 'video/webm' }));
                 stopCamera();
             };
@@ -1013,6 +1032,7 @@
             const firstPost = data[0];
             document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
             
+            // スレッド作成者本人、または管理者の場合にスレッド削除ボタンを表示
             document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
 
             const container = document.getElementById('resContainer');
@@ -1023,7 +1043,7 @@
                 const isOp = (res.creator_secret === userSecret);
                 const displayID = getDisplayIDForPost(res);
 
-                // 🚫 NG判定 (管理者設定のNG ID / NGワード)
+                // 🚫 NG判定
                 let isNg = false;
                 if (ngIds.includes(displayID)) isNg = true;
                 if (!isNg && ngWords.length > 0) {
@@ -1198,6 +1218,7 @@
             renderActiveThread();
         });
 
+        // スレッド画面内の削除・動作ボタンイベント
         document.getElementById('resContainer').addEventListener('click', async e => {
             if (e.target.classList.contains('uploaded-img')) {
                 imgModal.style.display = "flex";
@@ -1214,9 +1235,25 @@
                 startEditingPost(e.target.getAttribute('data-id'), e.target.getAttribute('data-resnum'));
             }
             if (e.target.classList.contains('delete-btn')) {
-                if (confirm("削除しますか？")) {
+                if (confirm("この投稿を削除しますか？")) {
                     await _supabase.from('posts').update({ message: "（削除されました）", is_deleted: true, image: "", video: "", audio: "" }).eq('id', e.target.getAttribute('data-id'));
                     lastRenderHash = ""; renderActiveThread();
+                }
+            }
+        });
+
+        // 🗑️ スレッド自体の削除処理（作成者本人 & 管理者）
+        document.getElementById('btnDeleteThread').addEventListener('click', async () => {
+            if (!activeThreadId) return;
+            if (confirm("このスレッドを完全に削除しますか？（スレッド内の全ての投稿が削除されます）")) {
+                const { error } = await _supabase.from('posts').delete().eq('thread_id', activeThreadId);
+                if (error) {
+                    alert("スレッドの削除に失敗しました: " + error.message);
+                } else {
+                    alert("スレッドを削除しました。");
+                    activeThreadId = null;
+                    window.location.hash = "";
+                    showScreen('lobby');
                 }
             }
         });
@@ -1276,8 +1313,26 @@
 
         document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         document.getElementById('btnBack').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
-        document.getElementById('threadList').addEventListener('click', e => {
-            if (e.target.classList.contains('thread-link')) { activeThreadId = e.target.getAttribute('data-id'); window.location.hash = activeThreadId; showScreen('thread'); }
+
+        // ロビーのスレッド一覧操作（開く & 🗑️ 管理者用一括削除）
+        document.getElementById('threadList').addEventListener('click', async e => {
+            if (e.target.classList.contains('thread-link')) { 
+                activeThreadId = e.target.getAttribute('data-id'); 
+                window.location.hash = activeThreadId; 
+                showScreen('thread'); 
+            }
+            if (e.target.classList.contains('admin-delete-thread-btn')) {
+                const targetThreadId = e.target.getAttribute('data-threadid');
+                if (confirm("【管理者】このスレッドを完全削除しますか？")) {
+                    const { error } = await _supabase.from('posts').delete().eq('thread_id', targetThreadId);
+                    if (error) {
+                        alert("スレッドの削除に失敗しました: " + error.message);
+                    } else {
+                        alert("スレッドを削除しました。");
+                        fetchThreads();
+                    }
+                }
+            }
         });
 
         _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
