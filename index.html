@@ -108,7 +108,7 @@
         }
         .res-attached-link a { color: #0066CC; font-weight: bold; text-decoration: underline; }
         
-        /* YouTube 埋め込み */
+        /* YouTube 埋め込みプレイヤー（高画質化最適化） */
         .youtube-embed-container {
             margin-top: 12px;
             margin-bottom: 12px;
@@ -118,12 +118,14 @@
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             background: #000;
+            transform: translateZ(0); /* レンダリングボヤけ防止 */
         }
         .youtube-embed-frame {
             width: 100%;
             aspect-ratio: 16 / 9;
             border: none;
             display: block;
+            image-rendering: -webkit-optimize-contrast; /* ディスプレイ劣化防止 */
         }
 
         .res-actions {
@@ -722,16 +724,27 @@
             return cleanHtml;
         }
 
+        // 🎬 YouTube高画質再生対応埋め込みパース関数
         function parseYouTubeEmbeds(rawText) {
             if (!rawText) return "";
             const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/gi;
             let match, embedsHtml = "", matchedIds = new Set();
             const plainText = rawText.replace(/<[^>]+>/g, ' ');
+            
             while ((match = ytRegex.exec(plainText)) !== null) {
                 const videoId = match[1];
                 if (!matchedIds.has(videoId)) {
                     matchedIds.add(videoId);
-                    embedsHtml += `<div class="youtube-embed-container"><iframe class="youtube-embed-frame" src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
+                    // vq=hd1080 を指定して最高画質読み込みを試行し、各種メディア権限を付与
+                    embedsHtml += `
+                        <div class="youtube-embed-container">
+                            <iframe 
+                                class="youtube-embed-frame" 
+                                src="https://www.youtube.com/embed/${videoId}?vq=hd1080&rel=0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                allowfullscreen>
+                            </iframe>
+                        </div>`;
                 }
             }
             return embedsHtml;
