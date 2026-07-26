@@ -108,7 +108,6 @@
         }
         .res-attached-link a { color: #0066CC; font-weight: bold; text-decoration: underline; }
         
-        /* YouTube 埋め込み */
         .youtube-embed-container {
             margin-top: 12px;
             margin-bottom: 12px;
@@ -145,7 +144,6 @@
         .btn:hover { background-color: #E0E0E0; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
-        /* リアクションボタン */
         .btn-like { color: #008000; font-weight: bold; }
         .btn-like.active { background-color: #C8E6C9; border-color: #2E7D32; }
         
@@ -193,7 +191,6 @@
         input[type="text"] { width: 80%; }
         textarea { width: 100%; height: 80px; resize: vertical; }
         
-        /* エディタ枠 */
         .editor-container {
             border: 1px solid #CCCCCC;
             background: #FFFFFF;
@@ -243,7 +240,6 @@
             font-size: 13px;
         }
 
-        /* アンカーポップアップスタイル */
         #anchorPreviewPopup {
             position: absolute;
             z-index: 2000;
@@ -259,7 +255,6 @@
             pointer-events: none;
         }
 
-        /* 新着通知バー */
         #newPostsBar {
             position: fixed;
             bottom: 20px;
@@ -317,18 +312,18 @@
     <div class="container">
         <div id="lobbyScreen">
             <div id="adminNgPanel" class="menu-box hidden" style="background-color: #FFF0F0; border-left: 4px solid #CC0000;">
-                <h4 style="margin: 0 0 8px 0; cursor: pointer; color: #CC0000;" id="toggleNgPanel">🚫 掲示板 NGワード・NG ID設定（管理者専用）▼</h4>
+                <h4 style="margin: 0 0 8px 0; color: #CC0000;" id="toggleNgPanel">🚫 掲示板 NGワード・NG ID設定（管理者専用）</h4>
                 <div id="ngPanelBody">
-                    <p style="font-size: 12px; color: #555; margin-bottom: 8px;">カンマ(,)区切りで非表示にしたいキーワードやIDを設定します。</p>
-                    <div style="margin-bottom: 6px;">
-                        <label style="font-size: 12px; font-weight: bold;">NGワード:</label><br>
-                        <input type="text" id="ngWordsInput" placeholder="例: 暴言, スパム" style="width:100%; font-size:12px;">
+                    <p style="font-size: 12px; color: #555; margin-bottom: 8px;">改行（またはカンマ）区切りで複数のNGワードやNG IDを設定できます。</p>
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 12px; font-weight: bold;">NGワード（1行に1つ）:</label><br>
+                        <textarea id="ngWordsInput" rows="4" placeholder="暴言&#10;スパム&#10;誹謗中傷" style="width:100%; font-size:12px; font-family:monospace;"></textarea>
                     </div>
-                    <div style="margin-bottom: 8px;">
-                        <label style="font-size: 12px; font-weight: bold;">NG ID:</label><br>
-                        <input type="text" id="ngIdsInput" placeholder="例: A1B2C3D4, X9Y8Z7W6" style="width:100%; font-size:12px;">
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 12px; font-weight: bold;">NG ID（1行に1つ）:</label><br>
+                        <textarea id="ngIdsInput" rows="4" placeholder="A1B2C3D4&#10;X9Y8Z7W6" style="width:100%; font-size:12px; font-family:monospace;"></textarea>
                     </div>
-                    <button class="btn btn-admin" id="btnSaveNgSettings" style="font-weight: bold;">NG設定を保存する</button>
+                    <button class="btn btn-admin" id="btnSaveNgSettings" style="font-weight: bold;">設定したNG項目を保存する</button>
                 </div>
             </div>
 
@@ -568,20 +563,33 @@
         }
         const userSecret = localStorage.getItem('bbs_user_secret');
 
-        // 🚫 NGワード・NG ID管理
+        // 🚫 複数NGワード・NG ID管理 (配列で保持)
         let ngWords = JSON.parse(localStorage.getItem('bbs_ng_words') || '[]');
         let ngIds = JSON.parse(localStorage.getItem('bbs_ng_ids') || '[]');
 
-        document.getElementById('ngWordsInput').value = ngWords.join(', ');
-        document.getElementById('ngIdsInput').value = ngIds.join(', ');
+        // 初期表示時：改行区切りで表示
+        document.getElementById('ngWordsInput').value = ngWords.join('\n');
+        document.getElementById('ngIdsInput').value = ngIds.join('\n');
 
+        // 複数NG設定の保存処理 (改行およびカンマで分割)
         document.getElementById('btnSaveNgSettings').addEventListener('click', () => {
             if (!isAdmin) return;
-            ngWords = document.getElementById('ngWordsInput').value.split(',').map(s => s.trim()).filter(Boolean);
-            ngIds = document.getElementById('ngIdsInput').value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+            
+            const rawWords = document.getElementById('ngWordsInput').value;
+            const rawIds = document.getElementById('ngIdsInput').value;
+
+            // 改行(\n)またはカンマ(,)で分割してクリーンアップ
+            ngWords = rawWords.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+            ngIds = rawIds.split(/[\n,]/).map(s => s.trim().toUpperCase()).filter(Boolean);
+
             localStorage.setItem('bbs_ng_words', JSON.stringify(ngWords));
             localStorage.setItem('bbs_ng_ids', JSON.stringify(ngIds));
-            alert("🚫 管理者NG設定を保存しました。");
+            
+            // 最新の整形結果を再度入力欄へ反映
+            document.getElementById('ngWordsInput').value = ngWords.join('\n');
+            document.getElementById('ngIdsInput').value = ngIds.join('\n');
+
+            alert(`🚫 管理者NG設定を保存しました。\n・NGワード: ${ngWords.length}件\n・NG ID: ${ngIds.length}件`);
             lastRenderHash = "";
             if (activeThreadId) renderActiveThread();
         });
@@ -641,14 +649,14 @@
                 document.getElementById('btnAdminLogin').classList.add('hidden');
                 document.getElementById('btnAdminLogout').classList.remove('hidden');
                 document.getElementById('adminInquiryPanel').classList.remove('hidden');
-                document.getElementById('adminNgPanel').classList.remove('hidden'); // 管理者専用NG設定パネルを表示
+                document.getElementById('adminNgPanel').classList.remove('hidden');
                 fetchInquiries();
             } else {
                 document.getElementById('adminStatusBadge').classList.add('hidden');
                 document.getElementById('btnAdminLogin').classList.remove('hidden');
                 document.getElementById('btnAdminLogout').classList.add('hidden');
                 document.getElementById('adminInquiryPanel').classList.add('hidden');
-                document.getElementById('adminNgPanel').classList.add('hidden'); // 一般ユーザーには非表示
+                document.getElementById('adminNgPanel').classList.add('hidden');
             }
         }
 
@@ -658,7 +666,6 @@
             alert("ログアウトしました。");
         });
 
-        // 🎨 スムーズ文字装飾（リアルタイム適用）
         function applyStyleToEditor(editorId, command, value) {
             const editor = document.getElementById(editorId);
             editor.focus();
@@ -755,7 +762,6 @@
             reader.readAsDataURL(file);
         });
 
-        // カメラ・録音機能
         async function startCamera(facingMode, forVideo = false) {
             stopCamera(); stopAudio(); clearAttachments();
             try {
@@ -856,7 +862,6 @@
         const imgModal = document.getElementById('imageModal');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
-        // リアクション更新
         async function updateReaction(postId, clickedType) {
             const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
             if (error || !data) return;
@@ -886,7 +891,6 @@
             renderActiveThread();
         }
 
-        // 📩 問い合わせ送信
         document.getElementById('inquiryForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('btnSendInquiry');
@@ -934,7 +938,6 @@
             container.innerHTML = html;
         }
 
-        // スレッド検索とソートイベント
         document.getElementById('threadSearchInput').addEventListener('input', fetchThreads);
         document.getElementById('threadSortSelect').addEventListener('change', fetchThreads);
 
@@ -955,13 +958,11 @@
 
             let threadList = Object.values(threadMap);
 
-            // 🔍 キーワード検索フィルター
             const keyword = document.getElementById('threadSearchInput').value.trim().toLowerCase();
             if (keyword) {
                 threadList = threadList.filter(t => t.title.toLowerCase().includes(keyword));
             }
 
-            // ↕️ 並び替え（ソート）
             const sortBy = document.getElementById('threadSortSelect').value;
             if (sortBy === 'count') {
                 threadList.sort((a, b) => b.count - a.count);
@@ -1023,12 +1024,12 @@
                 const isOp = (res.creator_secret === userSecret);
                 const displayID = getDisplayIDForPost(res);
 
-                // 🚫 NG判定 (管理者設定のNG ID / NGワード)
+                // 🚫 複数NG判定（設定された配列と照合）
                 let isNg = false;
                 if (ngIds.includes(displayID)) isNg = true;
                 if (!isNg && ngWords.length > 0) {
                     const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
-                    if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
+                    if (ngWords.some(word => word && plainMsg.includes(word))) isNg = true;
                 }
 
                 let media = "";
