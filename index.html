@@ -73,12 +73,15 @@
             border-bottom: 2px solid #CC0000;
             padding-bottom: 5px;
         }
+
+        /* 🚀 1000レス超でも高速化するレンダリング最適化 */
         .res {
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 1px dashed #DDDDDD;
             position: relative;
-            contain: content; /* 描画パフォーマンスを大幅に向上させるプロパティ */
+            content-visibility: auto; /* 画面外の要素のレイアウト計算・描画をスキップ */
+            contain-intrinsic-size: 1px 120px; /* スクロールバーのガタつき防止 */
         }
         .res-header { font-size: 14px; margin-bottom: 5px; }
         .res-number { color: #000000; }
@@ -109,7 +112,6 @@
         }
         .res-attached-link a { color: #0066CC; font-weight: bold; text-decoration: underline; }
         
-        /* YouTube 埋め込みプレイヤー（高画質化・遅延読み込み対応） */
         .youtube-embed-container {
             margin-top: 12px;
             margin-bottom: 12px;
@@ -170,7 +172,7 @@
         .uploaded-img { cursor: zoom-in; transition: transform 0.2s; }
         .uploaded-img:hover { opacity: 0.8; }
         .uploaded-img, .uploaded-video {
-            max-width: 450px;
+            max-width: 520px;
             width: 100%;
             height: auto;
             display: block;
@@ -231,19 +233,6 @@
         }
         #webcam { width: 100%; max-width: 480px; border: 1px solid #000; background: #000; border-radius: 4px; }
         .recording-timer { color: red; font-weight: bold; font-size: 14px; margin-top: 5px; }
-        
-        .inquiry-box {
-            margin-top: 25px;
-            background-color: #FFF8E7;
-            border: 1px solid #E6C280;
-            padding: 15px;
-            max-width: 550px;
-        }
-        .inquiry-item {
-            border-bottom: 1px solid #DDD;
-            padding: 8px 0;
-            font-size: 13px;
-        }
 
         #anchorPreviewPopup {
             position: absolute;
@@ -309,15 +298,10 @@
         </div>
     </div>
 
-    <div id="adminInquiryPanel" class="menu-box hidden">
-        <h3 style="color:#CC0000; margin-top:0;">📩 届いた問い合わせ・通報一覧（管理者専用）</h3>
-        <div id="inquiryList">読み込み中...</div>
-    </div>
-
     <div class="container">
         <div id="lobbyScreen">
             <div id="adminNgPanel" class="menu-box hidden" style="background-color: #FFF0F0; border-left: 4px solid #CC0000;">
-                <h4 style="margin: 0 0 8px 0; cursor: pointer; color: #CC0000;" id="toggleNgPanel">🚫 掲示板 NGワード・NG ID設定（管理者専用）▼</h4>
+                <h4 style="margin: 0 0 8px 0; color: #CC0000;">🚫 掲示板 NGワード・NG ID設定（管理者専用）</h4>
                 <div id="ngPanelBody">
                     <p style="font-size: 12px; color: #555; margin-bottom: 8px;">カンマ(,)区切りで非表示にしたいキーワードやIDを設定します。</p>
                     <div style="margin-bottom: 6px;">
@@ -524,25 +508,6 @@
                     <button type="button" class="btn hidden" id="btnCancelEdit" style="background-color: #FF6600; color: white;">訂正をキャンセル</button>
                 </form>
             </div>
-
-            <div class="inquiry-box">
-                <div class="form-title" style="color:#B35900;">📩 管理者に問い合わせる・通報する</div>
-                <form id="inquiryForm">
-                    <div style="margin-bottom: 8px;">
-                        <label style="font-size:12px; font-weight:bold;">種別:</label>
-                        <select id="inquiryCategory" style="font-size:12px;">
-                            <option value="不適切な投稿の通報">不適切な投稿の通報</option>
-                            <option value="バグ・不具合報告">バグ・不具合報告</option>
-                            <option value="機能のご要望">機能のご要望</option>
-                            <option value="その他">その他問い合わせ</option>
-                        </select>
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <textarea id="inquiryMessage" placeholder="問い合わせ・通報内容を入力してください（管理者にのみ送信されます）" required></textarea>
-                    </div>
-                    <button type="submit" class="btn" id="btnSendInquiry" style="background:#E6C280; font-weight:bold;">管理者に送信</button>
-                </form>
-            </div>
         </div>
     </div>
 
@@ -586,7 +551,7 @@
         });
 
         let currentPostsData = [];
-        let renderedPostsMap = new Map(); // レンダリング済みポストのメモリ管理
+        let renderedPostsMap = new Map();
         let unreadNewPostsCount = 0;
 
         function getUserReactions() {
@@ -599,25 +564,8 @@
             localStorage.setItem('bbs_user_reactions', JSON.stringify(reactions));
         }
 
-        async function authenticateAdmin() {
-            if (window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()) {
-                const useBiometric = confirm("指紋認証・Face ID・パスキーで管理者ログインしますか？");
-                if (useBiometric) {
-                    try {
-                        const challenge = new Uint8Array(32);
-                        window.crypto.getRandomValues(challenge);
-                        const credential = await navigator.credentials.get({
-                            publicKey: { challenge: challenge, timeout: 60000, userVerification: "required" }
-                        });
-                        if (credential) {
-                            setAdminMode(true);
-                            alert("🔑 生体認証で管理者ログインしました！");
-                            return;
-                        }
-                    } catch (e) {}
-                }
-            }
-
+        // 🔑 パスキー判定を廃止し、直接パスワードのみでログイン処理を行う
+        function authenticateAdmin() {
             const inputPass = prompt("管理者パスワードを入力してください：");
             if (inputPass === ADMIN_PASSWORD) {
                 setAdminMode(true);
@@ -641,14 +589,11 @@
                 document.getElementById('adminStatusBadge').classList.remove('hidden');
                 document.getElementById('btnAdminLogin').classList.add('hidden');
                 document.getElementById('btnAdminLogout').classList.remove('hidden');
-                document.getElementById('adminInquiryPanel').classList.remove('hidden');
                 document.getElementById('adminNgPanel').classList.remove('hidden');
-                fetchInquiries();
             } else {
                 document.getElementById('adminStatusBadge').classList.add('hidden');
                 document.getElementById('btnAdminLogin').classList.remove('hidden');
                 document.getElementById('btnAdminLogout').classList.add('hidden');
-                document.getElementById('adminInquiryPanel').classList.add('hidden');
                 document.getElementById('adminNgPanel').classList.add('hidden');
             }
         }
@@ -719,7 +664,6 @@
             return cleanHtml;
         }
 
-        // 🎬 YouTube埋め込みパース関数（loading="lazy" で1000件時も超高速）
         function parseYouTubeEmbeds(rawText) {
             if (!rawText) return "";
             const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/gi;
@@ -747,6 +691,7 @@
 
         function clearAttachments() { attachedImageB64 = null; attachedVideoB64 = null; attachedAudioB64 = null; document.getElementById('attachmentPreview').innerHTML = ""; }
 
+        // 🎬 ファイルからの動画選択時に画質を低下させず元のクオリティで添付する処理
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             clearAttachments();
             const file = e.target.files[0];
@@ -757,8 +702,8 @@
                     attachedImageB64 = await compressImage(evt.target.result, 1920, 0.9);
                     document.getElementById('attachmentPreview').innerHTML = "🖼️ 高画質画像を添付しました";
                 } else if (file.type.startsWith('video/')) {
-                    attachedVideoB64 = evt.target.result;
-                    document.getElementById('attachmentPreview').innerHTML = "🎥 動画を選択しました";
+                    attachedVideoB64 = evt.target.result; // オリジナル高画質動画を保持
+                    document.getElementById('attachmentPreview').innerHTML = "🎥 高画質動画ファイルを添付しました";
                 } else if (file.type.startsWith('audio/')) {
                     attachedAudioB64 = evt.target.result;
                     document.getElementById('attachmentPreview').innerHTML = "🎵 音声を選択しました";
@@ -812,7 +757,7 @@
 
         document.getElementById('btnStartVideoRec').addEventListener('click', () => {
             chunks = [];
-            const options = { videoBitsPerSecond: 5000000 };
+            const options = { videoBitsPerSecond: 8000000 };
             try { mediaRecorder = new MediaRecorder(cameraStream, options); } catch(e) { mediaRecorder = new MediaRecorder(cameraStream); }
             
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
@@ -905,53 +850,6 @@
             renderActiveThread();
         }
 
-        document.getElementById('inquiryForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btnSendInquiry');
-            btn.disabled = true;
-            
-            const category = document.getElementById('inquiryCategory').value;
-            const message = document.getElementById('inquiryMessage').value.trim();
-
-            const { error } = await _supabase.from('inquiries').insert([{
-                thread_id: activeThreadId || '',
-                category: category,
-                message: message
-            }]);
-
-            if (error) {
-                alert("送信に失敗しました。");
-            } else {
-                alert("管理者に問い合わせ・通報を送信しました。");
-                document.getElementById('inquiryMessage').value = "";
-            }
-            btn.disabled = false;
-        });
-
-        async function fetchInquiries() {
-            if (!isAdmin) return;
-            const { data, error } = await _supabase.from('inquiries').select('*').order('id', { ascending: false });
-            const container = document.getElementById('inquiryList');
-            if (error || !data || data.length === 0) {
-                container.innerHTML = "<div>届いている問い合わせはありません。</div>";
-                return;
-            }
-
-            let html = "";
-            data.forEach(item => {
-                const dateStr = new Date(item.created_at).toLocaleString('ja-JP');
-                html += `
-                    <div class="inquiry-item">
-                        <b>[${escapeHtml(item.category)}]</b> <span style="color:#666;">(${dateStr})</span>
-                        ${item.thread_id ? `<br><small>スレッドID: ${item.thread_id}</small>` : ''}
-                        <div style="margin-top:4px; font-size:14px;">${escapeHtml(item.message)}</div>
-                        <button class="btn delete-btn delete-inquiry-btn" data-id="${item.id}" style="margin-top:4px;">削除</button>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
         document.getElementById('threadSearchInput').addEventListener('input', fetchThreads);
         document.getElementById('threadSortSelect').addEventListener('change', fetchThreads);
 
@@ -1001,7 +899,7 @@
             if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
         }
 
-        // ⚡ 1000レス超高速化レンダリングエンジン（差分追加描画＆要素指定更新）
+        // ⚡ 1000レス超高速化レンダリングエンジン（Fragment一括追加 ＆ メモリマップ管理）
         async function renderActiveThread(forceFullReRender = false) {
             if (!activeThreadId) return;
             const targetThreadId = activeThreadId;
@@ -1018,7 +916,6 @@
             document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
             document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
 
-            // 未読件数管理
             if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
                 const diff = data.length - currentPostsData.length;
                 const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 300);
@@ -1032,8 +929,8 @@
 
             const userReactions = getUserReactions();
             const container = document.getElementById('resContainer');
+            const fragment = document.createDocumentFragment();
 
-            // 差分チェック＆新着追記処理
             data.forEach((res, index) => {
                 const resNum = index + 1;
                 const isOp = (res.creator_secret === userSecret);
@@ -1050,15 +947,12 @@
                 const dislikesCount = res.dislikes || 0;
                 const userReaction = userReactions[res.id] || null;
 
-                // 投稿の固有ハッシュ（変更があった場合のみ個別に再描画）
                 const postStateHash = `${res.id}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
 
-                // 既に描画済みで変更がない場合はスキップ（ブラウザの描画負荷を完全にゼロ化）
                 if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
                     return;
                 }
 
-                // 個別レスHTML生成
                 let media = "";
                 if (res.image) media = `<img src="${res.image}" class="uploaded-img" loading="lazy">`;
                 else if (res.video) media = `<video src="${res.video}" class="uploaded-video" controls></video>`;
@@ -1120,19 +1014,21 @@
 
                 const existingElem = document.getElementById(`res-${res.id}`);
                 if (existingElem) {
-                    // 編集・削除・いいね等で変更された場合のみ部分差し替え
                     existingElem.innerHTML = resHtml;
                 } else {
-                    // 新規レスを末尾に高速追加（insertAdjacentHTML）
                     const wrapperDiv = document.createElement('div');
                     wrapperDiv.className = 'res';
                     wrapperDiv.id = `res-${res.id}`;
                     wrapperDiv.innerHTML = resHtml;
-                    container.appendChild(wrapperDiv);
+                    fragment.appendChild(wrapperDiv);
                 }
 
                 renderedPostsMap.set(res.id, postStateHash);
             });
+
+            if (fragment.children.length > 0) {
+                container.appendChild(fragment);
+            }
         }
 
         document.getElementById('newPostsBar').addEventListener('click', () => {
@@ -1297,13 +1193,6 @@
         document.getElementById('resContainer').addEventListener('mouseout', e => {
             if (e.target.classList.contains('anchor')) {
                 anchorPopup.style.display = 'none';
-            }
-        });
-
-        document.getElementById('adminInquiryPanel').addEventListener('click', async e => {
-            if (e.target.classList.contains('delete-inquiry-btn')) {
-                await _supabase.from('inquiries').delete().eq('id', e.target.getAttribute('data-id'));
-                fetchInquiries();
             }
         });
 
