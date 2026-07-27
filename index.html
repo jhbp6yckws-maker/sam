@@ -74,14 +74,13 @@
             padding-bottom: 5px;
         }
 
-        /* 🚀 1000レス超でも高速化するレンダリング最適化 */
         .res {
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 1px dashed #DDDDDD;
             position: relative;
-            content-visibility: auto; /* 画面外の要素のレイアウト計算・描画をスキップ */
-            contain-intrinsic-size: 1px 120px; /* スクロールバーのガタつき防止 */
+            content-visibility: auto;
+            contain-intrinsic-size: 1px 120px;
         }
         .res-header { font-size: 14px; margin-bottom: 5px; }
         .res-number { color: #000000; }
@@ -564,7 +563,6 @@
             localStorage.setItem('bbs_user_reactions', JSON.stringify(reactions));
         }
 
-        // 🔑 パスキー判定を廃止し、直接パスワードのみでログイン処理を行う
         function authenticateAdmin() {
             const inputPass = prompt("管理者パスワードを入力してください：");
             if (inputPass === ADMIN_PASSWORD) {
@@ -691,7 +689,7 @@
 
         function clearAttachments() { attachedImageB64 = null; attachedVideoB64 = null; attachedAudioB64 = null; document.getElementById('attachmentPreview').innerHTML = ""; }
 
-        // 🎬 ファイルからの動画選択時に画質を低下させず元のクオリティで添付する処理
+        // 🎬 ファイル選択で画像・動画・音声を高画質・高精細のまま添付する処理
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             clearAttachments();
             const file = e.target.files[0];
@@ -702,7 +700,7 @@
                     attachedImageB64 = await compressImage(evt.target.result, 1920, 0.9);
                     document.getElementById('attachmentPreview').innerHTML = "🖼️ 高画質画像を添付しました";
                 } else if (file.type.startsWith('video/')) {
-                    attachedVideoB64 = evt.target.result; // オリジナル高画質動画を保持
+                    attachedVideoB64 = evt.target.result; // オリジナル品質の動画データ(DataURL)を取得
                     document.getElementById('attachmentPreview').innerHTML = "🎥 高画質動画ファイルを添付しました";
                 } else if (file.type.startsWith('audio/')) {
                     attachedAudioB64 = evt.target.result;
@@ -899,7 +897,6 @@
             if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
         }
 
-        // ⚡ 1000レス超高速化レンダリングエンジン（Fragment一括追加 ＆ メモリマップ管理）
         async function renderActiveThread(forceFullReRender = false) {
             if (!activeThreadId) return;
             const targetThreadId = activeThreadId;
