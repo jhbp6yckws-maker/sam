@@ -687,28 +687,62 @@
             return embedsHtml;
         }
 
-        function clearAttachments() { attachedImageB64 = null; attachedVideoB64 = null; attachedAudioB64 = null; document.getElementById('attachmentPreview').innerHTML = ""; }
+        function clearAttachments() { 
+            attachedImageB64 = null; 
+            attachedVideoB64 = null; 
+            attachedAudioB64 = null; 
+            document.getElementById('attachmentPreview').innerHTML = ""; 
+        }
 
-        // 🎬 ファイル選択で画像・動画・音声を高画質・高精細のまま添付する処理
+        // 🎬【改善】ファイル選択（動画読み込み時に画面が固まる不具合を解消）
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             clearAttachments();
             const file = e.target.files[0];
             if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async function(evt) {
+
+            // ⚠️ ブラウザの限界サイズ（約30MB以上）の巨大動画は固まる前に防止する
+            const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
+            if (file.size > MAX_FILE_SIZE) {
+                alert("⚠️ ファイルサイズが大きすぎます（最大 30MB まで）。\n短時間の動画にするか、画質を下げるか、圧縮してからお試しください。");
+                e.target.value = "";
+                return;
+            }
+
+            const previewEl = document.getElementById('attachmentPreview');
+            previewEl.style.color = '#FF6600';
+            previewEl.innerHTML = "⏳ メディアファイルを読み込んでいます...";
+
+            try {
                 if (file.type.startsWith('image/')) {
-                    attachedImageB64 = await compressImage(evt.target.result, 1920, 0.9);
-                    document.getElementById('attachmentPreview').innerHTML = "🖼️ 高画質画像を添付しました";
+                    const base64 = await readFileAsDataURL(file);
+                    attachedImageB64 = await compressImage(base64, 1920, 0.9);
+                    previewEl.style.color = '#008000';
+                    previewEl.innerHTML = "🖼️ 高画質画像を添付しました";
                 } else if (file.type.startsWith('video/')) {
-                    attachedVideoB64 = evt.target.result; // オリジナル品質の動画データ(DataURL)を取得
-                    document.getElementById('attachmentPreview').innerHTML = "🎥 高画質動画ファイルを添付しました";
+                    attachedVideoB64 = await readFileAsDataURL(file);
+                    previewEl.style.color = '#008000';
+                    previewEl.innerHTML = "🎥 動画ファイルを添付しました";
                 } else if (file.type.startsWith('audio/')) {
-                    attachedAudioB64 = evt.target.result;
-                    document.getElementById('attachmentPreview').innerHTML = "🎵 音声を選択しました";
+                    attachedAudioB64 = await readFileAsDataURL(file);
+                    previewEl.style.color = '#008000';
+                    previewEl.innerHTML = "🎵 音声を選択しました";
                 }
-            };
-            reader.readAsDataURL(file);
+            } catch (err) {
+                previewEl.style.color = '#CC0000';
+                previewEl.innerHTML = "❌ ファイルの読み込みに失敗しました。";
+                alert("ファイルの読み込み中にエラーが発生しました。");
+            }
         });
+
+        // 非同期でファイルを読み込む関数（画面の固まりをガード）
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = e => reject(e);
+                reader.readAsDataURL(file);
+            });
+        }
 
         async function startCamera(facingMode, forVideo = false) {
             stopCamera(); stopAudio(); clearAttachments();
@@ -749,6 +783,7 @@
             ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(video, 0, 0);
             attachedImageB64 = await compressImage(canvas.toDataURL('image/jpeg', 0.9), 1920, 0.9);
+            document.getElementById('attachmentPreview').style.color = '#008000';
             document.getElementById('attachmentPreview').innerHTML = "📸 高画質写真を撮影しました";
             stopCamera();
         });
@@ -761,7 +796,11 @@
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
             mediaRecorder.onstop = () => {
                 let r = new FileReader();
-                r.onload = e => { attachedVideoB64 = e.target.result; document.getElementById('attachmentPreview').innerHTML = "🎥 高画質録画完了"; };
+                r.onload = e => { 
+                    attachedVideoB64 = e.target.result; 
+                    document.getElementById('attachmentPreview').style.color = '#008000';
+                    document.getElementById('attachmentPreview').innerHTML = "🎥 高画質録画完了"; 
+                };
                 r.readAsDataURL(new Blob(chunks, { type: 'video/webm' }));
                 stopCamera();
             };
@@ -795,7 +834,11 @@
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
             mediaRecorder.onstop = () => {
                 let r = new FileReader();
-                r.onload = e => { attachedAudioB64 = e.target.result; document.getElementById('attachmentPreview').innerHTML = "🎙️ 録音完了"; };
+                r.onload = e => { 
+                    attachedAudioB64 = e.target.result; 
+                    document.getElementById('attachmentPreview').style.color = '#008000';
+                    document.getElementById('attachmentPreview').innerHTML = "🎙️ 録音完了"; 
+                };
                 r.readAsDataURL(new Blob(chunks, { type: 'audio/webm' }));
                 stopAudio();
             };
@@ -1090,39 +1133,50 @@
             const messageHtml = document.getElementById('editorBody').innerHTML.trim();
             if (!messageHtml || messageHtml === '<br>') return alert("本文を入力してください。");
 
-            if (editId) {
-                const updateData = {
-                    message: messageHtml,
-                    subject: document.getElementById('subject').value.trim(),
-                    is_edited: true,
-                    link_url: document.getElementById('linkUrl').value.trim(),
-                    link_title: document.getElementById('linkTitle').value.trim()
-                };
-                if (attachedImageB64 !== null) updateData.image = attachedImageB64;
-                if (attachedVideoB64 !== null) updateData.video = attachedVideoB64;
-                if (attachedAudioB64 !== null) updateData.audio = attachedAudioB64;
+            // 送信ボタンを一時的に無効化（二重送信防止＆送信中表示）
+            const btnSubmit = document.getElementById('btnSubmitPost');
+            btnSubmit.disabled = true;
+            btnSubmit.innerText = "送信中...";
 
-                await _supabase.from('posts').update(updateData).eq('id', editId);
-                cancelEditing();
-            } else {
-                await _supabase.from('posts').insert([{
-                    name: document.getElementById('name').value.trim() || "名無しさん",
-                    subject: document.getElementById('subject').value.trim(),
-                    message: messageHtml,
-                    thread_id: activeThreadId,
-                    creator_secret: userSecret,
-                    link_url: document.getElementById('linkUrl').value.trim(),
-                    link_title: document.getElementById('linkTitle').value.trim(),
-                    image: attachedImageB64 || "",
-                    video: attachedVideoB64 || "",
-                    audio: attachedAudioB64 || ""
-                }]);
-                this.reset();
-                document.getElementById('editorBody').innerHTML = "";
+            try {
+                if (editId) {
+                    const updateData = {
+                        message: messageHtml,
+                        subject: document.getElementById('subject').value.trim(),
+                        is_edited: true,
+                        link_url: document.getElementById('linkUrl').value.trim(),
+                        link_title: document.getElementById('linkTitle').value.trim()
+                    };
+                    if (attachedImageB64 !== null) updateData.image = attachedImageB64;
+                    if (attachedVideoB64 !== null) updateData.video = attachedVideoB64;
+                    if (attachedAudioB64 !== null) updateData.audio = attachedAudioB64;
+
+                    await _supabase.from('posts').update(updateData).eq('id', editId);
+                    cancelEditing();
+                } else {
+                    await _supabase.from('posts').insert([{
+                        name: document.getElementById('name').value.trim() || "名無しさん",
+                        subject: document.getElementById('subject').value.trim(),
+                        message: messageHtml,
+                        thread_id: activeThreadId,
+                        creator_secret: userSecret,
+                        link_url: document.getElementById('linkUrl').value.trim(),
+                        link_title: document.getElementById('linkTitle').value.trim(),
+                        image: attachedImageB64 || "",
+                        video: attachedVideoB64 || "",
+                        audio: attachedAudioB64 || ""
+                    }]);
+                    this.reset();
+                    document.getElementById('editorBody').innerHTML = "";
+                }
+            } catch (err) {
+                alert("送信に失敗しました。ファイルが大きすぎる可能性があります。");
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = "書き込む";
+                clearAttachments();
+                renderActiveThread();
             }
-
-            clearAttachments();
-            renderActiveThread();
         });
 
         document.getElementById('resContainer').addEventListener('click', async e => {
