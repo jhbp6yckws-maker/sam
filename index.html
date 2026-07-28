@@ -72,6 +72,15 @@
             margin-bottom: 15px;
             border-bottom: 2px solid #CC0000;
             padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        .thread-stats {
+            font-size: 13px;
+            color: #666666;
+            font-weight: normal;
         }
 
         .res {
@@ -232,6 +241,18 @@
         }
         #webcam { width: 100%; max-width: 480px; border: 1px solid #000; background: #000; border-radius: 4px; }
         .recording-timer { color: red; font-weight: bold; font-size: 14px; margin-top: 5px; }
+
+        .thread-closed-msg {
+            background-color: #FFF0F0;
+            border: 2px solid #CC0000;
+            color: #CC0000;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 15px;
+            text-align: center;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
 
         #anchorPreviewPopup {
             position: absolute;
@@ -399,8 +420,15 @@
             <button class="btn back-btn delete-btn hidden" id="btnDeleteThread">🗑️ このスレッドを削除</button>
             
             <div class="thread-box">
-                <div class="thread-title" id="activeThreadTitle">読み込み中...</div>
+                <div class="thread-title">
+                    <span id="activeThreadTitle">読み込み中...</span>
+                    <span id="threadStats" class="thread-stats"></span>
+                </div>
                 <div id="resContainer"></div>
+            </div>
+
+            <div id="threadClosedNotice" class="thread-closed-msg hidden">
+                🚫 このスレッドは1000レスを超えたため、これ以上書き込みできません。
             </div>
 
             <div class="form-box" id="postFormBox">
@@ -478,15 +506,15 @@
                         <div class="form-row" style="margin-bottom: 10px;">
                             <button type="button" class="btn" id="btnStartCamPhotoUser">📷 写真 (内カメラ)</button>
                             <button type="button" class="btn" id="btnStartCamPhotoEnv">📷 写真 (外カメラ)</button>
-                            <button type="button" class="btn" id="btnStartCamVideoUser">🎥 動画 (内カメラ・最大30s)</button>
-                            <button type="button" class="btn" id="btnStartCamVideoEnv">🎥 動画 (外カメラ・最大30s)</button>
+                            <button type="button" class="btn" id="btnStartCamVideoUser">🎥 動画 (内カメラ・最大35s)</button>
+                            <button type="button" class="btn" id="btnStartCamVideoEnv">🎥 動画 (外カメラ・最大35s)</button>
                             <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 録音(最大60秒)</button>
                         </div>
                     </div>
 
                     <div id="cameraArea" class="media-capture-area hidden">
                         <video id="webcam" autoplay playsinline muted></video><br>
-                        <div id="recTimer" class="recording-timer hidden">🔴 REC: 0秒 / 30秒</div>
+                        <div id="recTimer" class="recording-timer hidden">🔴 REC: 0秒 / 35秒</div>
                         <button type="button" class="btn" id="btnShutter">📸 写真を撮影する</button>
                         <button type="button" class="btn hidden" id="btnStartVideoRec" style="color: red;">🔴 動画撮影スタート</button>
                         <button type="button" class="btn hidden" id="btnStopVideoRec">■ 停止</button>
@@ -694,23 +722,38 @@
             document.getElementById('attachmentPreview').innerHTML = ""; 
         }
 
-        // 🎬【改善】ファイル選択（動画読み込み時に画面が固まる不具合を解消）
+        // 🎥 動画の秒数を検証する（15秒〜35秒制限）
+        function checkVideoDuration(file) {
+            return new Promise((resolve) => {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.onloadedmetadata = function() {
+                    window.URL.revokeObjectURL(video.src);
+                    resolve(video.duration);
+                };
+                video.onerror = function() {
+                    resolve(0);
+                };
+                video.src = URL.createObjectURL(file);
+            });
+        }
+
+        // 🎬 ファイル選択（動画時間チェック機能追加）
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             clearAttachments();
             const file = e.target.files[0];
             if (!file) return;
 
-            // ⚠️ ブラウザの限界サイズ（約30MB以上）の巨大動画は固まる前に防止する
             const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
             if (file.size > MAX_FILE_SIZE) {
-                alert("⚠️ ファイルサイズが大きすぎます（最大 30MB まで）。\n短時間の動画にするか、画質を下げるか、圧縮してからお試しください。");
+                alert("⚠️ ファイルサイズが大きすぎます（最大 30MB まで）。");
                 e.target.value = "";
                 return;
             }
 
             const previewEl = document.getElementById('attachmentPreview');
             previewEl.style.color = '#FF6600';
-            previewEl.innerHTML = "⏳ メディアファイルを読み込んでいます...";
+            previewEl.innerHTML = "⏳ メディアファイルを検証・読み込んでいます...";
 
             try {
                 if (file.type.startsWith('image/')) {
@@ -719,9 +762,18 @@
                     previewEl.style.color = '#008000';
                     previewEl.innerHTML = "🖼️ 高画質画像を添付しました";
                 } else if (file.type.startsWith('video/')) {
+                    // 秒数検証 (35秒超えを禁止)
+                    const duration = await checkVideoDuration(file);
+                    if (duration > 35.5) {
+                        alert(`⚠️ 動画の長さが長すぎます（${Math.round(duration)}秒）。\n投稿できる動画は【35秒以内】にカットしてください。`);
+                        e.target.value = "";
+                        previewEl.innerHTML = "";
+                        return;
+                    }
+
                     attachedVideoB64 = await readFileAsDataURL(file);
                     previewEl.style.color = '#008000';
-                    previewEl.innerHTML = "🎥 動画ファイルを添付しました";
+                    previewEl.innerHTML = `🎥 動画ファイルを添付しました (${Math.round(duration)}秒)`;
                 } else if (file.type.startsWith('audio/')) {
                     attachedAudioB64 = await readFileAsDataURL(file);
                     previewEl.style.color = '#008000';
@@ -734,7 +786,6 @@
             }
         });
 
-        // 非同期でファイルを読み込む関数（画面の固まりをガード）
         function readFileAsDataURL(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -810,8 +861,8 @@
             recordSeconds = 0;
             recordInterval = setInterval(() => {
                 recordSeconds++;
-                document.getElementById('recTimer').innerText = `🔴 REC: ${recordSeconds}秒 / 30秒`;
-                if (recordSeconds >= 30) stopVideoRecording();
+                document.getElementById('recTimer').innerText = `🔴 REC: ${recordSeconds}秒 / 35秒`;
+                if (recordSeconds >= 35) stopVideoRecording();
             }, 1000);
         });
 
@@ -933,11 +984,21 @@
 
             let htmlBuf = "";
             threadList.forEach(t => {
+                const isMax = t.count >= 1000 ? ' <span style="color:red; font-weight:bold;">[1000満スレ]</span>' : '';
                 const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ スレ全削除</button>` : '';
-                htmlBuf += `<div class="thread-list-item"><span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})</span>${adminDeleteBtn}</div>`;
+                htmlBuf += `<div class="thread-list-item"><span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})${isMax}</span>${adminDeleteBtn}</div>`;
             });
 
             if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
+        }
+
+        // バイト数（文字列の物理容量）を計算する関数
+        function getThreadByteSize(data) {
+            let jsonString = JSON.stringify(data);
+            let bytes = new Blob([jsonString]).size;
+            if (bytes < 1024) return bytes + " B";
+            else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+            else return (bytes / (1024 * 1024)).toFixed(2) + " MB";
         }
 
         async function renderActiveThread(forceFullReRender = false) {
@@ -952,9 +1013,24 @@
                 document.getElementById('resContainer').innerHTML = "";
             }
 
+            const resCount = data.length;
+            const byteSize = getThreadByteSize(data);
+
             const firstPost = data[0];
             document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
+            document.getElementById('threadStats').innerText = `(${byteSize} / ${resCount}レス)`;
             document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
+
+            // 🛑 1000レス制限チェック
+            const postFormBox = document.getElementById('postFormBox');
+            const closedNotice = document.getElementById('threadClosedNotice');
+            if (resCount >= 1000) {
+                postFormBox.classList.add('hidden');
+                closedNotice.classList.remove('hidden');
+            } else {
+                postFormBox.classList.remove('hidden');
+                closedNotice.classList.add('hidden');
+            }
 
             if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
                 const diff = data.length - currentPostsData.length;
@@ -1003,7 +1079,7 @@
                 let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
 
                 let actions = "";
-                if (!res.is_deleted) {
+                if (!res.is_deleted && resCount < 1000) {
                     if (isOp) {
                         actions += `<button class="btn edit-btn" data-id="${res.id}" data-resnum="${resNum}">✍️ 訂正</button>`;
                         actions += `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>`;
@@ -1043,7 +1119,7 @@
                         ${(res.is_deleted || isNg) ? '' : media}
                     </div>
                     <div class="res-actions">
-                        <button class="btn reply-btn" data-resnum="${resNum}">返信</button>
+                        ${resCount < 1000 ? `<button class="btn reply-btn" data-resnum="${resNum}">返信</button>` : ''}
                         ${!res.is_deleted ? `
                             <button class="btn btn-like like-btn ${likeActiveClass}" data-id="${res.id}">👍 ${likesCount}</button>
                             <button class="btn btn-dislike dislike-btn ${dislikeActiveClass}" data-id="${res.id}">👎 ${dislikesCount}</button>
@@ -1129,11 +1205,15 @@
 
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            if (currentPostsData.length >= 1000) {
+                alert("このスレッドは1000レスに達したため投稿できません。");
+                return;
+            }
+
             const editId = document.getElementById('editPostId').value;
             const messageHtml = document.getElementById('editorBody').innerHTML.trim();
             if (!messageHtml || messageHtml === '<br>') return alert("本文を入力してください。");
 
-            // 送信ボタンを一時的に無効化（二重送信防止＆送信中表示）
             const btnSubmit = document.getElementById('btnSubmitPost');
             btnSubmit.disabled = true;
             btnSubmit.innerText = "送信中...";
@@ -1170,7 +1250,7 @@
                     document.getElementById('editorBody').innerHTML = "";
                 }
             } catch (err) {
-                alert("送信に失敗しました。ファイルが大きすぎる可能性があります。");
+                alert("送信に失敗しました。");
             } finally {
                 btnSubmit.disabled = false;
                 btnSubmit.innerText = "書き込む";
@@ -1204,7 +1284,7 @@
 
         document.getElementById('btnDeleteThread').addEventListener('click', async () => {
             if (!activeThreadId) return;
-            if (confirm("このスレッドを完全に削除しますか？（スレッド内の全ての投稿が削除されます）")) {
+            if (confirm("このスレッドを完全に削除しますか？")) {
                 const { error } = await _supabase.from('posts').delete().eq('thread_id', activeThreadId);
                 if (error) {
                     alert("スレッドの削除に失敗しました: " + error.message);
