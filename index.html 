@@ -74,14 +74,13 @@
             padding-bottom: 5px;
         }
 
-        /* 🚀 1000レス超でも高速化するレンダリング最適化 */
         .res {
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 1px dashed #DDDDDD;
             position: relative;
-            content-visibility: auto; /* 画面外の要素のレンダリングをスキップ */
-            contain-intrinsic-size: 1px 120px; /* スクロールバーのガタつき防止 */
+            content-visibility: auto;
+            contain-intrinsic-size: 1px 120px;
         }
         .res-header { font-size: 14px; margin-bottom: 5px; }
         .res-number { color: #000000; }
@@ -172,7 +171,7 @@
         .uploaded-img { cursor: zoom-in; transition: transform 0.2s; }
         .uploaded-img:hover { opacity: 0.8; }
         .uploaded-img, .uploaded-video {
-            max-width: 450px;
+            max-width: 520px;
             width: 100%;
             height: auto;
             display: block;
@@ -301,7 +300,7 @@
     <div class="container">
         <div id="lobbyScreen">
             <div id="adminNgPanel" class="menu-box hidden" style="background-color: #FFF0F0; border-left: 4px solid #CC0000;">
-                <h4 style="margin: 0 0 8px 0; cursor: pointer; color: #CC0000;" id="toggleNgPanel">🚫 掲示板 NGワード・NG ID設定（管理者専用）▼</h4>
+                <h4 style="margin: 0 0 8px 0; color: #CC0000;">🚫 掲示板 NGワード・NG ID設定（管理者専用）</h4>
                 <div id="ngPanelBody">
                     <p style="font-size: 12px; color: #555; margin-bottom: 8px;">カンマ(,)区切りで非表示にしたいキーワードやIDを設定します。</p>
                     <div style="margin-bottom: 6px;">
@@ -545,7 +544,7 @@
             ngIds = document.getElementById('ngIdsInput').value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
             localStorage.setItem('bbs_ng_words', JSON.stringify(ngWords));
             localStorage.setItem('bbs_ng_ids', JSON.stringify(ngIds));
-            alert("🚫 管理者NG設定を保存しました。");
+            alert("🚫 NG設定（NG ID / NGワード）を保存・適用しました。");
             renderedPostsMap.clear();
             if (activeThreadId) renderActiveThread(true);
         });
@@ -553,6 +552,7 @@
         let currentPostsData = [];
         let renderedPostsMap = new Map();
         let unreadNewPostsCount = 0;
+        let isReactionProcessing = false;
 
         function getUserReactions() {
             try { return JSON.parse(localStorage.getItem('bbs_user_reactions')) || {}; } catch(e) { return {}; }
@@ -564,25 +564,7 @@
             localStorage.setItem('bbs_user_reactions', JSON.stringify(reactions));
         }
 
-        async function authenticateAdmin() {
-            if (window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()) {
-                const useBiometric = confirm("指紋認証・Face ID・パスキーで管理者ログインしますか？");
-                if (useBiometric) {
-                    try {
-                        const challenge = new Uint8Array(32);
-                        window.crypto.getRandomValues(challenge);
-                        const credential = await navigator.credentials.get({
-                            publicKey: { challenge: challenge, timeout: 60000, userVerification: "required" }
-                        });
-                        if (credential) {
-                            setAdminMode(true);
-                            alert("🔑 生体認証で管理者ログインしました！");
-                            return;
-                        }
-                    } catch (e) {}
-                }
-            }
-
+        function authenticateAdmin() {
             const inputPass = prompt("管理者パスワードを入力してください：");
             if (inputPass === ADMIN_PASSWORD) {
                 setAdminMode(true);
@@ -636,7 +618,8 @@
             document.getElementById('lobbyFmtFont').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'fontName', this.value || 'inherit'); });
         });
 
-        function compressImage(base64Str, maxWidth = 1920, quality = 0.9) {
+        // 🖼️ 4K画質対応 画像圧縮関数 (最大幅 3840px / 高品質 0.95)
+        function compressImage(base64Str, maxWidth = 3840, quality = 0.95) {
             return new Promise((resolve) => {
                 const img = new Image();
                 img.src = base64Str;
@@ -708,21 +691,23 @@
 
         function clearAttachments() { attachedImageB64 = null; attachedVideoB64 = null; attachedAudioB64 = null; document.getElementById('attachmentPreview').innerHTML = ""; }
 
+        // 📁 4K画質対応 選択・添付処理
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             clearAttachments();
             const file = e.target.files[0];
             if (!file) return;
+
             const reader = new FileReader();
             reader.onload = async function(evt) {
                 if (file.type.startsWith('image/')) {
-                    attachedImageB64 = await compressImage(evt.target.result, 1920, 0.9);
-                    document.getElementById('attachmentPreview').innerHTML = "🖼️ 高画質画像を添付しました";
+                    attachedImageB64 = await compressImage(evt.target.result, 3840, 0.95);
+                    document.getElementById('attachmentPreview').innerHTML = "🖼️ 4K画質画像を添付しました";
                 } else if (file.type.startsWith('video/')) {
                     attachedVideoB64 = evt.target.result;
-                    document.getElementById('attachmentPreview').innerHTML = "🎥 動画を選択しました";
+                    document.getElementById('attachmentPreview').innerHTML = "🎥 動画ファイルを添付しました";
                 } else if (file.type.startsWith('audio/')) {
                     attachedAudioB64 = evt.target.result;
-                    document.getElementById('attachmentPreview').innerHTML = "🎵 音声を選択しました";
+                    document.getElementById('attachmentPreview').innerHTML = "🎵 音声ファイルを添付しました";
                 }
             };
             reader.readAsDataURL(file);
@@ -733,8 +718,8 @@
             try {
                 const videoConstraints = {
                     facingMode: facingMode,
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+                    width: { ideal: 3840 },
+                    height: { ideal: 2160 }
                 };
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: forVideo });
                 const videoEl = document.getElementById('webcam');
@@ -766,14 +751,14 @@
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(video, 0, 0);
-            attachedImageB64 = await compressImage(canvas.toDataURL('image/jpeg', 0.9), 1920, 0.9);
-            document.getElementById('attachmentPreview').innerHTML = "📸 高画質写真を撮影しました";
+            attachedImageB64 = await compressImage(canvas.toDataURL('image/jpeg', 0.95), 3840, 0.95);
+            document.getElementById('attachmentPreview').innerHTML = "📸 4K画質写真を撮影しました";
             stopCamera();
         });
 
         document.getElementById('btnStartVideoRec').addEventListener('click', () => {
             chunks = [];
-            const options = { videoBitsPerSecond: 5000000 };
+            const options = { videoBitsPerSecond: 12000000 };
             try { mediaRecorder = new MediaRecorder(cameraStream, options); } catch(e) { mediaRecorder = new MediaRecorder(cameraStream); }
             
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
@@ -839,31 +824,43 @@
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
         async function updateReaction(postId, clickedType) {
-            const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
-            if (error || !data) return;
+            if (isReactionProcessing) return;
+            isReactionProcessing = true;
 
-            const userReactions = getUserReactions();
-            const currentReaction = userReactions[postId] || null;
+            try {
+                const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
+                if (error || !data) {
+                    isReactionProcessing = false;
+                    return;
+                }
 
-            let likesCount = data.likes || 0;
-            let dislikesCount = data.dislikes || 0;
+                const userReactions = getUserReactions();
+                const currentReaction = userReactions[postId] || null;
 
-            if (currentReaction === clickedType) {
-                if (clickedType === 'like') likesCount = Math.max(0, likesCount - 1);
-                if (clickedType === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
-                setUserReaction(postId, null);
-            } else {
-                if (currentReaction === 'like') likesCount = Math.max(0, likesCount - 1);
-                if (currentReaction === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
+                let likesCount = data.likes || 0;
+                let dislikesCount = data.dislikes || 0;
 
-                if (clickedType === 'like') likesCount++;
-                if (clickedType === 'dislike') dislikesCount++;
+                if (currentReaction === clickedType) {
+                    if (clickedType === 'like') likesCount = Math.max(0, likesCount - 1);
+                    if (clickedType === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
+                    setUserReaction(postId, null);
+                } else {
+                    if (currentReaction === 'like') likesCount = Math.max(0, likesCount - 1);
+                    if (currentReaction === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
 
-                setUserReaction(postId, clickedType);
+                    if (clickedType === 'like') likesCount++;
+                    if (clickedType === 'dislike') dislikesCount++;
+
+                    setUserReaction(postId, clickedType);
+                }
+
+                await _supabase.from('posts').update({ likes: likesCount, dislikes: dislikesCount }).eq('id', postId);
+                await renderActiveThread();
+            } catch (err) {
+                console.error("リアクション更新エラー:", err);
+            } finally {
+                isReactionProcessing = false;
             }
-
-            await _supabase.from('posts').update({ likes: likesCount, dislikes: dislikesCount }).eq('id', postId);
-            renderActiveThread();
         }
 
         document.getElementById('threadSearchInput').addEventListener('input', fetchThreads);
@@ -915,7 +912,6 @@
             if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
         }
 
-        // ⚡ 1000レス超高速化レンダリングエンジン（Fragment一括追加 ＆ メモリマップ管理）
         async function renderActiveThread(forceFullReRender = false) {
             if (!activeThreadId) return;
             const targetThreadId = activeThreadId;
@@ -953,10 +949,14 @@
                 const displayID = getDisplayIDForPost(res);
 
                 let isNg = false;
-                if (ngIds.includes(displayID)) isNg = true;
+                if (ngIds.some(id => id.toUpperCase() === displayID.toUpperCase())) {
+                    isNg = true;
+                }
                 if (!isNg && ngWords.length > 0) {
                     const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
-                    if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
+                    if (ngWords.some(word => word && plainMsg.includes(word))) {
+                        isNg = true;
+                    }
                 }
 
                 const likesCount = res.likes || 0;
