@@ -538,6 +538,7 @@
         document.getElementById('ngWordsInput').value = ngWords.join(', ');
         document.getElementById('ngIdsInput').value = ngIds.join(', ');
 
+        // 🚫 NGワード・NG IDの保存・反映処理
         document.getElementById('btnSaveNgSettings').addEventListener('click', () => {
             if (!isAdmin) return;
             ngWords = document.getElementById('ngWordsInput').value.split(',').map(s => s.trim()).filter(Boolean);
@@ -618,8 +619,7 @@
             document.getElementById('lobbyFmtFont').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'fontName', this.value || 'inherit'); });
         });
 
-        // 🖼️ 4K画質対応 画像圧縮関数 (最大幅 3840px / 高品質 0.95)
-        function compressImage(base64Str, maxWidth = 3840, quality = 0.95) {
+        function compressImage(base64Str, maxWidth = 1920, quality = 0.9) {
             return new Promise((resolve) => {
                 const img = new Image();
                 img.src = base64Str;
@@ -691,7 +691,7 @@
 
         function clearAttachments() { attachedImageB64 = null; attachedVideoB64 = null; attachedAudioB64 = null; document.getElementById('attachmentPreview').innerHTML = ""; }
 
-        // 📁 4K画質対応 選択・添付処理
+        // 🖼️ ファイル添付処理（画像・動画・音声を読み込み）
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             clearAttachments();
             const file = e.target.files[0];
@@ -700,8 +700,8 @@
             const reader = new FileReader();
             reader.onload = async function(evt) {
                 if (file.type.startsWith('image/')) {
-                    attachedImageB64 = await compressImage(evt.target.result, 3840, 0.95);
-                    document.getElementById('attachmentPreview').innerHTML = "🖼️ 4K画質画像を添付しました";
+                    attachedImageB64 = await compressImage(evt.target.result, 1920, 0.9);
+                    document.getElementById('attachmentPreview').innerHTML = "🖼️ 画像ファイルを添付しました";
                 } else if (file.type.startsWith('video/')) {
                     attachedVideoB64 = evt.target.result;
                     document.getElementById('attachmentPreview').innerHTML = "🎥 動画ファイルを添付しました";
@@ -718,8 +718,8 @@
             try {
                 const videoConstraints = {
                     facingMode: facingMode,
-                    width: { ideal: 3840 },
-                    height: { ideal: 2160 }
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
                 };
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: forVideo });
                 const videoEl = document.getElementById('webcam');
@@ -751,14 +751,14 @@
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(video, 0, 0);
-            attachedImageB64 = await compressImage(canvas.toDataURL('image/jpeg', 0.95), 3840, 0.95);
-            document.getElementById('attachmentPreview').innerHTML = "📸 4K画質写真を撮影しました";
+            attachedImageB64 = await compressImage(canvas.toDataURL('image/jpeg', 0.9), 1920, 0.9);
+            document.getElementById('attachmentPreview').innerHTML = "📸 高画質写真を撮影しました";
             stopCamera();
         });
 
         document.getElementById('btnStartVideoRec').addEventListener('click', () => {
             chunks = [];
-            const options = { videoBitsPerSecond: 12000000 };
+            const options = { videoBitsPerSecond: 8000000 };
             try { mediaRecorder = new MediaRecorder(cameraStream, options); } catch(e) { mediaRecorder = new MediaRecorder(cameraStream); }
             
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
@@ -823,6 +823,7 @@
         const imgModal = document.getElementById('imageModal');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
+        // 👍👎 リアクション排他トグル処理
         async function updateReaction(postId, clickedType) {
             if (isReactionProcessing) return;
             isReactionProcessing = true;
@@ -948,6 +949,7 @@
                 const isOp = (res.creator_secret === userSecret);
                 const displayID = getDisplayIDForPost(res);
 
+                // 🚫 NG ID & NGワード 判定の厳格化
                 let isNg = false;
                 if (ngIds.some(id => id.toUpperCase() === displayID.toUpperCase())) {
                     isNg = true;
