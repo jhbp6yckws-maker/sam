@@ -201,7 +201,7 @@
             background-color: #FFFDF9 !important;
         }
         .form-title { font-weight: bold; margin-bottom: 10px; font-size: 14px; }
-        .form-box label { display: inline-block; width: 75px; }
+        .form-box label { display: inline-block; width: 75px; cursor: pointer; }
         input[type="text"], select, textarea { padding: 4px; box-sizing: border-box; }
         input[type="text"] { width: 80%; }
         textarea { width: 100%; height: 80px; resize: vertical; }
@@ -229,10 +229,14 @@
             overflow-y: auto;
             line-height: 1.5;
             font-size: 16px;
+            position: relative;
         }
-        .editor-body[placeholder]:empty:before {
+        .editor-body[placeholder]:empty:before,
+        .editor-body[placeholder][data-empty="true"]:before {
             content: attr(placeholder);
             color: #AAAAAA;
+            pointer-events: none;
+            display: block;
         }
 
         .media-capture-area {
@@ -325,11 +329,11 @@
                 <div id="ngPanelBody">
                     <p style="font-size: 12px; color: #555; margin-bottom: 8px;">カンマ(,)区切りで非表示にしたいキーワードやIDを設定します。</p>
                     <div style="margin-bottom: 6px;">
-                        <label style="font-size: 12px; font-weight: bold;">NGワード:</label><br>
+                        <label style="font-size: 12px; font-weight: bold;" for="ngWordsInput">NGワード:</label><br>
                         <input type="text" id="ngWordsInput" placeholder="例: 暴言, スパム" style="width:100%; font-size:12px;">
                     </div>
                     <div style="margin-bottom: 8px;">
-                        <label style="font-size: 12px; font-weight: bold;">NG ID:</label><br>
+                        <label style="font-size: 12px; font-weight: bold;" for="ngIdsInput">NG ID:</label><br>
                         <input type="text" id="ngIdsInput" placeholder="例: A1B2C3D4, X9Y8Z7W6" style="width:100%; font-size:12px;">
                     </div>
                     <button class="btn btn-admin" id="btnSaveNgSettings" style="font-weight: bold;">NG設定を保存する</button>
@@ -348,11 +352,11 @@
                         <input type="text" id="creatorName" placeholder="名無しさん">
                     </div>
                     <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="firstMessage">最初の本文 :</label>
+                        <label onclick="document.getElementById('firstMessage').focus()">最初の本文 :</label>
                         <div class="editor-container">
                             <div class="editor-toolbar">
                                 <div>
-                                    <label>🎨 色:</label>
+                                    <label for="lobbyFmtColor">🎨 色:</label>
                                     <select id="lobbyFmtColor">
                                         <option value="">黒 (標準)</option>
                                         <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
@@ -369,7 +373,7 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label>🔤 書体:</label>
+                                    <label for="lobbyFmtFont">🔤 書体:</label>
                                     <select id="lobbyFmtFont">
                                         <option value="">標準(ゴシック)</option>
                                         <option value="'Shippori Mincho', serif">明朝体 (しっぽり)</option>
@@ -448,7 +452,7 @@
                     <div class="editor-container">
                         <div class="editor-toolbar">
                             <div>
-                                <label>🎨 文字色:</label>
+                                <label for="fmtColor">🎨 文字色:</label>
                                 <select id="fmtColor">
                                     <option value="">黒 (標準)</option>
                                     <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
@@ -465,7 +469,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label>🔤 書体:</label>
+                                <label for="fmtFont">🔤 書体:</label>
                                 <select id="fmtFont">
                                     <option value="">標準(ゴシック)</option>
                                     <option value="'Shippori Mincho', serif">明朝体 (しっぽり)</option>
@@ -479,7 +483,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label>📏 サイズ:</label>
+                                <label for="fmtSize">📏 サイズ:</label>
                                 <select id="fmtSize">
                                     <option value="3">標準</option>
                                     <option value="5">大</option>
@@ -551,9 +555,11 @@
         const ADMIN_PASSWORD = "sdkousaku321564";
         let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
 
-        // Supabase設定
-        const SUPABASE_URL = "https://iustcqynpestdbqjpiu.supabase.co"; 
-        const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
+        // ⚠️ Supabase接続設定
+        const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
+        // SUPABASE_KEY には Supabase ダッシュボード (Project Settings -> API) の anon key を指定してください
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1c3RjcXlucGhlc3RkYnFqcGl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTAwMDAwMDAsImV4cCI6MjAwMDAwMDAwMH0.YOUR_ACTUAL_ANON_KEY_HERE";
+        
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         if (!localStorage.getItem('bbs_user_secret')) {
@@ -644,6 +650,23 @@
             document.getElementById('fmtSize').addEventListener(evtType, function() { applyStyleToEditor('editorBody', 'fontSize', this.value); });
             document.getElementById('lobbyFmtColor').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'foreColor', this.value || '#000000'); });
             document.getElementById('lobbyFmtFont').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'fontName', this.value || 'inherit'); });
+        });
+
+        // ContentEditableのプレースホルダー制御
+        ['editorBody', 'firstMessage'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const updatePlaceholderState = () => {
+                const text = el.innerText.replace(/\s/g, '');
+                if (text === '') {
+                    el.setAttribute('data-empty', 'true');
+                } else {
+                    el.removeAttribute('data-empty');
+                }
+            };
+            el.addEventListener('input', updatePlaceholderState);
+            el.addEventListener('blur', updatePlaceholderState);
+            updatePlaceholderState();
         });
 
         function getDisplayIDForPost(post) {
@@ -741,10 +764,8 @@
             }
 
             const previewEl = document.getElementById('attachmentPreview');
-            const fileName = file.name.toLowerCase();
-            const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|wmv|avi|webm|mkv|flv|3gp)$/i.test(fileName);
 
-            if (isVideo) {
+            if (file.type.startsWith('video/')) {
                 const duration = await checkVideoDuration(file);
                 if (duration > 35.5) {
                     alert(`⚠️ 動画の長さが長すぎます（${Math.round(duration)}秒）。\n【35秒以内】の動画を選択してください。`);
@@ -899,10 +920,7 @@
 
         async function fetchThreads() {
             const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, created_at').order('id', { ascending: true });
-            if (error) {
-                document.getElementById('threadList').innerText = 'スレッドの取得に失敗しました。';
-                return;
-            }
+            if (error) return;
 
             const threadMap = {};
             data.forEach(post => {
@@ -933,7 +951,7 @@
 
             const container = document.getElementById('threadList');
             if (threadList.length === 0) {
-                container.innerHTML = '<div>まだスレッドがありません。</div>';
+                container.innerHTML = '<div>該当するスレッドがありません。</div>';
                 return;
             }
 
@@ -982,7 +1000,7 @@
                 closedNotice.classList.remove('hidden');
             } else {
                 postFormBox.classList.remove('hidden');
-                closedNotice.add('hidden');
+                closedNotice.classList.add('hidden');
             }
 
             if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
@@ -998,6 +1016,17 @@
 
             const userReactions = getUserReactions();
             const container = document.getElementById('resContainer');
+            
+            // 削除された投稿のDOMクリーンアップ
+            const currentPostIds = new Set(data.map(p => p.id));
+            Array.from(container.children).forEach(child => {
+                const idAttr = child.id.replace('res-', '');
+                if (idAttr && !currentPostIds.has(Number(idAttr)) && !currentPostIds.has(idAttr)) {
+                    child.remove();
+                    renderedPostsMap.delete(idAttr);
+                }
+            });
+
             const fragment = document.createDocumentFragment();
 
             data.forEach((res, index) => {
@@ -1016,7 +1045,7 @@
                 const dislikesCount = res.dislikes || 0;
                 const userReaction = userReactions[res.id] || null;
 
-                const postStateHash = `${res.id}_${res.name}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
+                const postStateHash = `${res.id}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
 
                 if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
                     return;
@@ -1131,7 +1160,7 @@
 
             document.getElementById('editPostId').value = targetPost.id;
             document.getElementById('subject').value = targetPost.subject || '';
-            document.getElementById('name').value = targetPost.name || ''; // 名前をセット
+            document.getElementById('name').value = targetPost.name || '';
             document.getElementById('editorBody').innerHTML = targetPost.message || '';
             document.getElementById('linkUrl').value = targetPost.link_url || '';
             document.getElementById('linkTitle').value = targetPost.link_title || '';
@@ -1178,20 +1207,13 @@
                     btnSubmit.innerText = "ファイルをアップロード中...";
                     const uploadedUrl = await uploadFileToStorage(pendingFileToUpload);
                     
-                    const fileName = pendingFileToUpload.name.toLowerCase();
-                    const isVideo = pendingFileToUpload.type.startsWith('video/') || /\.(mp4|mov|wmv|avi|webm|mkv|flv|3gp)$/i.test(fileName);
-                    const isImage = pendingFileToUpload.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileName);
-                    const isAudio = pendingFileToUpload.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)$/i.test(fileName);
-
-                    if (isImage) imageUrl = uploadedUrl;
-                    else if (isVideo) videoUrl = uploadedUrl;
-                    else if (isAudio) audioUrl = uploadedUrl;
+                    if (pendingFileToUpload.type.startsWith('image/')) imageUrl = uploadedUrl;
+                    else if (pendingFileToUpload.type.startsWith('video/')) videoUrl = uploadedUrl;
+                    else if (pendingFileToUpload.type.startsWith('audio/')) audioUrl = uploadedUrl;
                 }
 
                 if (editId) {
-                    // 訂正時にも名前(name)を更新対象に追加
                     const updateData = {
-                        name: document.getElementById('name').value.trim() || "名無しさん",
                         message: messageHtml,
                         subject: document.getElementById('subject').value.trim(),
                         is_edited: true,
@@ -1337,11 +1359,26 @@
             }
         });
 
+        // ⚡ Supabase リアルタイムリスナー設定
         _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
             if (activeThreadId) { renderActiveThread(); } else fetchThreads();
         }).subscribe();
 
-        setInterval(() => { if (activeThreadId) renderActiveThread(); else fetchThreads(); }, 1500);
+        // 🌐 ブラウザの「戻る」「進む」履歴変更イベント (hashchange)
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                if (activeThreadId !== hash) {
+                    activeThreadId = hash;
+                    showScreen('thread');
+                }
+            } else {
+                if (activeThreadId !== null) {
+                    activeThreadId = null;
+                    showScreen('lobby');
+                }
+            }
+        });
 
         window.addEventListener('DOMContentLoaded', () => {
             updateAdminUI();
