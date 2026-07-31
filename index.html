@@ -136,7 +136,6 @@
             aspect-ratio: 16 / 9;
             border: none;
             display: block;
-            image-rendering: -webkit-optimize-contrast;
         }
 
         .res-actions {
@@ -204,7 +203,6 @@
         .form-box label { display: inline-block; width: 75px; }
         input[type="text"], select, textarea { padding: 4px; box-sizing: border-box; }
         input[type="text"] { width: 80%; }
-        textarea { width: 100%; height: 80px; resize: vertical; }
         
         .editor-container {
             border: 1px solid #CCCCCC;
@@ -283,14 +281,9 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             cursor: pointer;
             z-index: 1500;
-            transition: transform 0.2s, opacity 0.2s;
             display: flex;
             align-items: center;
             gap: 8px;
-        }
-        #newPostsBar:hover {
-            background-color: #0052A3;
-            transform: translateX(-50%) scale(1.05);
         }
 
         .modal {
@@ -358,14 +351,6 @@
                                         <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
                                         <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
                                         <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
-                                        <option value="#8A2BE2" style="color:#8A2BE2; font-weight:bold;">紫色</option>
-                                        <option value="#FF8C00" style="color:#FF8C00; font-weight:bold;">橙色</option>
-                                        <option value="#FF1493" style="color:#FF1493; font-weight:bold;">ピンク</option>
-                                        <option value="#000080" style="color:#000080; font-weight:bold;">ネイビー</option>
-                                        <option value="#008080" style="color:#008080; font-weight:bold;">ティール</option>
-                                        <option value="#800000" style="color:#800000; font-weight:bold;">ワインレッド</option>
-                                        <option value="#D4AF37" style="color:#B8860B; font-weight:bold;">ゴールド</option>
-                                        <option value="#666666" style="color:#666666; font-weight:bold;">グレー</option>
                                     </select>
                                 </div>
                                 <div>
@@ -374,12 +359,6 @@
                                         <option value="">標準(ゴシック)</option>
                                         <option value="'Shippori Mincho', serif">明朝体 (しっぽり)</option>
                                         <option value="'M PLUS Rounded 1c', sans-serif">ポップ体 (丸ゴ)</option>
-                                        <option value="'Kiwi Maru', cursive">手書き風 (キウイ)</option>
-                                        <option value="'Yuji Syuku', serif">毛筆・和風 (手書き)</option>
-                                        <option value="monospace">等幅 (プログラミング)</option>
-                                        <option value="'Pacifico', cursive">英字ポップ (Pacifico)</option>
-                                        <option value="'Lobster', cursive">英字レトロ (Lobster)</option>
-                                        <option value="'Cinzel', serif">英字高級 (Cinzel)</option>
                                     </select>
                                 </div>
                             </div>
@@ -454,14 +433,6 @@
                                     <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
                                     <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
                                     <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
-                                    <option value="#8A2BE2" style="color:#8A2BE2; font-weight:bold;">紫色</option>
-                                    <option value="#FF8C00" style="color:#FF8C00; font-weight:bold;">橙色</option>
-                                    <option value="#FF1493" style="color:#FF1493; font-weight:bold;">ピンク</option>
-                                    <option value="#000080" style="color:#000080; font-weight:bold;">ネイビー</option>
-                                    <option value="#008080" style="color:#008080; font-weight:bold;">ティール</option>
-                                    <option value="#800000" style="color:#800000; font-weight:bold;">ワインレッド</option>
-                                    <option value="#D4AF37" style="color:#B8860B; font-weight:bold;">ゴールド</option>
-                                    <option value="#666666" style="color:#666666; font-weight:bold;">グレー</option>
                                 </select>
                             </div>
                             <div>
@@ -470,20 +441,6 @@
                                     <option value="">標準(ゴシック)</option>
                                     <option value="'Shippori Mincho', serif">明朝体 (しっぽり)</option>
                                     <option value="'M PLUS Rounded 1c', sans-serif">ポップ体 (丸ゴ)</option>
-                                    <option value="'Kiwi Maru', cursive">手書き風 (キウイ)</option>
-                                    <option value="'Yuji Syuku', serif">毛筆・和風 (手書き)</option>
-                                    <option value="monospace">等幅 (プログラミング)</option>
-                                    <option value="'Pacifico', cursive">英字ポップ (Pacifico)</option>
-                                    <option value="'Lobster', cursive">英字レトロ (Lobster)</option>
-                                    <option value="'Cinzel', serif">英字高級 (Cinzel)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>📏 サイズ:</label>
-                                <select id="fmtSize">
-                                    <option value="3">標準</option>
-                                    <option value="5">大</option>
-                                    <option value="6">特大</option>
                                 </select>
                             </div>
                         </div>
@@ -503,30 +460,6 @@
                             <label for="mediaFile">ファイル添付:</label>
                             <input type="file" id="mediaFile" accept="image/*,video/*,audio/*">
                         </div>
-                        <div class="form-row" style="margin-bottom: 10px;">
-                            <button type="button" class="btn" id="btnStartCamPhotoUser">📷 写真 (内カメラ)</button>
-                            <button type="button" class="btn" id="btnStartCamPhotoEnv">📷 写真 (外カメラ)</button>
-                            <button type="button" class="btn" id="btnStartCamVideoUser">🎥 動画 (内カメラ・最大35s)</button>
-                            <button type="button" class="btn" id="btnStartCamVideoEnv">🎥 動画 (外カメラ・最大35s)</button>
-                            <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 録音(最大60秒)</button>
-                        </div>
-                    </div>
-
-                    <div id="cameraArea" class="media-capture-area hidden">
-                        <video id="webcam" autoplay playsinline muted></video><br>
-                        <div id="recTimer" class="recording-timer hidden">🔴 REC: 0秒 / 35秒</div>
-                        <button type="button" class="btn" id="btnShutter">📸 写真を撮影する</button>
-                        <button type="button" class="btn hidden" id="btnStartVideoRec" style="color: red;">🔴 動画撮影スタート</button>
-                        <button type="button" class="btn hidden" id="btnStopVideoRec">■ 停止</button>
-                        <button type="button" class="btn" id="btnStopCamera">中止</button>
-                        <canvas id="captureCanvas" class="hidden"></canvas>
-                    </div>
-
-                    <div id="audioArea" class="media-capture-area hidden">
-                        <div id="audioTimer" class="recording-timer">🔴 REC: 0秒 / 60秒</div>
-                        <button type="button" class="btn" id="btnAudioStart" style="color:red;">🔴 録音開始</button>
-                        <button type="button" class="btn hidden" id="btnAudioStop">■ 停止</button>
-                        <button type="button" class="btn" id="btnStopAudio">中止</button>
                     </div>
 
                     <div id="attachmentPreview" style="margin: 8px 0; color: #008000; font-weight: bold; font-size: 12px;"></div>
@@ -551,7 +484,7 @@
         const ADMIN_PASSWORD = "sdkousaku321564";
         let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
 
-        const SUPABASE_URL = "https://iustcqynpestdbqjpiu.supabase.co"; 
+        const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -580,6 +513,8 @@
         let currentPostsData = [];
         let renderedPostsMap = new Map();
         let unreadNewPostsCount = 0;
+        let activeThreadId = null;
+        let pendingFileToUpload = null;
 
         function getUserReactions() {
             try { return JSON.parse(localStorage.getItem('bbs_user_reactions')) || {}; } catch(e) { return {}; }
@@ -640,7 +575,6 @@
         ['change', 'input'].forEach(evtType => {
             document.getElementById('fmtColor').addEventListener(evtType, function() { applyStyleToEditor('editorBody', 'foreColor', this.value || '#000000'); });
             document.getElementById('fmtFont').addEventListener(evtType, function() { applyStyleToEditor('editorBody', 'fontName', this.value || 'inherit'); });
-            document.getElementById('fmtSize').addEventListener(evtType, function() { applyStyleToEditor('editorBody', 'fontSize', this.value); });
             document.getElementById('lobbyFmtColor').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'foreColor', this.value || '#000000'); });
             document.getElementById('lobbyFmtFont').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'fontName', this.value || 'inherit'); });
         });
@@ -653,11 +587,6 @@
             for (let i = 0; i < salt.length; i++) { hash ^= salt.charCodeAt(i); hash = Math.imul(hash, 16777619); }
             return Math.abs(hash).toString(36).substring(0, 8).toUpperCase();
         }
-
-        let activeThreadId = null;
-        let pendingFileToUpload = null;
-        let cameraStream = null, audioStream = null, mediaRecorder = null, chunks = [];
-        let recordSeconds = 0, recordInterval = null;
 
         function escapeHtml(str) { return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : ''; }
         
@@ -702,7 +631,6 @@
             document.getElementById('mediaFile').value = "";
         }
 
-        // 📤 Supabase Storage へファイルをアップロードし公開URLを返す関数
         async function uploadFileToStorage(file) {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
@@ -715,154 +643,23 @@
             return publicUrlData.publicUrl;
         }
 
-        function checkVideoDuration(file) {
-            return new Promise((resolve) => {
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                video.onloadedmetadata = function() {
-                    window.URL.revokeObjectURL(video.src);
-                    resolve(video.duration);
-                };
-                video.onerror = function() { resolve(0); };
-                video.src = URL.createObjectURL(file);
-            });
-        }
-
-        // 📁 ファイル選択時（拡張子による動画の判定を補強）
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             clearAttachments();
             const file = e.target.files[0];
             if (!file) return;
 
-            const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
+            const MAX_FILE_SIZE = 30 * 1024 * 1024;
             if (file.size > MAX_FILE_SIZE) {
                 alert("⚠️ ファイルサイズが大きすぎます（最大 30MB まで）。");
                 e.target.value = "";
                 return;
             }
 
-            const previewEl = document.getElementById('attachmentPreview');
-            const fileName = file.name.toLowerCase();
-            const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|wmv|avi|webm|mkv|flv|3gp)$/i.test(fileName);
-
-            if (isVideo) {
-                const duration = await checkVideoDuration(file);
-                if (duration > 35.5) {
-                    alert(`⚠️ 動画の長さが長すぎます（${Math.round(duration)}秒）。\n【35秒以内】の動画を選択してください。`);
-                    e.target.value = "";
-                    return;
-                }
-            }
-
             pendingFileToUpload = file;
+            const previewEl = document.getElementById('attachmentPreview');
             previewEl.style.color = '#008000';
             previewEl.innerHTML = `📎 添付準備完了: ${escapeHtml(file.name)} (${(file.size / (1024 * 1024)).toFixed(1)}MB)`;
         });
-
-        async function startCamera(facingMode, forVideo = false) {
-            stopCamera(); stopAudio(); clearAttachments();
-            try {
-                const videoConstraints = { facingMode: facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } };
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: forVideo });
-                const videoEl = document.getElementById('webcam');
-                videoEl.srcObject = cameraStream; videoEl.muted = !forVideo;
-                document.getElementById('cameraArea').classList.remove('hidden');
-                if (forVideo) {
-                    document.getElementById('btnShutter').classList.add('hidden');
-                    document.getElementById('btnStartVideoRec').classList.remove('hidden');
-                    document.getElementById('btnStopVideoRec').classList.add('hidden');
-                    document.getElementById('recTimer').classList.remove('hidden');
-                } else {
-                    document.getElementById('btnShutter').classList.remove('hidden');
-                    document.getElementById('btnStartVideoRec').classList.add('hidden');
-                    document.getElementById('btnStopVideoRec').classList.add('hidden');
-                    document.getElementById('recTimer').classList.add('hidden');
-                }
-            } catch (e) { alert("カメラの起動に失敗しました。"); }
-        }
-
-        document.getElementById('btnStartCamPhotoUser').addEventListener('click', () => startCamera("user", false));
-        document.getElementById('btnStartCamPhotoEnv').addEventListener('click', () => startCamera("environment", false));
-        document.getElementById('btnStartCamVideoUser').addEventListener('click', () => startCamera("user", true));
-        document.getElementById('btnStartCamVideoEnv').addEventListener('click', () => startCamera("environment", true));
-
-        document.getElementById('btnShutter').addEventListener('click', () => {
-            const canvas = document.getElementById('captureCanvas'), video = document.getElementById('webcam');
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
-            canvas.toBlob(blob => {
-                pendingFileToUpload = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-                document.getElementById('attachmentPreview').style.color = '#008000';
-                document.getElementById('attachmentPreview').innerHTML = "📸 撮影した写真をセットしました";
-                stopCamera();
-            }, 'image/jpeg', 0.9);
-        });
-
-        document.getElementById('btnStartVideoRec').addEventListener('click', () => {
-            chunks = [];
-            try { mediaRecorder = new MediaRecorder(cameraStream, { videoBitsPerSecond: 6000000 }); } catch(e) { mediaRecorder = new MediaRecorder(cameraStream); }
-            
-            mediaRecorder.ondataavailable = e => chunks.push(e.data);
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'video/mp4' });
-                pendingFileToUpload = new File([blob], `video_${Date.now()}.mp4`, { type: 'video/mp4' });
-                document.getElementById('attachmentPreview').style.color = '#008000';
-                document.getElementById('attachmentPreview').innerHTML = "🎥 録画完了（動画をセットしました）";
-                stopCamera();
-            };
-            mediaRecorder.start();
-            document.getElementById('btnStartVideoRec').classList.add('hidden');
-            document.getElementById('btnStopVideoRec').classList.remove('hidden');
-            recordSeconds = 0;
-            recordInterval = setInterval(() => {
-                recordSeconds++;
-                document.getElementById('recTimer').innerText = `🔴 REC: ${recordSeconds}秒 / 35秒`;
-                if (recordSeconds >= 35) stopVideoRecording();
-            }, 1000);
-        });
-
-        document.getElementById('btnStopVideoRec').addEventListener('click', stopVideoRecording);
-        function stopVideoRecording() { clearInterval(recordInterval); if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); }
-        function stopCamera() { clearInterval(recordInterval); if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); cameraStream=null; } document.getElementById('cameraArea').classList.add('hidden'); }
-
-        document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
-            stopCamera(); stopAudio(); clearAttachments();
-            try {
-                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                document.getElementById('audioArea').classList.remove('hidden');
-                document.getElementById('btnAudioStart').classList.remove('hidden');
-                document.getElementById('btnAudioStop').classList.add('hidden');
-            } catch(e) { alert("マイク起動失敗"); }
-        });
-
-        document.getElementById('btnAudioStart').addEventListener('click', () => {
-            chunks = []; mediaRecorder = new MediaRecorder(audioStream);
-            mediaRecorder.ondataavailable = e => chunks.push(e.data);
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                pendingFileToUpload = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
-                document.getElementById('attachmentPreview').style.color = '#008000';
-                document.getElementById('attachmentPreview').innerHTML = "🎙️ 録音完了（音声をセットしました）";
-                stopAudio();
-            };
-            mediaRecorder.start();
-            document.getElementById('btnAudioStart').classList.add('hidden');
-            document.getElementById('btnAudioStop').classList.remove('hidden');
-            recordSeconds = 0;
-            recordInterval = setInterval(() => {
-                recordSeconds++;
-                document.getElementById('audioTimer').innerText = `🔴 REC: ${recordSeconds}秒 / 60秒`;
-                if (recordSeconds >= 60) stopAudioRecording();
-            }, 1000);
-        });
-
-        document.getElementById('btnAudioStop').addEventListener('click', stopAudioRecording);
-        function stopAudioRecording() { clearInterval(recordInterval); if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); }
-        function stopAudio() { clearInterval(recordInterval); if(audioStream){ audioStream.getTracks().forEach(t=>t.stop()); audioStream=null; } document.getElementById('audioArea').classList.add('hidden'); }
-
-        document.getElementById('btnStopCamera').addEventListener('click', stopCamera);
-        document.getElementById('btnStopAudio').addEventListener('click', stopAudio);
 
         const imgModal = document.getElementById('imageModal');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
@@ -945,14 +742,6 @@
             if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
         }
 
-        function getThreadByteSize(data) {
-            let jsonString = JSON.stringify(data);
-            let bytes = new Blob([jsonString]).size;
-            if (bytes < 1024) return bytes + " B";
-            else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-            else return (bytes / (1024 * 1024)).toFixed(2) + " MB";
-        }
-
         async function renderActiveThread(forceFullReRender = false) {
             if (!activeThreadId) return;
             const targetThreadId = activeThreadId;
@@ -966,11 +755,9 @@
             }
 
             const resCount = data.length;
-            const byteSize = getThreadByteSize(data);
-
             const firstPost = data[0];
             document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
-            document.getElementById('threadStats').innerText = `(${byteSize} / ${resCount}レス)`;
+            document.getElementById('threadStats').innerText = `(${resCount}レス)`;
             document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
 
             const postFormBox = document.getElementById('postFormBox');
@@ -983,15 +770,6 @@
                 closedNotice.classList.add('hidden');
             }
 
-            if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
-                const diff = data.length - currentPostsData.length;
-                const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 300);
-                if (!isNearBottom) {
-                    unreadNewPostsCount += diff;
-                    document.getElementById('newPostsCount').innerText = unreadNewPostsCount;
-                    document.getElementById('newPostsBar').classList.remove('hidden');
-                }
-            }
             currentPostsData = data;
 
             const userReactions = getUserReactions();
@@ -1098,17 +876,10 @@
             }
         }
 
-        document.getElementById('newPostsBar').addEventListener('click', () => {
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            document.getElementById('newPostsBar').classList.add('hidden');
-            unreadNewPostsCount = 0;
-        });
-
         function showScreen(id) {
-            stopCamera(); stopAudio(); clearAttachments();
+            clearAttachments();
             renderedPostsMap.clear();
             currentPostsData = [];
-            unreadNewPostsCount = 0;
             document.getElementById('newPostsBar').classList.add('hidden');
             document.getElementById('resContainer').innerHTML = "";
 
@@ -1123,38 +894,6 @@
             }
         }
 
-        function startEditingPost(postId, resNum) {
-            const targetPost = currentPostsData.find(p => String(p.id) === String(postId));
-            if (!targetPost) return;
-
-            document.getElementById('editPostId').value = targetPost.id;
-            document.getElementById('subject').value = targetPost.subject || '';
-            document.getElementById('name').value = targetPost.name || '';
-            document.getElementById('editorBody').innerHTML = targetPost.message || '';
-            document.getElementById('linkUrl').value = targetPost.link_url || '';
-            document.getElementById('linkTitle').value = targetPost.link_title || '';
-
-            document.getElementById('writeFormTitle').innerText = `>>${resNum} の書き込みを訂正中`;
-            document.getElementById('btnSubmitPost').innerText = "訂正内容を保存する";
-            document.getElementById('btnCancelEdit').classList.remove('hidden');
-            document.getElementById('postFormBox').classList.add('editing-mode');
-
-            document.getElementById('postFormBox').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function cancelEditing() {
-            document.getElementById('postForm').reset();
-            document.getElementById('editPostId').value = "";
-            document.getElementById('editorBody').innerHTML = "";
-            document.getElementById('writeFormTitle').innerText = "このスレッドに書き込む";
-            document.getElementById('btnSubmitPost').innerText = "書き込む";
-            document.getElementById('btnCancelEdit').classList.add('hidden');
-            document.getElementById('postFormBox').classList.remove('editing-mode');
-        }
-
-        document.getElementById('btnCancelEdit').addEventListener('click', cancelEditing);
-
-        // フォーム送信処理（動画・画像・音声の属性振り分けを拡張子対応に強化）
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (currentPostsData.length >= 1000) {
@@ -1177,14 +916,9 @@
                     btnSubmit.innerText = "ファイルをアップロード中...";
                     const uploadedUrl = await uploadFileToStorage(pendingFileToUpload);
                     
-                    const fileName = pendingFileToUpload.name.toLowerCase();
-                    const isVideo = pendingFileToUpload.type.startsWith('video/') || /\.(mp4|mov|wmv|avi|webm|mkv|flv|3gp)$/i.test(fileName);
-                    const isImage = pendingFileToUpload.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileName);
-                    const isAudio = pendingFileToUpload.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)$/i.test(fileName);
-
-                    if (isImage) imageUrl = uploadedUrl;
-                    else if (isVideo) videoUrl = uploadedUrl;
-                    else if (isAudio) audioUrl = uploadedUrl;
+                    if (pendingFileToUpload.type.startsWith('image/')) imageUrl = uploadedUrl;
+                    else if (pendingFileToUpload.type.startsWith('video/')) videoUrl = uploadedUrl;
+                    else if (pendingFileToUpload.type.startsWith('audio/')) audioUrl = uploadedUrl;
                 }
 
                 if (editId) {
@@ -1200,7 +934,6 @@
                     if (audioUrl) updateData.audio = audioUrl;
 
                     await _supabase.from('posts').update(updateData).eq('id', editId);
-                    cancelEditing();
                 } else {
                     await _supabase.from('posts').insert([{
                         name: document.getElementById('name').value.trim() || "名無しさん",
@@ -1239,9 +972,6 @@
             }
             if (e.target.classList.contains('like-btn')) updateReaction(e.target.getAttribute('data-id'), 'like');
             if (e.target.classList.contains('dislike-btn')) updateReaction(e.target.getAttribute('data-id'), 'dislike');
-            if (e.target.classList.contains('edit-btn')) {
-                startEditingPost(e.target.getAttribute('data-id'), e.target.getAttribute('data-resnum'));
-            }
             if (e.target.classList.contains('delete-btn')) {
                 if (confirm("この投稿を削除しますか？")) {
                     await _supabase.from('posts').update({ message: "（削除されました）", is_deleted: true, image: "", video: "", audio: "" }).eq('id', e.target.getAttribute('data-id'));
@@ -1250,27 +980,12 @@
             }
         });
 
-        document.getElementById('btnDeleteThread').addEventListener('click', async () => {
-            if (!activeThreadId) return;
-            if (confirm("このスレッドを完全に削除しますか？")) {
-                const { error } = await _supabase.from('posts').delete().eq('thread_id', activeThreadId);
-                if (error) {
-                    alert("スレッドの削除に失敗しました: " + error.message);
-                } else {
-                    alert("スレッドを削除しました。");
-                    activeThreadId = null;
-                    window.location.hash = "";
-                    showScreen('lobby');
-                }
-            }
-        });
-
+        // 安全なアンカープレビュー処理
         const anchorPopup = document.getElementById('anchorPreviewPopup');
-
         document.getElementById('resContainer').addEventListener('mouseover', e => {
             if (e.target.classList.contains('anchor')) {
-                const resNum = e.target.getAttribute('data-resnum');
-                const targetPost = currentPostsData[resNum - 1];
+                const resNum = parseInt(e.target.getAttribute('data-resnum'), 10);
+                const targetPost = currentPostsData[resNum - 1]; // 番号一致の安全参照
                 if (targetPost) {
                     const rect = e.target.getBoundingClientRect();
                     const dateObj = new Date(targetPost.created_at);
@@ -1320,25 +1035,12 @@
                 window.location.hash = activeThreadId; 
                 showScreen('thread'); 
             }
-            if (e.target.classList.contains('admin-delete-thread-btn')) {
-                const targetThreadId = e.target.getAttribute('data-threadid');
-                if (confirm("【管理者】このスレッドを完全削除しますか？")) {
-                    const { error } = await _supabase.from('posts').delete().eq('thread_id', targetThreadId);
-                    if (error) {
-                        alert("スレッドの削除に失敗しました: " + error.message);
-                    } else {
-                        alert("スレッドを削除しました。");
-                        fetchThreads();
-                    }
-                }
-            }
         });
 
+        // Supabase Realtime 連携
         _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
             if (activeThreadId) { renderActiveThread(); } else fetchThreads();
         }).subscribe();
-
-        setInterval(() => { if (activeThreadId) renderActiveThread(); else fetchThreads(); }, 1500);
 
         window.addEventListener('DOMContentLoaded', () => {
             updateAdminUI();
