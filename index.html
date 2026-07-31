@@ -21,6 +21,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         h1 {
             color: #CC0000;
@@ -39,7 +41,7 @@
             border-radius: 3px;
         }
 
-        .container { max-width: 800px; }
+        .container { max-width: 800px; margin: 0 auto; }
         .menu-box {
             background-color: #FFFFFF;
             border: 1px solid #CCCCCC;
@@ -136,7 +138,6 @@
             aspect-ratio: 16 / 9;
             border: none;
             display: block;
-            image-rendering: -webkit-optimize-contrast;
         }
 
         .res-actions {
@@ -170,6 +171,8 @@
             border: 1px solid #000000;
         }
         .btn-admin:hover { background-color: #555555; }
+        .btn-contact { background-color: #0066CC; color: #FFFFFF; border-color: #004080; }
+        .btn-contact:hover { background-color: #0052A3; }
         
         .back-btn { margin-bottom: 15px; margin-right: 5px; display: inline-block; }
         .share-btn { color: #0066CC; font-weight: bold; }
@@ -188,7 +191,7 @@
             border: 1px solid #CCCCCC;
             border-radius: 4px;
         }
-        .uploaded-audio { display: block; margin-top: 10px; }
+        .uploaded-audio { display: block; margin-top: 10px; width: 100%; max-width: 520px; }
 
         .form-box {
             margin-top: 20px; background-color: #FFFFFF; padding: 15px;
@@ -298,21 +301,29 @@
             width: 100%; height: 100%; background-color: rgba(0,0,0,0.85);
             justify-content: center; align-items: center;
         }
+        .modal-inner {
+            background: #fff; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5); position: relative;
+        }
         .image-modal-mode { cursor: zoom-out; }
         .modal-content { max-width: 90%; max-height: 90%; box-shadow: 0 0 20px rgba(255,255,255,0.2); border-radius: 4px; }
         .modal-close {
-            position: absolute; top: 20px; right: 25px; color: #fff;
-            font-size: 35px; font-weight: bold; cursor: pointer; z-index: 3010;
+            position: absolute; top: 15px; right: 20px; color: #333;
+            font-size: 24px; font-weight: bold; cursor: pointer; z-index: 3010;
         }
         .hidden { display: none !important; }
-        .error-msg { color: #CC0000; font-weight: bold; padding: 10px; background: #FFE6E6; border: 1px solid #CC0000; }
+
+        .inquiry-item {
+            border-bottom: 1px dashed #ccc; padding: 8px 0; font-size: 13px;
+        }
     </style>
 </head>
 <body>
 
     <div class="header-bar">
         <h1 id="siteTitle">■ 321掲示板 ■</h1>
-        <div>
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <button id="btnOpenContact" class="btn btn-contact">📩 管理者へ問い合わせ</button>
             <span id="adminStatusBadge" class="admin-badge hidden">🔑 管理者モード有効中</span>
             <button id="btnAdminLogin" class="btn btn-admin">🔐 管理者ログイン</button>
             <button id="btnAdminLogout" class="btn hidden">🔓 ログアウト</button>
@@ -320,6 +331,11 @@
     </div>
 
     <div class="container">
+        <div id="adminInquiriesPanel" class="menu-box hidden" style="background-color: #EBF3FA; border-left: 4px solid #0066CC;">
+            <h4 style="margin: 0 0 8px 0; color: #0066CC;">📩 届いた問い合わせ・通報一覧（管理者専用）</h4>
+            <div id="inquiriesList" style="max-height: 200px; overflow-y: auto;">読み込み中...</div>
+        </div>
+
         <div id="lobbyScreen">
             <div id="adminNgPanel" class="menu-box hidden" style="background-color: #FFF0F0; border-left: 4px solid #CC0000;">
                 <h4 style="margin: 0 0 8px 0; color: #CC0000;">🚫 掲示板 NGワード・NG ID設定（管理者専用）</h4>
@@ -504,12 +520,12 @@
                             <label for="mediaFile">ファイル添付:</label>
                             <input type="file" id="mediaFile" accept="image/*,video/*,audio/*">
                         </div>
-                        <div class="form-row" style="margin-bottom: 10px;">
-                            <button type="button" class="btn" id="btnStartCamPhotoUser">📷 写真 (内カメラ)</button>
-                            <button type="button" class="btn" id="btnStartCamPhotoEnv">📷 写真 (外カメラ)</button>
-                            <button type="button" class="btn" id="btnStartCamVideoUser">🎥 動画 (内カメラ・最大35s)</button>
-                            <button type="button" class="btn" id="btnStartCamVideoEnv">🎥 動画 (外カメラ・最大35s)</button>
-                            <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 録音(最大60秒)</button>
+                        <div class="form-row" style="margin-bottom: 10px; display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button type="button" class="btn" id="btnStartCamPhotoUser">📷 写真(内)</button>
+                            <button type="button" class="btn" id="btnStartCamPhotoEnv">📷 写真(外)</button>
+                            <button type="button" class="btn" id="btnStartCamVideoUser">🎥 動画(内/最大35s)</button>
+                            <button type="button" class="btn" id="btnStartCamVideoEnv">🎥 動画(外/最大35s)</button>
+                            <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 録音(最大60s)</button>
                         </div>
                     </div>
 
@@ -539,6 +555,33 @@
         </div>
     </div>
 
+    <div id="contactModal" class="modal">
+        <div class="modal-inner">
+            <span class="modal-close" id="btnCloseContactModal">&times;</span>
+            <h3 style="margin-top:0; color:#0066CC;">📩 管理者へ問い合わせ・通報</h3>
+            <form id="contactForm">
+                <div style="margin-bottom:10px;">
+                    <label style="display:block; font-size:12px; font-weight:bold;">お名前 (任意):</label>
+                    <input type="text" id="contactName" placeholder="名無しさん" style="width:100%;">
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label style="display:block; font-size:12px; font-weight:bold;">お問い合わせ種別:</label>
+                    <select id="contactType" style="width:100%;">
+                        <option value="通報・削除依頼">不適切な投稿の通報・削除依頼</option>
+                        <option value="不具合報告">機能の不具合報告</option>
+                        <option value="ご意見・要望">ご意見・ご要望</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label style="display:block; font-size:12px; font-weight:bold;">内容 :</label>
+                    <textarea id="contactMessage" placeholder="該当の投稿番号やスレッド名、具体的な内容をご記入ください。" required style="width:100%; height:100px;"></textarea>
+                </div>
+                <button type="submit" class="btn btn-contact" style="width:100%; font-weight:bold;">管理者へ送信する</button>
+            </form>
+        </div>
+    </div>
+
     <div id="anchorPreviewPopup"></div>
 
     <div id="newPostsBar" class="hidden">
@@ -552,10 +595,9 @@
         const ADMIN_PASSWORD = "sdkousaku321564";
         let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
 
-        // ※ Supabase設定 (実際のProject URLとAnon Keyを入力してください)
         const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
-        const _supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         if (!localStorage.getItem('bbs_user_secret')) {
             localStorage.setItem('bbs_user_secret', Math.random().toString(36).substring(2, 12).toUpperCase() + Math.random().toString(36).substring(2, 12).toUpperCase());
@@ -582,6 +624,7 @@
         let currentPostsData = [];
         let renderedPostsMap = new Map();
         let unreadNewPostsCount = 0;
+        let reactionProcessingMap = new Map(); // 連打防止用ロックフラグ
 
         function getUserReactions() {
             try { return JSON.parse(localStorage.getItem('bbs_user_reactions')) || {}; } catch(e) { return {}; }
@@ -618,11 +661,14 @@
                 document.getElementById('btnAdminLogin').classList.add('hidden');
                 document.getElementById('btnAdminLogout').classList.remove('hidden');
                 document.getElementById('adminNgPanel').classList.remove('hidden');
+                document.getElementById('adminInquiriesPanel').classList.remove('hidden');
+                fetchInquiries();
             } else {
                 document.getElementById('adminStatusBadge').classList.add('hidden');
                 document.getElementById('btnAdminLogin').classList.remove('hidden');
                 document.getElementById('btnAdminLogout').classList.add('hidden');
                 document.getElementById('adminNgPanel').classList.add('hidden');
+                document.getElementById('adminInquiriesPanel').classList.add('hidden');
             }
         }
 
@@ -631,6 +677,59 @@
             setAdminMode(false);
             alert("ログアウトしました。");
         });
+
+        // 📩 問い合わせ用モーダルの処理
+        const contactModal = document.getElementById('contactModal');
+        document.getElementById('btnOpenContact').addEventListener('click', () => contactModal.style.display = 'flex');
+        document.getElementById('btnCloseContactModal').addEventListener('click', () => contactModal.style.display = 'none');
+
+        document.getElementById('contactForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('contactName').value.trim() || '名無しさん';
+            const type = document.getElementById('contactType').value;
+            const message = document.getElementById('contactMessage').value.trim();
+
+            if (!message) return alert("内容を入力してください。");
+
+            try {
+                const { error } = await _supabase.from('inquiries').insert([{
+                    name: name,
+                    type: type,
+                    message: message,
+                    thread_id: activeThreadId || 'lobby',
+                    creator_secret: userSecret
+                }]);
+
+                if (error) throw error;
+                alert("✅ 管理者へお問い合わせを送信しました。");
+                this.reset();
+                contactModal.style.display = 'none';
+                if (isAdmin) fetchInquiries();
+            } catch (err) {
+                alert("送信に失敗しました。時間をおいて再試行してください。");
+            }
+        });
+
+        async function fetchInquiries() {
+            if (!isAdmin) return;
+            const listEl = document.getElementById('inquiriesList');
+            const { data, error } = await _supabase.from('inquiries').select('*').order('created_at', { ascending: false });
+            if (error || !data || data.length === 0) {
+                listEl.innerHTML = '<div style="font-size:12px; color:#666;">現在届いている問い合わせはありません。</div>';
+                return;
+            }
+            let html = '';
+            data.forEach(item => {
+                const dateStr = new Date(item.created_at).toLocaleString('ja-JP');
+                html += `
+                    <div class="inquiry-item">
+                        <div><b>[${escapeHtml(item.type)}]</b> ${escapeHtml(item.name)} (${dateStr})</div>
+                        <div style="margin-top:4px; font-size:13px; color:#333;">${escapeHtml(item.message)}</div>
+                    </div>
+                `;
+            });
+            listEl.innerHTML = html;
+        }
 
         function applyStyleToEditor(editorId, command, value) {
             const editor = document.getElementById(editorId);
@@ -705,7 +804,6 @@
         }
 
         async function uploadFileToStorage(file) {
-            if (!_supabase) throw new Error("Supabaseが初期化されていません。");
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
             const filePath = `uploads/${fileName}`;
@@ -735,7 +833,7 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            const MAX_FILE_SIZE = 30 * 1024 * 1024;
+            const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
             if (file.size > MAX_FILE_SIZE) {
                 alert("⚠️ ファイルサイズが大きすぎます（最大 30MB まで）。");
                 e.target.value = "";
@@ -761,7 +859,7 @@
         async function startCamera(facingMode, forVideo = false) {
             stopCamera(); stopAudio(); clearAttachments();
             try {
-                const videoConstraints = { facingMode: facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } };
+                const videoConstraints = { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } };
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: forVideo });
                 const videoEl = document.getElementById('webcam');
                 videoEl.srcObject = cameraStream; videoEl.muted = !forVideo;
@@ -777,7 +875,7 @@
                     document.getElementById('btnStopVideoRec').classList.add('hidden');
                     document.getElementById('recTimer').classList.add('hidden');
                 }
-            } catch (e) { alert("カメラの起動に失敗しました。"); }
+            } catch (e) { alert("カメラの起動に失敗しました。アクセス許可を確認してください。"); }
         }
 
         document.getElementById('btnStartCamPhotoUser').addEventListener('click', () => startCamera("user", false));
@@ -800,7 +898,7 @@
 
         document.getElementById('btnStartVideoRec').addEventListener('click', () => {
             chunks = [];
-            try { mediaRecorder = new MediaRecorder(cameraStream, { videoBitsPerSecond: 6000000 }); } catch(e) { mediaRecorder = new MediaRecorder(cameraStream); }
+            try { mediaRecorder = new MediaRecorder(cameraStream, { videoBitsPerSecond: 4000000 }); } catch(e) { mediaRecorder = new MediaRecorder(cameraStream); }
             
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
             mediaRecorder.onstop = () => {
@@ -832,7 +930,7 @@
                 document.getElementById('audioArea').classList.remove('hidden');
                 document.getElementById('btnAudioStart').classList.remove('hidden');
                 document.getElementById('btnAudioStop').classList.add('hidden');
-            } catch(e) { alert("マイク起動失敗"); }
+            } catch(e) { alert("マイクの起動に失敗しました。アクセス許可を確認してください。"); }
         });
 
         document.getElementById('btnAudioStart').addEventListener('click', () => {
@@ -866,96 +964,97 @@
         const imgModal = document.getElementById('imageModal');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
+        // 👍/👎 重複バグ改善版リアクション関数
         async function updateReaction(postId, clickedType) {
-            if (!_supabase) return;
-            const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
-            if (error || !data) return;
+            if (reactionProcessingMap.get(postId)) return; // 連打排他制御
+            reactionProcessingMap.set(postId, true);
 
-            const userReactions = getUserReactions();
-            const currentReaction = userReactions[postId] || null;
+            try {
+                const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
+                if (error || !data) return;
 
-            let likesCount = data.likes || 0;
-            let dislikesCount = data.dislikes || 0;
+                const userReactions = getUserReactions();
+                const currentReaction = userReactions[postId] || null;
 
-            if (currentReaction === clickedType) {
-                if (clickedType === 'like') likesCount = Math.max(0, likesCount - 1);
-                if (clickedType === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
-                setUserReaction(postId, null);
-            } else {
-                if (currentReaction === 'like') likesCount = Math.max(0, likesCount - 1);
-                if (currentReaction === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
+                let likesCount = Number(data.likes) || 0;
+                let dislikesCount = Number(data.dislikes) || 0;
 
-                if (clickedType === 'like') likesCount++;
-                if (clickedType === 'dislike') dislikesCount++;
+                if (currentReaction === clickedType) {
+                    if (clickedType === 'like') likesCount = Math.max(0, likesCount - 1);
+                    if (clickedType === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
+                    setUserReaction(postId, null);
+                } else {
+                    if (currentReaction === 'like') likesCount = Math.max(0, likesCount - 1);
+                    if (currentReaction === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
 
-                setUserReaction(postId, clickedType);
+                    if (clickedType === 'like') likesCount++;
+                    if (clickedType === 'dislike') dislikesCount++;
+
+                    setUserReaction(postId, clickedType);
+                }
+
+                // ローカルの currentPostsData も即時更新 (楽観的UI更新)
+                const targetPost = currentPostsData.find(p => p.id === postId);
+                if (targetPost) {
+                    targetPost.likes = likesCount;
+                    targetPost.dislikes = dislikesCount;
+                }
+
+                await _supabase.from('posts').update({ likes: likesCount, dislikes: dislikesCount }).eq('id', postId);
+                renderActiveThread();
+            } finally {
+                reactionProcessingMap.delete(postId);
             }
-
-            await _supabase.from('posts').update({ likes: likesCount, dislikes: dislikesCount }).eq('id', postId);
-            renderActiveThread();
         }
 
         document.getElementById('threadSearchInput').addEventListener('input', fetchThreads);
         document.getElementById('threadSortSelect').addEventListener('change', fetchThreads);
 
         async function fetchThreads() {
+            const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, created_at').order('id', { ascending: true });
+            if (error) return;
+
+            const threadMap = {};
+            data.forEach(post => {
+                const tId = post.thread_id;
+                if (!threadMap[tId]) {
+                    threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, createdAt: new Date(post.created_at), updatedAt: new Date(post.created_at) };
+                }
+                threadMap[tId].count++;
+                const postDate = new Date(post.created_at);
+                if (postDate > threadMap[tId].updatedAt) threadMap[tId].updatedAt = postDate;
+            });
+
+            let threadList = Object.values(threadMap);
+
+            const keyword = document.getElementById('threadSearchInput').value.trim().toLowerCase();
+            if (keyword) {
+                threadList = threadList.filter(t => t.title.toLowerCase().includes(keyword));
+            }
+
+            const sortBy = document.getElementById('threadSortSelect').value;
+            if (sortBy === 'count') {
+                threadList.sort((a, b) => b.count - a.count);
+            } else if (sortBy === 'created') {
+                threadList.sort((a, b) => b.createdAt - a.createdAt);
+            } else {
+                threadList.sort((a, b) => b.updatedAt - a.updatedAt);
+            }
+
             const container = document.getElementById('threadList');
-            if (!_supabase) {
-                container.innerHTML = `<div class="error-msg">⚠️ Supabase SDKの初期化に失敗しています。</div>`;
+            if (threadList.length === 0) {
+                container.innerHTML = '<div>該当するスレッドがありません。</div>';
                 return;
             }
 
-            try {
-                const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, created_at').order('id', { ascending: true });
-                if (error) {
-                    container.innerHTML = `<div class="error-msg">⚠️ データベースエラー: ${escapeHtml(error.message)}</div>`;
-                    return;
-                }
+            let htmlBuf = "";
+            threadList.forEach(t => {
+                const isMax = t.count >= 1000 ? ' <span style="color:red; font-weight:bold;">[1000満スレ]</span>' : '';
+                const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ スレ全削除</button>` : '';
+                htmlBuf += `<div class="thread-list-item"><span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})${isMax}</span>${adminDeleteBtn}</div>`;
+            });
 
-                const threadMap = {};
-                (data || []).forEach(post => {
-                    const tId = post.thread_id;
-                    if (!tId) return;
-                    if (!threadMap[tId]) {
-                        threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, createdAt: new Date(post.created_at), updatedAt: new Date(post.created_at) };
-                    }
-                    threadMap[tId].count++;
-                    const postDate = new Date(post.created_at);
-                    if (postDate > threadMap[tId].updatedAt) threadMap[tId].updatedAt = postDate;
-                });
-
-                let threadList = Object.values(threadMap);
-
-                const keyword = document.getElementById('threadSearchInput').value.trim().toLowerCase();
-                if (keyword) {
-                    threadList = threadList.filter(t => t.title.toLowerCase().includes(keyword));
-                }
-
-                const sortBy = document.getElementById('threadSortSelect').value;
-                if (sortBy === 'count') {
-                    threadList.sort((a, b) => b.count - a.count);
-                } else if (sortBy === 'created') {
-                    threadList.sort((a, b) => b.createdAt - a.createdAt);
-                } else {
-                    threadList.sort((a, b) => b.updatedAt - a.updatedAt);
-                }
-
-                if (threadList.length === 0) {
-                    container.innerHTML = '<div>スレッドがありません。上部から新しく作成してください。</div>';
-                    return;
-                }
-
-                let htmlBuf = "";
-                threadList.forEach(t => {
-                    const isMax = t.count >= 1000 ? ' <span style="color:red; font-weight:bold;">[1000満スレ]</span>' : '';
-                    const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ スレ全削除</button>` : '';
-                    htmlBuf += `<div class="thread-list-item"><span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})${isMax}</span>${adminDeleteBtn}</div>`;
-                });
-
-                if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
-            } catch (err) {
-                container.innerHTML = `<div class="error-msg">⚠️ 接続エラー: ${escapeHtml(err.message)}</div>`;
-            }
+            if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
         }
 
         function getThreadByteSize(data) {
@@ -967,160 +1066,147 @@
         }
 
         async function renderActiveThread(forceFullReRender = false) {
-            if (!activeThreadId || !_supabase) return;
+            if (!activeThreadId) return;
             const targetThreadId = activeThreadId;
 
-            try {
-                const { data, error } = await _supabase.from('posts').select('*').eq('thread_id', targetThreadId).order('id', { ascending: true });
-                if (targetThreadId !== activeThreadId) return;
-                
-                if (error) {
-                    document.getElementById('resContainer').innerHTML = `<div class="error-msg">エラー: ${escapeHtml(error.message)}</div>`;
+            const { data, error } = await _supabase.from('posts').select('*').eq('thread_id', targetThreadId).order('id', { ascending: true });
+            if (targetThreadId !== activeThreadId || error || !data || data.length === 0) return;
+
+            if (forceFullReRender) {
+                renderedPostsMap.clear();
+                document.getElementById('resContainer').innerHTML = "";
+            }
+
+            const resCount = data.length;
+            const byteSize = getThreadByteSize(data);
+
+            const firstPost = data[0];
+            document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
+            document.getElementById('threadStats').innerText = `(${byteSize} / ${resCount}レス)`;
+            document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
+
+            const postFormBox = document.getElementById('postFormBox');
+            const closedNotice = document.getElementById('threadClosedNotice');
+            if (resCount >= 1000) {
+                postFormBox.classList.add('hidden');
+                closedNotice.classList.remove('hidden');
+            } else {
+                postFormBox.classList.remove('hidden');
+                closedNotice.classList.add('hidden');
+            }
+
+            if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
+                const diff = data.length - currentPostsData.length;
+                const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 300);
+                if (!isNearBottom) {
+                    unreadNewPostsCount += diff;
+                    document.getElementById('newPostsCount').innerText = unreadNewPostsCount;
+                    document.getElementById('newPostsBar').classList.remove('hidden');
+                }
+            }
+            currentPostsData = data;
+
+            const userReactions = getUserReactions();
+            const container = document.getElementById('resContainer');
+            const fragment = document.createDocumentFragment();
+
+            data.forEach((res, index) => {
+                const resNum = index + 1;
+                const isOp = (res.creator_secret === userSecret);
+                const displayID = getDisplayIDForPost(res);
+
+                let isNg = false;
+                if (ngIds.includes(displayID)) isNg = true;
+                if (!isNg && ngWords.length > 0) {
+                    const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
+                    if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
+                }
+
+                const likesCount = res.likes || 0;
+                const dislikesCount = res.dislikes || 0;
+                const userReaction = userReactions[res.id] || null;
+
+                const postStateHash = `${res.id}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
+
+                if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
                     return;
                 }
-                if (!data || data.length === 0) {
-                    document.getElementById('resContainer').innerHTML = `<div>投稿がありません。</div>`;
-                    return;
+
+                let media = "";
+                if (res.image) media = `<img src="${res.image}" class="uploaded-img" loading="lazy">`;
+                else if (res.video) media = `<video src="${res.video}" class="uploaded-video" controls></video>`;
+                else if (res.audio) media = `<audio src="${res.audio}" class="uploaded-audio" controls></audio>`;
+
+                let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
+                let ytEmbeds = (res.is_deleted || isNg) ? '' : parseYouTubeEmbeds(res.message);
+                let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
+
+                let actions = "";
+                if (!res.is_deleted && resCount < 1000) {
+                    if (isOp) {
+                        actions += `<button class="btn edit-btn" data-id="${res.id}" data-resnum="${resNum}">✍️ 訂正</button>`;
+                        actions += `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>`;
+                    } else if (isAdmin) {
+                        actions += `<button class="btn admin-delete-btn delete-btn" data-id="${res.id}">🗑️ 【管理者】削除</button>`;
+                    }
                 }
 
-                if (forceFullReRender) {
-                    renderedPostsMap.clear();
-                    document.getElementById('resContainer').innerHTML = "";
-                }
+                const dateObj = new Date(res.created_at);
+                const days = ['日', '月', '火', '水', '木', '金', '土'];
+                const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
 
-                const resCount = data.length;
-                const byteSize = getThreadByteSize(data);
+                const likeActiveClass = userReaction === 'like' ? 'active' : '';
+                const dislikeActiveClass = userReaction === 'dislike' ? 'active' : '';
 
-                const firstPost = data[0];
-                document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
-                document.getElementById('threadStats').innerText = `(${byteSize} / ${resCount}レス)`;
-                document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
-
-                const postFormBox = document.getElementById('postFormBox');
-                const closedNotice = document.getElementById('threadClosedNotice');
-                if (resCount >= 1000) {
-                    postFormBox.classList.add('hidden');
-                    closedNotice.classList.remove('hidden');
+                let bodyContent = "";
+                if (res.is_deleted) {
+                    bodyContent = "（削除されました）";
+                } else if (isNg) {
+                    bodyContent = `<span class="ng-masked">*** (管理者設定のNGフィルターにより非表示) ***</span>`;
                 } else {
-                    postFormBox.classList.remove('hidden');
-                    closedNotice.classList.add('hidden');
+                    bodyContent = sanitizeAndFormatHtml(res.message);
                 }
 
-                if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
-                    const diff = data.length - currentPostsData.length;
-                    const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 300);
-                    if (!isNearBottom) {
-                        unreadNewPostsCount += diff;
-                        document.getElementById('newPostsCount').innerText = unreadNewPostsCount;
-                        document.getElementById('newPostsBar').classList.remove('hidden');
-                    }
+                const resHtml = `
+                    <div class="res-header">
+                        <span class="res-number">${resNum}</span> ：
+                        <span class="res-name">${escapeHtml(res.name)}</span> ：
+                        <span class="res-date-id">${dateStr} ID:${displayID}</span>
+                        ${editedLabel}
+                    </div>
+                    <div class="res-body">
+                        ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
+                        <div>${bodyContent}</div>
+                        ${ytEmbeds}
+                        ${(res.is_deleted || isNg) ? '' : link}
+                        ${(res.is_deleted || isNg) ? '' : media}
+                    </div>
+                    <div class="res-actions">
+                        ${resCount < 1000 ? `<button class="btn reply-btn" data-resnum="${resNum}">返信</button>` : ''}
+                        ${!res.is_deleted ? `
+                            <button class="btn btn-like like-btn ${likeActiveClass}" data-id="${res.id}">👍 ${likesCount}</button>
+                            <button class="btn btn-dislike dislike-btn ${dislikeActiveClass}" data-id="${res.id}">👎 ${dislikesCount}</button>
+                        ` : ''}
+                        ${actions}
+                    </div>
+                `;
+
+                const existingElem = document.getElementById(`res-${res.id}`);
+                if (existingElem) {
+                    existingElem.innerHTML = resHtml;
+                } else {
+                    const wrapperDiv = document.createElement('div');
+                    wrapperDiv.className = 'res';
+                    wrapperDiv.id = `res-${res.id}`;
+                    wrapperDiv.innerHTML = resHtml;
+                    fragment.appendChild(wrapperDiv);
                 }
-                currentPostsData = data;
 
-                const userReactions = getUserReactions();
-                const container = document.getElementById('resContainer');
-                const fragment = document.createDocumentFragment();
+                renderedPostsMap.set(res.id, postStateHash);
+            });
 
-                data.forEach((res, index) => {
-                    const resNum = index + 1;
-                    const isOp = (res.creator_secret === userSecret);
-                    const displayID = getDisplayIDForPost(res);
-
-                    let isNg = false;
-                    if (ngIds.includes(displayID)) isNg = true;
-                    if (!isNg && ngWords.length > 0) {
-                        const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
-                        if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
-                    }
-
-                    const likesCount = res.likes || 0;
-                    const dislikesCount = res.dislikes || 0;
-                    const userReaction = userReactions[res.id] || null;
-
-                    const postStateHash = `${res.id}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
-
-                    if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
-                        return;
-                    }
-
-                    let media = "";
-                    if (res.image) media = `<img src="${res.image}" class="uploaded-img" loading="lazy">`;
-                    else if (res.video) media = `<video src="${res.video}" class="uploaded-video" controls></video>`;
-                    else if (res.audio) media = `<audio src="${res.audio}" class="uploaded-audio" controls></audio>`;
-
-                    let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
-                    let ytEmbeds = (res.is_deleted || isNg) ? '' : parseYouTubeEmbeds(res.message);
-                    let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
-
-                    let actions = "";
-                    if (!res.is_deleted && resCount < 1000) {
-                        if (isOp) {
-                            actions += `<button class="btn edit-btn" data-id="${res.id}" data-resnum="${resNum}">✍️ 訂正</button>`;
-                            actions += `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>`;
-                        } else if (isAdmin) {
-                            actions += `<button class="btn admin-delete-btn delete-btn" data-id="${res.id}">🗑️ 【管理者】削除</button>`;
-                        }
-                    }
-
-                    const dateObj = new Date(res.created_at);
-                    const days = ['日', '月', '火', '水', '木', '金', '土'];
-                    const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
-
-                    const likeActiveClass = userReaction === 'like' ? 'active' : '';
-                    const dislikeActiveClass = userReaction === 'dislike' ? 'active' : '';
-
-                    let bodyContent = "";
-                    if (res.is_deleted) {
-                        bodyContent = "（削除されました）";
-                    } else if (isNg) {
-                        bodyContent = `<span class="ng-masked">*** (管理者設定のNGフィルターにより非表示) ***</span>`;
-                    } else {
-                        bodyContent = sanitizeAndFormatHtml(res.message);
-                    }
-
-                    const resHtml = `
-                        <div class="res-header">
-                            <span class="res-number">${resNum}</span> ：
-                            <span class="res-name">${escapeHtml(res.name)}</span> ：
-                            <span class="res-date-id">${dateStr} ID:${displayID}</span>
-                            ${editedLabel}
-                        </div>
-                        <div class="res-body">
-                            ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
-                            <div>${bodyContent}</div>
-                            ${ytEmbeds}
-                            ${(res.is_deleted || isNg) ? '' : link}
-                            ${(res.is_deleted || isNg) ? '' : media}
-                        </div>
-                        <div class="res-actions">
-                            ${resCount < 1000 ? `<button class="btn reply-btn" data-resnum="${resNum}">返信</button>` : ''}
-                            ${!res.is_deleted ? `
-                                <button class="btn btn-like like-btn ${likeActiveClass}" data-id="${res.id}">👍 ${likesCount}</button>
-                                <button class="btn btn-dislike dislike-btn ${dislikeActiveClass}" data-id="${res.id}">👎 ${dislikesCount}</button>
-                            ` : ''}
-                            ${actions}
-                        </div>
-                    `;
-
-                    const existingElem = document.getElementById(`res-${res.id}`);
-                    if (existingElem) {
-                        existingElem.innerHTML = resHtml;
-                    } else {
-                        const wrapperDiv = document.createElement('div');
-                        wrapperDiv.className = 'res';
-                        wrapperDiv.id = `res-${res.id}`;
-                        wrapperDiv.innerHTML = resHtml;
-                        fragment.appendChild(wrapperDiv);
-                    }
-
-                    renderedPostsMap.set(res.id, postStateHash);
-                });
-
-                if (fragment.children.length > 0) {
-                    container.appendChild(fragment);
-                }
-            } catch (err) {
-                console.error(err);
+            if (fragment.children.length > 0) {
+                container.appendChild(fragment);
             }
         }
 
@@ -1238,7 +1324,7 @@
                     document.getElementById('editorBody').innerHTML = "";
                 }
             } catch (err) {
-                alert("送信またはファイルのアップロードに失敗しました: " + err.message);
+                alert("送信またはファイルのアップロードに失敗しました。");
             } finally {
                 btnSubmit.disabled = false;
                 btnSubmit.innerText = "書き込む";
@@ -1318,22 +1404,17 @@
         document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const newThreadId = 'thread-' + Date.now();
-            try {
-                const { error } = await _supabase.from('posts').insert([{
-                    name: document.getElementById('creatorName').value.trim() || "名無しさん",
-                    subject: document.getElementById('newThreadTitle').value.trim(),
-                    message: document.getElementById('firstMessage').innerHTML.trim(),
-                    thread_id: newThreadId,
-                    creator_secret: userSecret,
-                    link_url: document.getElementById('threadLinkUrl').value.trim(),
-                    link_title: document.getElementById('threadLinkTitle').value.trim()
-                }]);
-                if (error) throw error;
-                this.reset(); document.getElementById('firstMessage').innerHTML = "";
-                activeThreadId = newThreadId; window.location.hash = newThreadId; showScreen('thread');
-            } catch (err) {
-                alert("スレッド作成エラー: " + err.message);
-            }
+            await _supabase.from('posts').insert([{
+                name: document.getElementById('creatorName').value.trim() || "名無しさん",
+                subject: document.getElementById('newThreadTitle').value.trim(),
+                message: document.getElementById('firstMessage').innerHTML.trim(),
+                thread_id: newThreadId,
+                creator_secret: userSecret,
+                link_url: document.getElementById('threadLinkUrl').value.trim(),
+                link_title: document.getElementById('threadLinkTitle').value.trim()
+            }]);
+            this.reset(); document.getElementById('firstMessage').innerHTML = "";
+            activeThreadId = newThreadId; window.location.hash = newThreadId; showScreen('thread');
         });
 
         document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
@@ -1359,13 +1440,11 @@
             }
         });
 
-        if (_supabase) {
-            _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-                if (activeThreadId) { renderActiveThread(); } else fetchThreads();
-            }).subscribe();
-        }
+        _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+            if (activeThreadId) { renderActiveThread(); } else fetchThreads();
+        }).subscribe();
 
-        setInterval(() => { if (activeThreadId) renderActiveThread(); else fetchThreads(); }, 2000);
+        setInterval(() => { if (activeThreadId) renderActiveThread(); else fetchThreads(); }, 1500);
 
         window.addEventListener('DOMContentLoaded', () => {
             updateAdminUI();
