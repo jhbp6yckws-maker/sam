@@ -551,6 +551,7 @@
         const ADMIN_PASSWORD = "sdkousaku321564";
         let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
 
+        // Supabase設定
         const SUPABASE_URL = "https://iustcqynpestdbqjpiu.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -702,7 +703,6 @@
             document.getElementById('mediaFile').value = "";
         }
 
-        // 📤 Supabase Storage へファイルをアップロードし公開URLを返す関数
         async function uploadFileToStorage(file) {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
@@ -728,7 +728,6 @@
             });
         }
 
-        // 📁 ファイル選択時（拡張子による動画の判定を補強）
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             clearAttachments();
             const file = e.target.files[0];
@@ -900,7 +899,10 @@
 
         async function fetchThreads() {
             const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, created_at').order('id', { ascending: true });
-            if (error) return;
+            if (error) {
+                document.getElementById('threadList').innerText = 'スレッドの取得に失敗しました。';
+                return;
+            }
 
             const threadMap = {};
             data.forEach(post => {
@@ -931,7 +933,7 @@
 
             const container = document.getElementById('threadList');
             if (threadList.length === 0) {
-                container.innerHTML = '<div>該当するスレッドがありません。</div>';
+                container.innerHTML = '<div>まだスレッドがありません。</div>';
                 return;
             }
 
@@ -980,7 +982,7 @@
                 closedNotice.classList.remove('hidden');
             } else {
                 postFormBox.classList.remove('hidden');
-                closedNotice.classList.add('hidden');
+                closedNotice.add('hidden');
             }
 
             if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
@@ -1014,7 +1016,7 @@
                 const dislikesCount = res.dislikes || 0;
                 const userReaction = userReactions[res.id] || null;
 
-                const postStateHash = `${res.id}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
+                const postStateHash = `${res.id}_${res.name}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
 
                 if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
                     return;
@@ -1129,7 +1131,7 @@
 
             document.getElementById('editPostId').value = targetPost.id;
             document.getElementById('subject').value = targetPost.subject || '';
-            document.getElementById('name').value = targetPost.name || '';
+            document.getElementById('name').value = targetPost.name || ''; // 名前をセット
             document.getElementById('editorBody').innerHTML = targetPost.message || '';
             document.getElementById('linkUrl').value = targetPost.link_url || '';
             document.getElementById('linkTitle').value = targetPost.link_title || '';
@@ -1154,7 +1156,6 @@
 
         document.getElementById('btnCancelEdit').addEventListener('click', cancelEditing);
 
-        // フォーム送信処理（動画・画像・音声の属性振り分けを拡張子対応に強化）
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (currentPostsData.length >= 1000) {
@@ -1188,7 +1189,9 @@
                 }
 
                 if (editId) {
+                    // 訂正時にも名前(name)を更新対象に追加
                     const updateData = {
+                        name: document.getElementById('name').value.trim() || "名無しさん",
                         message: messageHtml,
                         subject: document.getElementById('subject').value.trim(),
                         is_edited: true,
