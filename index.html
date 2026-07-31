@@ -551,8 +551,7 @@
         const ADMIN_PASSWORD = "sdkousaku321564";
         let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
 
-        // ★ Supabase設定（URLとAnon Keyを自動適用済み）
-        const SUPABASE_URL = "https://iustcqynpestdbqjpiu.supabase.co"; 
+        const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -703,6 +702,7 @@
             document.getElementById('mediaFile').value = "";
         }
 
+        // 📤 Supabase Storage へファイルをアップロードし公開URLを返す関数
         async function uploadFileToStorage(file) {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
@@ -728,6 +728,7 @@
             });
         }
 
+        // 📁 ファイル選択時
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             clearAttachments();
             const file = e.target.files[0];
@@ -741,10 +742,8 @@
             }
 
             const previewEl = document.getElementById('attachmentPreview');
-            const fileName = file.name.toLowerCase();
-            const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|wmv|avi|webm|mkv|flv|3gp)$/i.test(fileName);
 
-            if (isVideo) {
+            if (file.type.startsWith('video/')) {
                 const duration = await checkVideoDuration(file);
                 if (duration > 35.5) {
                     alert(`⚠️ 動画の長さが長すぎます（${Math.round(duration)}秒）。\n【35秒以内】の動画を選択してください。`);
@@ -899,10 +898,7 @@
 
         async function fetchThreads() {
             const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, created_at').order('id', { ascending: true });
-            if (error) {
-                document.getElementById('threadList').innerText = 'スレッドの取得に失敗しました。';
-                return;
-            }
+            if (error) return;
 
             const threadMap = {};
             data.forEach(post => {
@@ -933,7 +929,7 @@
 
             const container = document.getElementById('threadList');
             if (threadList.length === 0) {
-                container.innerHTML = '<div>まだスレッドがありません。</div>';
+                container.innerHTML = '<div>該当するスレッドがありません。</div>';
                 return;
             }
 
@@ -1178,14 +1174,9 @@
                     btnSubmit.innerText = "ファイルをアップロード中...";
                     const uploadedUrl = await uploadFileToStorage(pendingFileToUpload);
                     
-                    const fileName = pendingFileToUpload.name.toLowerCase();
-                    const isVideo = pendingFileToUpload.type.startsWith('video/') || /\.(mp4|mov|wmv|avi|webm|mkv|flv|3gp)$/i.test(fileName);
-                    const isImage = pendingFileToUpload.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileName);
-                    const isAudio = pendingFileToUpload.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)$/i.test(fileName);
-
-                    if (isImage) imageUrl = uploadedUrl;
-                    else if (isVideo) videoUrl = uploadedUrl;
-                    else if (isAudio) audioUrl = uploadedUrl;
+                    if (pendingFileToUpload.type.startsWith('image/')) imageUrl = uploadedUrl;
+                    else if (pendingFileToUpload.type.startsWith('video/')) videoUrl = uploadedUrl;
+                    else if (pendingFileToUpload.type.startsWith('audio/')) audioUrl = uploadedUrl;
                 }
 
                 if (editId) {
