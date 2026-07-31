@@ -304,16 +304,6 @@
             position: absolute; top: 20px; right: 25px; color: #fff;
             font-size: 35px; font-weight: bold; cursor: pointer; z-index: 3010;
         }
-        .error-msg-box {
-            color: #D8000C;
-            background-color: #FFBABA;
-            border: 1px solid #D8000C;
-            padding: 12px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 14px;
-            line-height: 1.5;
-        }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -561,7 +551,7 @@
         const ADMIN_PASSWORD = "sdkousaku321564";
         let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
 
-        const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
+        const SUPABASE_URL = "https://iustcqynpestdbqjpiu.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -712,6 +702,7 @@
             document.getElementById('mediaFile').value = "";
         }
 
+        // 📤 Supabase Storage へファイルをアップロードし公開URLを返す関数
         async function uploadFileToStorage(file) {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
@@ -737,12 +728,13 @@
             });
         }
 
+        // 📁 ファイル選択時（拡張子による動画の判定を補強）
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             clearAttachments();
             const file = e.target.files[0];
             if (!file) return;
 
-            const MAX_FILE_SIZE = 30 * 1024 * 1024;
+            const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
             if (file.size > MAX_FILE_SIZE) {
                 alert("⚠️ ファイルサイズが大きすぎます（最大 30MB まで）。");
                 e.target.value = "";
@@ -750,8 +742,10 @@
             }
 
             const previewEl = document.getElementById('attachmentPreview');
+            const fileName = file.name.toLowerCase();
+            const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|wmv|avi|webm|mkv|flv|3gp)$/i.test(fileName);
 
-            if (file.type.startsWith('video/')) {
+            if (isVideo) {
                 const duration = await checkVideoDuration(file);
                 if (duration > 35.5) {
                     alert(`⚠️ 動画の長さが長すぎます（${Math.round(duration)}秒）。\n【35秒以内】の動画を選択してください。`);
@@ -874,106 +868,81 @@
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
         async function updateReaction(postId, clickedType) {
-            try {
-                const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
-                if (error || !data) return;
+            const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
+            if (error || !data) return;
 
-                const userReactions = getUserReactions();
-                const currentReaction = userReactions[postId] || null;
+            const userReactions = getUserReactions();
+            const currentReaction = userReactions[postId] || null;
 
-                let likesCount = data.likes || 0;
-                let dislikesCount = data.dislikes || 0;
+            let likesCount = data.likes || 0;
+            let dislikesCount = data.dislikes || 0;
 
-                if (currentReaction === clickedType) {
-                    if (clickedType === 'like') likesCount = Math.max(0, likesCount - 1);
-                    if (clickedType === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
-                    setUserReaction(postId, null);
-                } else {
-                    if (currentReaction === 'like') likesCount = Math.max(0, likesCount - 1);
-                    if (currentReaction === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
+            if (currentReaction === clickedType) {
+                if (clickedType === 'like') likesCount = Math.max(0, likesCount - 1);
+                if (clickedType === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
+                setUserReaction(postId, null);
+            } else {
+                if (currentReaction === 'like') likesCount = Math.max(0, likesCount - 1);
+                if (currentReaction === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
 
-                    if (clickedType === 'like') likesCount++;
-                    if (clickedType === 'dislike') dislikesCount++;
+                if (clickedType === 'like') likesCount++;
+                if (clickedType === 'dislike') dislikesCount++;
 
-                    setUserReaction(postId, clickedType);
-                }
-
-                await _supabase.from('posts').update({ likes: likesCount, dislikes: dislikesCount }).eq('id', postId);
-                renderActiveThread();
-            } catch (err) {
-                console.error("リアクション更新エラー:", err);
+                setUserReaction(postId, clickedType);
             }
+
+            await _supabase.from('posts').update({ likes: likesCount, dislikes: dislikesCount }).eq('id', postId);
+            renderActiveThread();
         }
 
         document.getElementById('threadSearchInput').addEventListener('input', fetchThreads);
         document.getElementById('threadSortSelect').addEventListener('change', fetchThreads);
 
         async function fetchThreads() {
-            const container = document.getElementById('threadList');
-            try {
-                const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, created_at').order('id', { ascending: true });
-                
-                if (error) {
-                    console.error("fetchThreads Error:", error);
-                    container.innerHTML = `
-                        <div class="error-msg-box">
-                            ⚠️ スレッドの読み込みに失敗しました。<br>
-                            エラー内容: ${escapeHtml(error.message || JSON.stringify(error))}<br>
-                            <small style="color:#555; font-weight:normal;">※Supabaseの RLS (Row Level Security) 設定やテーブル定義を確認してください。</small>
-                        </div>`;
-                    return;
+            const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, created_at').order('id', { ascending: true });
+            if (error) return;
+
+            const threadMap = {};
+            data.forEach(post => {
+                const tId = post.thread_id;
+                if (!threadMap[tId]) {
+                    threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, createdAt: new Date(post.created_at), updatedAt: new Date(post.created_at) };
                 }
+                threadMap[tId].count++;
+                const postDate = new Date(post.created_at);
+                if (postDate > threadMap[tId].updatedAt) threadMap[tId].updatedAt = postDate;
+            });
 
-                if (!data || data.length === 0) {
-                    container.innerHTML = '<div>まだスレッドがありません。</div>';
-                    return;
-                }
+            let threadList = Object.values(threadMap);
 
-                const threadMap = {};
-                data.forEach(post => {
-                    const tId = post.thread_id;
-                    if (!tId) return;
-                    if (!threadMap[tId]) {
-                        threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, createdAt: new Date(post.created_at), updatedAt: new Date(post.created_at) };
-                    }
-                    threadMap[tId].count++;
-                    const postDate = new Date(post.created_at);
-                    if (postDate > threadMap[tId].updatedAt) threadMap[tId].updatedAt = postDate;
-                });
-
-                let threadList = Object.values(threadMap);
-
-                const keyword = document.getElementById('threadSearchInput').value.trim().toLowerCase();
-                if (keyword) {
-                    threadList = threadList.filter(t => t.title.toLowerCase().includes(keyword));
-                }
-
-                const sortBy = document.getElementById('threadSortSelect').value;
-                if (sortBy === 'count') {
-                    threadList.sort((a, b) => b.count - a.count);
-                } else if (sortBy === 'created') {
-                    threadList.sort((a, b) => b.createdAt - a.createdAt);
-                } else {
-                    threadList.sort((a, b) => b.updatedAt - a.updatedAt);
-                }
-
-                if (threadList.length === 0) {
-                    container.innerHTML = '<div>該当するスレッドがありません。</div>';
-                    return;
-                }
-
-                let htmlBuf = "";
-                threadList.forEach(t => {
-                    const isMax = t.count >= 1000 ? ' <span style="color:red; font-weight:bold;">[1000満スレ]</span>' : '';
-                    const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ スレ全削除</button>` : '';
-                    htmlBuf += `<div class="thread-list-item"><span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})${isMax}</span>${adminDeleteBtn}</div>`;
-                });
-
-                if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
-            } catch (err) {
-                console.error("fetchThreads Unexpected Error:", err);
-                container.innerHTML = `<div class="error-msg-box">⚠️ 通信エラーが発生しました。<br>${escapeHtml(err.message || String(err))}</div>`;
+            const keyword = document.getElementById('threadSearchInput').value.trim().toLowerCase();
+            if (keyword) {
+                threadList = threadList.filter(t => t.title.toLowerCase().includes(keyword));
             }
+
+            const sortBy = document.getElementById('threadSortSelect').value;
+            if (sortBy === 'count') {
+                threadList.sort((a, b) => b.count - a.count);
+            } else if (sortBy === 'created') {
+                threadList.sort((a, b) => b.createdAt - a.createdAt);
+            } else {
+                threadList.sort((a, b) => b.updatedAt - a.updatedAt);
+            }
+
+            const container = document.getElementById('threadList');
+            if (threadList.length === 0) {
+                container.innerHTML = '<div>該当するスレッドがありません。</div>';
+                return;
+            }
+
+            let htmlBuf = "";
+            threadList.forEach(t => {
+                const isMax = t.count >= 1000 ? ' <span style="color:red; font-weight:bold;">[1000満スレ]</span>' : '';
+                const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ スレ全削除</button>` : '';
+                htmlBuf += `<div class="thread-list-item"><span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})${isMax}</span>${adminDeleteBtn}</div>`;
+            });
+
+            if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
         }
 
         function getThreadByteSize(data) {
@@ -988,164 +957,144 @@
             if (!activeThreadId) return;
             const targetThreadId = activeThreadId;
 
-            try {
-                const { data, error } = await _supabase.from('posts').select('*').eq('thread_id', targetThreadId).order('id', { ascending: true });
-                
-                if (targetThreadId !== activeThreadId) return;
+            const { data, error } = await _supabase.from('posts').select('*').eq('thread_id', targetThreadId).order('id', { ascending: true });
+            if (targetThreadId !== activeThreadId || error || !data || data.length === 0) return;
 
-                if (error) {
-                    console.error("renderActiveThread Error:", error);
-                    document.getElementById('activeThreadTitle').innerText = "⚠️ 読み込みエラー";
-                    document.getElementById('resContainer').innerHTML = `<div class="error-msg-box">スレッドのレス読み込みに失敗しました。<br>エラー詳細: ${escapeHtml(error.message || JSON.stringify(error))}</div>`;
+            if (forceFullReRender) {
+                renderedPostsMap.clear();
+                document.getElementById('resContainer').innerHTML = "";
+            }
+
+            const resCount = data.length;
+            const byteSize = getThreadByteSize(data);
+
+            const firstPost = data[0];
+            document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
+            document.getElementById('threadStats').innerText = `(${byteSize} / ${resCount}レス)`;
+            document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
+
+            const postFormBox = document.getElementById('postFormBox');
+            const closedNotice = document.getElementById('threadClosedNotice');
+            if (resCount >= 1000) {
+                postFormBox.classList.add('hidden');
+                closedNotice.classList.remove('hidden');
+            } else {
+                postFormBox.classList.remove('hidden');
+                closedNotice.classList.add('hidden');
+            }
+
+            if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
+                const diff = data.length - currentPostsData.length;
+                const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 300);
+                if (!isNearBottom) {
+                    unreadNewPostsCount += diff;
+                    document.getElementById('newPostsCount').innerText = unreadNewPostsCount;
+                    document.getElementById('newPostsBar').classList.remove('hidden');
+                }
+            }
+            currentPostsData = data;
+
+            const userReactions = getUserReactions();
+            const container = document.getElementById('resContainer');
+            const fragment = document.createDocumentFragment();
+
+            data.forEach((res, index) => {
+                const resNum = index + 1;
+                const isOp = (res.creator_secret === userSecret);
+                const displayID = getDisplayIDForPost(res);
+
+                let isNg = false;
+                if (ngIds.includes(displayID)) isNg = true;
+                if (!isNg && ngWords.length > 0) {
+                    const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
+                    if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
+                }
+
+                const likesCount = res.likes || 0;
+                const dislikesCount = res.dislikes || 0;
+                const userReaction = userReactions[res.id] || null;
+
+                const postStateHash = `${res.id}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
+
+                if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
                     return;
                 }
 
-                if (!data || data.length === 0) {
-                    document.getElementById('activeThreadTitle').innerText = "スレッドが存在しないか削除されました";
-                    document.getElementById('resContainer').innerHTML = "<div>投稿が見つかりません。</div>";
-                    return;
+                let media = "";
+                if (res.image) media = `<img src="${res.image}" class="uploaded-img" loading="lazy">`;
+                else if (res.video) media = `<video src="${res.video}" class="uploaded-video" controls></video>`;
+                else if (res.audio) media = `<audio src="${res.audio}" class="uploaded-audio" controls></audio>`;
+
+                let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
+                let ytEmbeds = (res.is_deleted || isNg) ? '' : parseYouTubeEmbeds(res.message);
+                let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
+
+                let actions = "";
+                if (!res.is_deleted && resCount < 1000) {
+                    if (isOp) {
+                        actions += `<button class="btn edit-btn" data-id="${res.id}" data-resnum="${resNum}">✍️ 訂正</button>`;
+                        actions += `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>`;
+                    } else if (isAdmin) {
+                        actions += `<button class="btn admin-delete-btn delete-btn" data-id="${res.id}">🗑️ 【管理者】削除</button>`;
+                    }
                 }
 
-                if (forceFullReRender) {
-                    renderedPostsMap.clear();
-                    document.getElementById('resContainer').innerHTML = "";
-                }
+                const dateObj = new Date(res.created_at);
+                const days = ['日', '月', '火', '水', '木', '金', '土'];
+                const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
 
-                const resCount = data.length;
-                const byteSize = getThreadByteSize(data);
+                const likeActiveClass = userReaction === 'like' ? 'active' : '';
+                const dislikeActiveClass = userReaction === 'dislike' ? 'active' : '';
 
-                const firstPost = data[0];
-                document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
-                document.getElementById('threadStats').innerText = `(${byteSize} / ${resCount}レス)`;
-                document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
-
-                const postFormBox = document.getElementById('postFormBox');
-                const closedNotice = document.getElementById('threadClosedNotice');
-                if (resCount >= 1000) {
-                    postFormBox.classList.add('hidden');
-                    closedNotice.classList.remove('hidden');
+                let bodyContent = "";
+                if (res.is_deleted) {
+                    bodyContent = "（削除されました）";
+                } else if (isNg) {
+                    bodyContent = `<span class="ng-masked">*** (管理者設定のNGフィルターにより非表示) ***</span>`;
                 } else {
-                    postFormBox.classList.remove('hidden');
-                    closedNotice.classList.add('hidden');
+                    bodyContent = sanitizeAndFormatHtml(res.message);
                 }
 
-                if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
-                    const diff = data.length - currentPostsData.length;
-                    const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 300);
-                    if (!isNearBottom) {
-                        unreadNewPostsCount += diff;
-                        document.getElementById('newPostsCount').innerText = unreadNewPostsCount;
-                        document.getElementById('newPostsBar').classList.remove('hidden');
-                    }
+                const resHtml = `
+                    <div class="res-header">
+                        <span class="res-number">${resNum}</span> ：
+                        <span class="res-name">${escapeHtml(res.name)}</span> ：
+                        <span class="res-date-id">${dateStr} ID:${displayID}</span>
+                        ${editedLabel}
+                    </div>
+                    <div class="res-body">
+                        ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
+                        <div>${bodyContent}</div>
+                        ${ytEmbeds}
+                        ${(res.is_deleted || isNg) ? '' : link}
+                        ${(res.is_deleted || isNg) ? '' : media}
+                    </div>
+                    <div class="res-actions">
+                        ${resCount < 1000 ? `<button class="btn reply-btn" data-resnum="${resNum}">返信</button>` : ''}
+                        ${!res.is_deleted ? `
+                            <button class="btn btn-like like-btn ${likeActiveClass}" data-id="${res.id}">👍 ${likesCount}</button>
+                            <button class="btn btn-dislike dislike-btn ${dislikeActiveClass}" data-id="${res.id}">👎 ${dislikesCount}</button>
+                        ` : ''}
+                        ${actions}
+                    </div>
+                `;
+
+                const existingElem = document.getElementById(`res-${res.id}`);
+                if (existingElem) {
+                    existingElem.innerHTML = resHtml;
+                } else {
+                    const wrapperDiv = document.createElement('div');
+                    wrapperDiv.className = 'res';
+                    wrapperDiv.id = `res-${res.id}`;
+                    wrapperDiv.innerHTML = resHtml;
+                    fragment.appendChild(wrapperDiv);
                 }
-                currentPostsData = data;
 
-                const userReactions = getUserReactions();
-                const container = document.getElementById('resContainer');
-                const fragment = document.createDocumentFragment();
+                renderedPostsMap.set(res.id, postStateHash);
+            });
 
-                data.forEach((res, index) => {
-                    const resNum = index + 1;
-                    const isOp = (res.creator_secret === userSecret);
-                    const displayID = getDisplayIDForPost(res);
-
-                    let isNg = false;
-                    if (ngIds.includes(displayID)) isNg = true;
-                    if (!isNg && ngWords.length > 0) {
-                        const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
-                        if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
-                    }
-
-                    const likesCount = res.likes || 0;
-                    const dislikesCount = res.dislikes || 0;
-                    const userReaction = userReactions[res.id] || null;
-
-                    const postStateHash = `${res.id}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
-
-                    if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
-                        return;
-                    }
-
-                    let media = "";
-                    if (res.image) media = `<img src="${res.image}" class="uploaded-img" loading="lazy">`;
-                    else if (res.video) media = `<video src="${res.video}" class="uploaded-video" controls></video>`;
-                    else if (res.audio) media = `<audio src="${res.audio}" class="uploaded-audio" controls></audio>`;
-
-                    let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
-                    let ytEmbeds = (res.is_deleted || isNg) ? '' : parseYouTubeEmbeds(res.message);
-                    let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
-
-                    let actions = "";
-                    if (!res.is_deleted && resCount < 1000) {
-                        if (isOp) {
-                            actions += `<button class="btn edit-btn" data-id="${res.id}" data-resnum="${resNum}">✍️ 訂正</button>`;
-                            actions += `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>`;
-                        } else if (isAdmin) {
-                            actions += `<button class="btn admin-delete-btn delete-btn" data-id="${res.id}">🗑️ 【管理者】削除</button>`;
-                        }
-                    }
-
-                    const dateObj = new Date(res.created_at);
-                    const days = ['日', '月', '火', '水', '木', '金', '土'];
-                    const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
-
-                    const likeActiveClass = userReaction === 'like' ? 'active' : '';
-                    const dislikeActiveClass = userReaction === 'dislike' ? 'active' : '';
-
-                    let bodyContent = "";
-                    if (res.is_deleted) {
-                        bodyContent = "（削除されました）";
-                    } else if (isNg) {
-                        bodyContent = `<span class="ng-masked">*** (管理者設定のNGフィルターにより非表示) ***</span>`;
-                    } else {
-                        bodyContent = sanitizeAndFormatHtml(res.message);
-                    }
-
-                    const resHtml = `
-                        <div class="res-header">
-                            <span class="res-number">${resNum}</span> ：
-                            <span class="res-name">${escapeHtml(res.name)}</span> ：
-                            <span class="res-date-id">${dateStr} ID:${displayID}</span>
-                            ${editedLabel}
-                        </div>
-                        <div class="res-body">
-                            ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
-                            <div>${bodyContent}</div>
-                            ${ytEmbeds}
-                            ${(res.is_deleted || isNg) ? '' : link}
-                            ${(res.is_deleted || isNg) ? '' : media}
-                        </div>
-                        <div class="res-actions">
-                            ${resCount < 1000 ? `<button class="btn reply-btn" data-resnum="${resNum}">返信</button>` : ''}
-                            ${!res.is_deleted ? `
-                                <button class="btn btn-like like-btn ${likeActiveClass}" data-id="${res.id}">👍 ${likesCount}</button>
-                                <button class="btn btn-dislike dislike-btn ${dislikeActiveClass}" data-id="${res.id}">👎 ${dislikesCount}</button>
-                            ` : ''}
-                            ${actions}
-                        </div>
-                    `;
-
-                    const existingElem = document.getElementById(`res-${res.id}`);
-                    if (existingElem) {
-                        existingElem.innerHTML = resHtml;
-                    } else {
-                        const wrapperDiv = document.createElement('div');
-                        wrapperDiv.className = 'res';
-                        wrapperDiv.id = `res-${res.id}`;
-                        wrapperDiv.innerHTML = resHtml;
-                        fragment.appendChild(wrapperDiv);
-                    }
-
-                    renderedPostsMap.set(res.id, postStateHash);
-                });
-
-                if (fragment.children.length > 0) {
-                    container.appendChild(fragment);
-                }
-            } catch (err) {
-                console.error("renderActiveThread Unexpected Error:", err);
-                document.getElementById('activeThreadTitle').innerText = "⚠️ 画面読み込みエラー";
-                document.getElementById('resContainer').innerHTML = `<div class="error-msg-box">エラーが発生しました。<br>${escapeHtml(err.message || String(err))}</div>`;
+            if (fragment.children.length > 0) {
+                container.appendChild(fragment);
             }
         }
 
@@ -1161,17 +1110,15 @@
             currentPostsData = [];
             unreadNewPostsCount = 0;
             document.getElementById('newPostsBar').classList.add('hidden');
+            document.getElementById('resContainer').innerHTML = "";
 
             if (id === 'lobby') {
                 document.getElementById('lobbyScreen').classList.remove('hidden');
                 document.getElementById('threadScreen').classList.add('hidden');
-                document.getElementById('threadList').innerHTML = "読み込み中...";
                 fetchThreads();
             } else {
                 document.getElementById('lobbyScreen').classList.add('hidden');
                 document.getElementById('threadScreen').classList.remove('hidden');
-                document.getElementById('activeThreadTitle').innerText = "読み込み中...";
-                document.getElementById('resContainer').innerHTML = "";
                 renderActiveThread(true);
             }
         }
@@ -1207,6 +1154,7 @@
 
         document.getElementById('btnCancelEdit').addEventListener('click', cancelEditing);
 
+        // フォーム送信処理（動画・画像・音声の属性振り分けを拡張子対応に強化）
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (currentPostsData.length >= 1000) {
@@ -1229,9 +1177,14 @@
                     btnSubmit.innerText = "ファイルをアップロード中...";
                     const uploadedUrl = await uploadFileToStorage(pendingFileToUpload);
                     
-                    if (pendingFileToUpload.type.startsWith('image/')) imageUrl = uploadedUrl;
-                    else if (pendingFileToUpload.type.startsWith('video/')) videoUrl = uploadedUrl;
-                    else if (pendingFileToUpload.type.startsWith('audio/')) audioUrl = uploadedUrl;
+                    const fileName = pendingFileToUpload.name.toLowerCase();
+                    const isVideo = pendingFileToUpload.type.startsWith('video/') || /\.(mp4|mov|wmv|avi|webm|mkv|flv|3gp)$/i.test(fileName);
+                    const isImage = pendingFileToUpload.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileName);
+                    const isAudio = pendingFileToUpload.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)$/i.test(fileName);
+
+                    if (isImage) imageUrl = uploadedUrl;
+                    else if (isVideo) videoUrl = uploadedUrl;
+                    else if (isAudio) audioUrl = uploadedUrl;
                 }
 
                 if (editId) {
@@ -1246,11 +1199,10 @@
                     if (videoUrl) updateData.video = videoUrl;
                     if (audioUrl) updateData.audio = audioUrl;
 
-                    const { error } = await _supabase.from('posts').update(updateData).eq('id', editId);
-                    if (error) throw error;
+                    await _supabase.from('posts').update(updateData).eq('id', editId);
                     cancelEditing();
                 } else {
-                    const { error } = await _supabase.from('posts').insert([{
+                    await _supabase.from('posts').insert([{
                         name: document.getElementById('name').value.trim() || "名無しさん",
                         subject: document.getElementById('subject').value.trim(),
                         message: messageHtml,
@@ -1262,12 +1214,11 @@
                         video: videoUrl,
                         audio: audioUrl
                     }]);
-                    if (error) throw error;
                     this.reset();
                     document.getElementById('editorBody').innerHTML = "";
                 }
             } catch (err) {
-                alert("送信またはファイルのアップロードに失敗しました。\n詳細: " + (err.message || JSON.stringify(err)));
+                alert("送信またはファイルのアップロードに失敗しました。");
             } finally {
                 btnSubmit.disabled = false;
                 btnSubmit.innerText = "書き込む";
@@ -1314,16 +1265,6 @@
             }
         });
 
-        document.getElementById('btnShare').addEventListener('click', () => {
-            if (!activeThreadId) return;
-            const shareUrl = window.location.href;
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                alert("🔗 このスレッドのURLをクリップボードにコピーしました！");
-            }).catch(() => {
-                prompt("以下のURLをコピーしてください：", shareUrl);
-            });
-        });
-
         const anchorPopup = document.getElementById('anchorPreviewPopup');
 
         document.getElementById('resContainer').addEventListener('mouseover', e => {
@@ -1357,7 +1298,7 @@
         document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const newThreadId = 'thread-' + Date.now();
-            const { error } = await _supabase.from('posts').insert([{
+            await _supabase.from('posts').insert([{
                 name: document.getElementById('creatorName').value.trim() || "名無しさん",
                 subject: document.getElementById('newThreadTitle').value.trim(),
                 message: document.getElementById('firstMessage').innerHTML.trim(),
@@ -1366,12 +1307,6 @@
                 link_url: document.getElementById('threadLinkUrl').value.trim(),
                 link_title: document.getElementById('threadLinkTitle').value.trim()
             }]);
-
-            if (error) {
-                alert("スレッド作成に失敗しました: " + error.message);
-                return;
-            }
-
             this.reset(); document.getElementById('firstMessage').innerHTML = "";
             activeThreadId = newThreadId; window.location.hash = newThreadId; showScreen('thread');
         });
@@ -1403,7 +1338,7 @@
             if (activeThreadId) { renderActiveThread(); } else fetchThreads();
         }).subscribe();
 
-        setInterval(() => { if (activeThreadId) renderActiveThread(); else fetchThreads(); }, 2000);
+        setInterval(() => { if (activeThreadId) renderActiveThread(); else fetchThreads(); }, 1500);
 
         window.addEventListener('DOMContentLoaded', () => {
             updateAdminUI();
