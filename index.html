@@ -201,7 +201,7 @@
             background-color: #FFFDF9 !important;
         }
         .form-title { font-weight: bold; margin-bottom: 10px; font-size: 14px; }
-        .form-box label { display: inline-block; width: 75px; cursor: pointer; }
+        .form-box label { display: inline-block; width: 75px; }
         input[type="text"], select, textarea { padding: 4px; box-sizing: border-box; }
         input[type="text"] { width: 80%; }
         textarea { width: 100%; height: 80px; resize: vertical; }
@@ -229,14 +229,10 @@
             overflow-y: auto;
             line-height: 1.5;
             font-size: 16px;
-            position: relative;
         }
-        .editor-body[placeholder]:empty:before,
-        .editor-body[placeholder][data-empty="true"]:before {
+        .editor-body[placeholder]:empty:before {
             content: attr(placeholder);
             color: #AAAAAA;
-            pointer-events: none;
-            display: block;
         }
 
         .media-capture-area {
@@ -308,6 +304,16 @@
             position: absolute; top: 20px; right: 25px; color: #fff;
             font-size: 35px; font-weight: bold; cursor: pointer; z-index: 3010;
         }
+        .error-msg-box {
+            color: #D8000C;
+            background-color: #FFBABA;
+            border: 1px solid #D8000C;
+            padding: 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 1.5;
+        }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -329,11 +335,11 @@
                 <div id="ngPanelBody">
                     <p style="font-size: 12px; color: #555; margin-bottom: 8px;">カンマ(,)区切りで非表示にしたいキーワードやIDを設定します。</p>
                     <div style="margin-bottom: 6px;">
-                        <label style="font-size: 12px; font-weight: bold;" for="ngWordsInput">NGワード:</label><br>
+                        <label style="font-size: 12px; font-weight: bold;">NGワード:</label><br>
                         <input type="text" id="ngWordsInput" placeholder="例: 暴言, スパム" style="width:100%; font-size:12px;">
                     </div>
                     <div style="margin-bottom: 8px;">
-                        <label style="font-size: 12px; font-weight: bold;" for="ngIdsInput">NG ID:</label><br>
+                        <label style="font-size: 12px; font-weight: bold;">NG ID:</label><br>
                         <input type="text" id="ngIdsInput" placeholder="例: A1B2C3D4, X9Y8Z7W6" style="width:100%; font-size:12px;">
                     </div>
                     <button class="btn btn-admin" id="btnSaveNgSettings" style="font-weight: bold;">NG設定を保存する</button>
@@ -352,11 +358,11 @@
                         <input type="text" id="creatorName" placeholder="名無しさん">
                     </div>
                     <div class="form-row" style="margin-bottom: 10px;">
-                        <label onclick="document.getElementById('firstMessage').focus()">最初の本文 :</label>
+                        <label for="firstMessage">最初の本文 :</label>
                         <div class="editor-container">
                             <div class="editor-toolbar">
                                 <div>
-                                    <label for="lobbyFmtColor">🎨 色:</label>
+                                    <label>🎨 色:</label>
                                     <select id="lobbyFmtColor">
                                         <option value="">黒 (標準)</option>
                                         <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
@@ -373,7 +379,7 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label for="lobbyFmtFont">🔤 書体:</label>
+                                    <label>🔤 書体:</label>
                                     <select id="lobbyFmtFont">
                                         <option value="">標準(ゴシック)</option>
                                         <option value="'Shippori Mincho', serif">明朝体 (しっぽり)</option>
@@ -452,7 +458,7 @@
                     <div class="editor-container">
                         <div class="editor-toolbar">
                             <div>
-                                <label for="fmtColor">🎨 文字色:</label>
+                                <label>🎨 文字色:</label>
                                 <select id="fmtColor">
                                     <option value="">黒 (標準)</option>
                                     <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
@@ -469,7 +475,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label for="fmtFont">🔤 書体:</label>
+                                <label>🔤 書体:</label>
                                 <select id="fmtFont">
                                     <option value="">標準(ゴシック)</option>
                                     <option value="'Shippori Mincho', serif">明朝体 (しっぽり)</option>
@@ -483,7 +489,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label for="fmtSize">📏 サイズ:</label>
+                                <label>📏 サイズ:</label>
                                 <select id="fmtSize">
                                     <option value="3">標準</option>
                                     <option value="5">大</option>
@@ -555,11 +561,8 @@
         const ADMIN_PASSWORD = "sdkousaku321564";
         let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
 
-        // ⚠️ Supabase接続設定
         const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
-        // SUPABASE_KEY には Supabase ダッシュボード (Project Settings -> API) の anon key を指定してください
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1c3RjcXlucGhlc3RkYnFqcGl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTAwMDAwMDAsImV4cCI6MjAwMDAwMDAwMH0.YOUR_ACTUAL_ANON_KEY_HERE";
-        
+        const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         if (!localStorage.getItem('bbs_user_secret')) {
@@ -652,23 +655,6 @@
             document.getElementById('lobbyFmtFont').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'fontName', this.value || 'inherit'); });
         });
 
-        // ContentEditableのプレースホルダー制御
-        ['editorBody', 'firstMessage'].forEach(id => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            const updatePlaceholderState = () => {
-                const text = el.innerText.replace(/\s/g, '');
-                if (text === '') {
-                    el.setAttribute('data-empty', 'true');
-                } else {
-                    el.removeAttribute('data-empty');
-                }
-            };
-            el.addEventListener('input', updatePlaceholderState);
-            el.addEventListener('blur', updatePlaceholderState);
-            updatePlaceholderState();
-        });
-
         function getDisplayIDForPost(post) {
             const dateObj = new Date(post.created_at);
             const yyyymmdd = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
@@ -756,7 +742,7 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
+            const MAX_FILE_SIZE = 30 * 1024 * 1024;
             if (file.size > MAX_FILE_SIZE) {
                 alert("⚠️ ファイルサイズが大きすぎます（最大 30MB まで）。");
                 e.target.value = "";
@@ -888,81 +874,106 @@
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
         async function updateReaction(postId, clickedType) {
-            const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
-            if (error || !data) return;
+            try {
+                const { data, error } = await _supabase.from('posts').select('likes, dislikes').eq('id', postId).single();
+                if (error || !data) return;
 
-            const userReactions = getUserReactions();
-            const currentReaction = userReactions[postId] || null;
+                const userReactions = getUserReactions();
+                const currentReaction = userReactions[postId] || null;
 
-            let likesCount = data.likes || 0;
-            let dislikesCount = data.dislikes || 0;
+                let likesCount = data.likes || 0;
+                let dislikesCount = data.dislikes || 0;
 
-            if (currentReaction === clickedType) {
-                if (clickedType === 'like') likesCount = Math.max(0, likesCount - 1);
-                if (clickedType === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
-                setUserReaction(postId, null);
-            } else {
-                if (currentReaction === 'like') likesCount = Math.max(0, likesCount - 1);
-                if (currentReaction === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
+                if (currentReaction === clickedType) {
+                    if (clickedType === 'like') likesCount = Math.max(0, likesCount - 1);
+                    if (clickedType === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
+                    setUserReaction(postId, null);
+                } else {
+                    if (currentReaction === 'like') likesCount = Math.max(0, likesCount - 1);
+                    if (currentReaction === 'dislike') dislikesCount = Math.max(0, dislikesCount - 1);
 
-                if (clickedType === 'like') likesCount++;
-                if (clickedType === 'dislike') dislikesCount++;
+                    if (clickedType === 'like') likesCount++;
+                    if (clickedType === 'dislike') dislikesCount++;
 
-                setUserReaction(postId, clickedType);
+                    setUserReaction(postId, clickedType);
+                }
+
+                await _supabase.from('posts').update({ likes: likesCount, dislikes: dislikesCount }).eq('id', postId);
+                renderActiveThread();
+            } catch (err) {
+                console.error("リアクション更新エラー:", err);
             }
-
-            await _supabase.from('posts').update({ likes: likesCount, dislikes: dislikesCount }).eq('id', postId);
-            renderActiveThread();
         }
 
         document.getElementById('threadSearchInput').addEventListener('input', fetchThreads);
         document.getElementById('threadSortSelect').addEventListener('change', fetchThreads);
 
         async function fetchThreads() {
-            const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, created_at').order('id', { ascending: true });
-            if (error) return;
-
-            const threadMap = {};
-            data.forEach(post => {
-                const tId = post.thread_id;
-                if (!threadMap[tId]) {
-                    threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, createdAt: new Date(post.created_at), updatedAt: new Date(post.created_at) };
-                }
-                threadMap[tId].count++;
-                const postDate = new Date(post.created_at);
-                if (postDate > threadMap[tId].updatedAt) threadMap[tId].updatedAt = postDate;
-            });
-
-            let threadList = Object.values(threadMap);
-
-            const keyword = document.getElementById('threadSearchInput').value.trim().toLowerCase();
-            if (keyword) {
-                threadList = threadList.filter(t => t.title.toLowerCase().includes(keyword));
-            }
-
-            const sortBy = document.getElementById('threadSortSelect').value;
-            if (sortBy === 'count') {
-                threadList.sort((a, b) => b.count - a.count);
-            } else if (sortBy === 'created') {
-                threadList.sort((a, b) => b.createdAt - a.createdAt);
-            } else {
-                threadList.sort((a, b) => b.updatedAt - a.updatedAt);
-            }
-
             const container = document.getElementById('threadList');
-            if (threadList.length === 0) {
-                container.innerHTML = '<div>該当するスレッドがありません。</div>';
-                return;
+            try {
+                const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, created_at').order('id', { ascending: true });
+                
+                if (error) {
+                    console.error("fetchThreads Error:", error);
+                    container.innerHTML = `
+                        <div class="error-msg-box">
+                            ⚠️ スレッドの読み込みに失敗しました。<br>
+                            エラー内容: ${escapeHtml(error.message || JSON.stringify(error))}<br>
+                            <small style="color:#555; font-weight:normal;">※Supabaseの RLS (Row Level Security) 設定やテーブル定義を確認してください。</small>
+                        </div>`;
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div>まだスレッドがありません。</div>';
+                    return;
+                }
+
+                const threadMap = {};
+                data.forEach(post => {
+                    const tId = post.thread_id;
+                    if (!tId) return;
+                    if (!threadMap[tId]) {
+                        threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, createdAt: new Date(post.created_at), updatedAt: new Date(post.created_at) };
+                    }
+                    threadMap[tId].count++;
+                    const postDate = new Date(post.created_at);
+                    if (postDate > threadMap[tId].updatedAt) threadMap[tId].updatedAt = postDate;
+                });
+
+                let threadList = Object.values(threadMap);
+
+                const keyword = document.getElementById('threadSearchInput').value.trim().toLowerCase();
+                if (keyword) {
+                    threadList = threadList.filter(t => t.title.toLowerCase().includes(keyword));
+                }
+
+                const sortBy = document.getElementById('threadSortSelect').value;
+                if (sortBy === 'count') {
+                    threadList.sort((a, b) => b.count - a.count);
+                } else if (sortBy === 'created') {
+                    threadList.sort((a, b) => b.createdAt - a.createdAt);
+                } else {
+                    threadList.sort((a, b) => b.updatedAt - a.updatedAt);
+                }
+
+                if (threadList.length === 0) {
+                    container.innerHTML = '<div>該当するスレッドがありません。</div>';
+                    return;
+                }
+
+                let htmlBuf = "";
+                threadList.forEach(t => {
+                    const isMax = t.count >= 1000 ? ' <span style="color:red; font-weight:bold;">[1000満スレ]</span>' : '';
+                    const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ スレ全削除</button>` : '';
+                    htmlBuf += `<div class="thread-list-item"><span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})${isMax}</span>${adminDeleteBtn}</div>`;
+                });
+
+                if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
+            } catch (err) {
+                console.error("fetchThreads Unexpected Error:", err);
+                container.innerHTML = `<div class="error-msg-box">⚠️ 通信エラーが発生しました。<br>${escapeHtml(err.message || String(err))}</div>`;
             }
-
-            let htmlBuf = "";
-            threadList.forEach(t => {
-                const isMax = t.count >= 1000 ? ' <span style="color:red; font-weight:bold;">[1000満スレ]</span>' : '';
-                const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ スレ全削除</button>` : '';
-                htmlBuf += `<div class="thread-list-item"><span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})${isMax}</span>${adminDeleteBtn}</div>`;
-            });
-
-            if (container.innerHTML !== htmlBuf) container.innerHTML = htmlBuf;
         }
 
         function getThreadByteSize(data) {
@@ -977,155 +988,164 @@
             if (!activeThreadId) return;
             const targetThreadId = activeThreadId;
 
-            const { data, error } = await _supabase.from('posts').select('*').eq('thread_id', targetThreadId).order('id', { ascending: true });
-            if (targetThreadId !== activeThreadId || error || !data || data.length === 0) return;
+            try {
+                const { data, error } = await _supabase.from('posts').select('*').eq('thread_id', targetThreadId).order('id', { ascending: true });
+                
+                if (targetThreadId !== activeThreadId) return;
 
-            if (forceFullReRender) {
-                renderedPostsMap.clear();
-                document.getElementById('resContainer').innerHTML = "";
-            }
-
-            const resCount = data.length;
-            const byteSize = getThreadByteSize(data);
-
-            const firstPost = data[0];
-            document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
-            document.getElementById('threadStats').innerText = `(${byteSize} / ${resCount}レス)`;
-            document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
-
-            const postFormBox = document.getElementById('postFormBox');
-            const closedNotice = document.getElementById('threadClosedNotice');
-            if (resCount >= 1000) {
-                postFormBox.classList.add('hidden');
-                closedNotice.classList.remove('hidden');
-            } else {
-                postFormBox.classList.remove('hidden');
-                closedNotice.classList.add('hidden');
-            }
-
-            if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
-                const diff = data.length - currentPostsData.length;
-                const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 300);
-                if (!isNearBottom) {
-                    unreadNewPostsCount += diff;
-                    document.getElementById('newPostsCount').innerText = unreadNewPostsCount;
-                    document.getElementById('newPostsBar').classList.remove('hidden');
-                }
-            }
-            currentPostsData = data;
-
-            const userReactions = getUserReactions();
-            const container = document.getElementById('resContainer');
-            
-            // 削除された投稿のDOMクリーンアップ
-            const currentPostIds = new Set(data.map(p => p.id));
-            Array.from(container.children).forEach(child => {
-                const idAttr = child.id.replace('res-', '');
-                if (idAttr && !currentPostIds.has(Number(idAttr)) && !currentPostIds.has(idAttr)) {
-                    child.remove();
-                    renderedPostsMap.delete(idAttr);
-                }
-            });
-
-            const fragment = document.createDocumentFragment();
-
-            data.forEach((res, index) => {
-                const resNum = index + 1;
-                const isOp = (res.creator_secret === userSecret);
-                const displayID = getDisplayIDForPost(res);
-
-                let isNg = false;
-                if (ngIds.includes(displayID)) isNg = true;
-                if (!isNg && ngWords.length > 0) {
-                    const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
-                    if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
-                }
-
-                const likesCount = res.likes || 0;
-                const dislikesCount = res.dislikes || 0;
-                const userReaction = userReactions[res.id] || null;
-
-                const postStateHash = `${res.id}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
-
-                if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
+                if (error) {
+                    console.error("renderActiveThread Error:", error);
+                    document.getElementById('activeThreadTitle').innerText = "⚠️ 読み込みエラー";
+                    document.getElementById('resContainer').innerHTML = `<div class="error-msg-box">スレッドのレス読み込みに失敗しました。<br>エラー詳細: ${escapeHtml(error.message || JSON.stringify(error))}</div>`;
                     return;
                 }
 
-                let media = "";
-                if (res.image) media = `<img src="${res.image}" class="uploaded-img" loading="lazy">`;
-                else if (res.video) media = `<video src="${res.video}" class="uploaded-video" controls></video>`;
-                else if (res.audio) media = `<audio src="${res.audio}" class="uploaded-audio" controls></audio>`;
+                if (!data || data.length === 0) {
+                    document.getElementById('activeThreadTitle').innerText = "スレッドが存在しないか削除されました";
+                    document.getElementById('resContainer').innerHTML = "<div>投稿が見つかりません。</div>";
+                    return;
+                }
 
-                let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
-                let ytEmbeds = (res.is_deleted || isNg) ? '' : parseYouTubeEmbeds(res.message);
-                let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
+                if (forceFullReRender) {
+                    renderedPostsMap.clear();
+                    document.getElementById('resContainer').innerHTML = "";
+                }
 
-                let actions = "";
-                if (!res.is_deleted && resCount < 1000) {
-                    if (isOp) {
-                        actions += `<button class="btn edit-btn" data-id="${res.id}" data-resnum="${resNum}">✍️ 訂正</button>`;
-                        actions += `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>`;
-                    } else if (isAdmin) {
-                        actions += `<button class="btn admin-delete-btn delete-btn" data-id="${res.id}">🗑️ 【管理者】削除</button>`;
+                const resCount = data.length;
+                const byteSize = getThreadByteSize(data);
+
+                const firstPost = data[0];
+                document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
+                document.getElementById('threadStats').innerText = `(${byteSize} / ${resCount}レス)`;
+                document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
+
+                const postFormBox = document.getElementById('postFormBox');
+                const closedNotice = document.getElementById('threadClosedNotice');
+                if (resCount >= 1000) {
+                    postFormBox.classList.add('hidden');
+                    closedNotice.classList.remove('hidden');
+                } else {
+                    postFormBox.classList.remove('hidden');
+                    closedNotice.classList.add('hidden');
+                }
+
+                if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
+                    const diff = data.length - currentPostsData.length;
+                    const isNearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 300);
+                    if (!isNearBottom) {
+                        unreadNewPostsCount += diff;
+                        document.getElementById('newPostsCount').innerText = unreadNewPostsCount;
+                        document.getElementById('newPostsBar').classList.remove('hidden');
                     }
                 }
+                currentPostsData = data;
 
-                const dateObj = new Date(res.created_at);
-                const days = ['日', '月', '火', '水', '木', '金', '土'];
-                const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
+                const userReactions = getUserReactions();
+                const container = document.getElementById('resContainer');
+                const fragment = document.createDocumentFragment();
 
-                const likeActiveClass = userReaction === 'like' ? 'active' : '';
-                const dislikeActiveClass = userReaction === 'dislike' ? 'active' : '';
+                data.forEach((res, index) => {
+                    const resNum = index + 1;
+                    const isOp = (res.creator_secret === userSecret);
+                    const displayID = getDisplayIDForPost(res);
 
-                let bodyContent = "";
-                if (res.is_deleted) {
-                    bodyContent = "（削除されました）";
-                } else if (isNg) {
-                    bodyContent = `<span class="ng-masked">*** (管理者設定のNGフィルターにより非表示) ***</span>`;
-                } else {
-                    bodyContent = sanitizeAndFormatHtml(res.message);
+                    let isNg = false;
+                    if (ngIds.includes(displayID)) isNg = true;
+                    if (!isNg && ngWords.length > 0) {
+                        const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
+                        if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
+                    }
+
+                    const likesCount = res.likes || 0;
+                    const dislikesCount = res.dislikes || 0;
+                    const userReaction = userReactions[res.id] || null;
+
+                    const postStateHash = `${res.id}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
+
+                    if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
+                        return;
+                    }
+
+                    let media = "";
+                    if (res.image) media = `<img src="${res.image}" class="uploaded-img" loading="lazy">`;
+                    else if (res.video) media = `<video src="${res.video}" class="uploaded-video" controls></video>`;
+                    else if (res.audio) media = `<audio src="${res.audio}" class="uploaded-audio" controls></audio>`;
+
+                    let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
+                    let ytEmbeds = (res.is_deleted || isNg) ? '' : parseYouTubeEmbeds(res.message);
+                    let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
+
+                    let actions = "";
+                    if (!res.is_deleted && resCount < 1000) {
+                        if (isOp) {
+                            actions += `<button class="btn edit-btn" data-id="${res.id}" data-resnum="${resNum}">✍️ 訂正</button>`;
+                            actions += `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>`;
+                        } else if (isAdmin) {
+                            actions += `<button class="btn admin-delete-btn delete-btn" data-id="${res.id}">🗑️ 【管理者】削除</button>`;
+                        }
+                    }
+
+                    const dateObj = new Date(res.created_at);
+                    const days = ['日', '月', '火', '水', '木', '金', '土'];
+                    const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
+
+                    const likeActiveClass = userReaction === 'like' ? 'active' : '';
+                    const dislikeActiveClass = userReaction === 'dislike' ? 'active' : '';
+
+                    let bodyContent = "";
+                    if (res.is_deleted) {
+                        bodyContent = "（削除されました）";
+                    } else if (isNg) {
+                        bodyContent = `<span class="ng-masked">*** (管理者設定のNGフィルターにより非表示) ***</span>`;
+                    } else {
+                        bodyContent = sanitizeAndFormatHtml(res.message);
+                    }
+
+                    const resHtml = `
+                        <div class="res-header">
+                            <span class="res-number">${resNum}</span> ：
+                            <span class="res-name">${escapeHtml(res.name)}</span> ：
+                            <span class="res-date-id">${dateStr} ID:${displayID}</span>
+                            ${editedLabel}
+                        </div>
+                        <div class="res-body">
+                            ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
+                            <div>${bodyContent}</div>
+                            ${ytEmbeds}
+                            ${(res.is_deleted || isNg) ? '' : link}
+                            ${(res.is_deleted || isNg) ? '' : media}
+                        </div>
+                        <div class="res-actions">
+                            ${resCount < 1000 ? `<button class="btn reply-btn" data-resnum="${resNum}">返信</button>` : ''}
+                            ${!res.is_deleted ? `
+                                <button class="btn btn-like like-btn ${likeActiveClass}" data-id="${res.id}">👍 ${likesCount}</button>
+                                <button class="btn btn-dislike dislike-btn ${dislikeActiveClass}" data-id="${res.id}">👎 ${dislikesCount}</button>
+                            ` : ''}
+                            ${actions}
+                        </div>
+                    `;
+
+                    const existingElem = document.getElementById(`res-${res.id}`);
+                    if (existingElem) {
+                        existingElem.innerHTML = resHtml;
+                    } else {
+                        const wrapperDiv = document.createElement('div');
+                        wrapperDiv.className = 'res';
+                        wrapperDiv.id = `res-${res.id}`;
+                        wrapperDiv.innerHTML = resHtml;
+                        fragment.appendChild(wrapperDiv);
+                    }
+
+                    renderedPostsMap.set(res.id, postStateHash);
+                });
+
+                if (fragment.children.length > 0) {
+                    container.appendChild(fragment);
                 }
-
-                const resHtml = `
-                    <div class="res-header">
-                        <span class="res-number">${resNum}</span> ：
-                        <span class="res-name">${escapeHtml(res.name)}</span> ：
-                        <span class="res-date-id">${dateStr} ID:${displayID}</span>
-                        ${editedLabel}
-                    </div>
-                    <div class="res-body">
-                        ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
-                        <div>${bodyContent}</div>
-                        ${ytEmbeds}
-                        ${(res.is_deleted || isNg) ? '' : link}
-                        ${(res.is_deleted || isNg) ? '' : media}
-                    </div>
-                    <div class="res-actions">
-                        ${resCount < 1000 ? `<button class="btn reply-btn" data-resnum="${resNum}">返信</button>` : ''}
-                        ${!res.is_deleted ? `
-                            <button class="btn btn-like like-btn ${likeActiveClass}" data-id="${res.id}">👍 ${likesCount}</button>
-                            <button class="btn btn-dislike dislike-btn ${dislikeActiveClass}" data-id="${res.id}">👎 ${dislikesCount}</button>
-                        ` : ''}
-                        ${actions}
-                    </div>
-                `;
-
-                const existingElem = document.getElementById(`res-${res.id}`);
-                if (existingElem) {
-                    existingElem.innerHTML = resHtml;
-                } else {
-                    const wrapperDiv = document.createElement('div');
-                    wrapperDiv.className = 'res';
-                    wrapperDiv.id = `res-${res.id}`;
-                    wrapperDiv.innerHTML = resHtml;
-                    fragment.appendChild(wrapperDiv);
-                }
-
-                renderedPostsMap.set(res.id, postStateHash);
-            });
-
-            if (fragment.children.length > 0) {
-                container.appendChild(fragment);
+            } catch (err) {
+                console.error("renderActiveThread Unexpected Error:", err);
+                document.getElementById('activeThreadTitle').innerText = "⚠️ 画面読み込みエラー";
+                document.getElementById('resContainer').innerHTML = `<div class="error-msg-box">エラーが発生しました。<br>${escapeHtml(err.message || String(err))}</div>`;
             }
         }
 
@@ -1141,15 +1161,17 @@
             currentPostsData = [];
             unreadNewPostsCount = 0;
             document.getElementById('newPostsBar').classList.add('hidden');
-            document.getElementById('resContainer').innerHTML = "";
 
             if (id === 'lobby') {
                 document.getElementById('lobbyScreen').classList.remove('hidden');
                 document.getElementById('threadScreen').classList.add('hidden');
+                document.getElementById('threadList').innerHTML = "読み込み中...";
                 fetchThreads();
             } else {
                 document.getElementById('lobbyScreen').classList.add('hidden');
                 document.getElementById('threadScreen').classList.remove('hidden');
+                document.getElementById('activeThreadTitle').innerText = "読み込み中...";
+                document.getElementById('resContainer').innerHTML = "";
                 renderActiveThread(true);
             }
         }
@@ -1224,10 +1246,11 @@
                     if (videoUrl) updateData.video = videoUrl;
                     if (audioUrl) updateData.audio = audioUrl;
 
-                    await _supabase.from('posts').update(updateData).eq('id', editId);
+                    const { error } = await _supabase.from('posts').update(updateData).eq('id', editId);
+                    if (error) throw error;
                     cancelEditing();
                 } else {
-                    await _supabase.from('posts').insert([{
+                    const { error } = await _supabase.from('posts').insert([{
                         name: document.getElementById('name').value.trim() || "名無しさん",
                         subject: document.getElementById('subject').value.trim(),
                         message: messageHtml,
@@ -1239,11 +1262,12 @@
                         video: videoUrl,
                         audio: audioUrl
                     }]);
+                    if (error) throw error;
                     this.reset();
                     document.getElementById('editorBody').innerHTML = "";
                 }
             } catch (err) {
-                alert("送信またはファイルのアップロードに失敗しました。");
+                alert("送信またはファイルのアップロードに失敗しました。\n詳細: " + (err.message || JSON.stringify(err)));
             } finally {
                 btnSubmit.disabled = false;
                 btnSubmit.innerText = "書き込む";
@@ -1290,6 +1314,16 @@
             }
         });
 
+        document.getElementById('btnShare').addEventListener('click', () => {
+            if (!activeThreadId) return;
+            const shareUrl = window.location.href;
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert("🔗 このスレッドのURLをクリップボードにコピーしました！");
+            }).catch(() => {
+                prompt("以下のURLをコピーしてください：", shareUrl);
+            });
+        });
+
         const anchorPopup = document.getElementById('anchorPreviewPopup');
 
         document.getElementById('resContainer').addEventListener('mouseover', e => {
@@ -1323,7 +1357,7 @@
         document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const newThreadId = 'thread-' + Date.now();
-            await _supabase.from('posts').insert([{
+            const { error } = await _supabase.from('posts').insert([{
                 name: document.getElementById('creatorName').value.trim() || "名無しさん",
                 subject: document.getElementById('newThreadTitle').value.trim(),
                 message: document.getElementById('firstMessage').innerHTML.trim(),
@@ -1332,6 +1366,12 @@
                 link_url: document.getElementById('threadLinkUrl').value.trim(),
                 link_title: document.getElementById('threadLinkTitle').value.trim()
             }]);
+
+            if (error) {
+                alert("スレッド作成に失敗しました: " + error.message);
+                return;
+            }
+
             this.reset(); document.getElementById('firstMessage').innerHTML = "";
             activeThreadId = newThreadId; window.location.hash = newThreadId; showScreen('thread');
         });
@@ -1359,26 +1399,11 @@
             }
         });
 
-        // ⚡ Supabase リアルタイムリスナー設定
         _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
             if (activeThreadId) { renderActiveThread(); } else fetchThreads();
         }).subscribe();
 
-        // 🌐 ブラウザの「戻る」「進む」履歴変更イベント (hashchange)
-        window.addEventListener('hashchange', () => {
-            const hash = window.location.hash.substring(1);
-            if (hash) {
-                if (activeThreadId !== hash) {
-                    activeThreadId = hash;
-                    showScreen('thread');
-                }
-            } else {
-                if (activeThreadId !== null) {
-                    activeThreadId = null;
-                    showScreen('lobby');
-                }
-            }
-        });
+        setInterval(() => { if (activeThreadId) renderActiveThread(); else fetchThreads(); }, 2000);
 
         window.addEventListener('DOMContentLoaded', () => {
             updateAdminUI();
