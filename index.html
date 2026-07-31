@@ -551,7 +551,7 @@
         const ADMIN_PASSWORD = "sdkousaku321564";
         let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
 
-        // Supabase設定
+        // ★ Supabase設定（URLとAnon Keyを自動適用済み）
         const SUPABASE_URL = "https://iustcqynpestdbqjpiu.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -982,7 +982,7 @@
                 closedNotice.classList.remove('hidden');
             } else {
                 postFormBox.classList.remove('hidden');
-                closedNotice.add('hidden');
+                closedNotice.classList.add('hidden');
             }
 
             if (currentPostsData.length > 0 && data.length > currentPostsData.length) {
@@ -1016,7 +1016,7 @@
                 const dislikesCount = res.dislikes || 0;
                 const userReaction = userReactions[res.id] || null;
 
-                const postStateHash = `${res.id}_${res.name}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
+                const postStateHash = `${res.id}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
 
                 if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
                     return;
@@ -1131,7 +1131,7 @@
 
             document.getElementById('editPostId').value = targetPost.id;
             document.getElementById('subject').value = targetPost.subject || '';
-            document.getElementById('name').value = targetPost.name || ''; // 名前をセット
+            document.getElementById('name').value = targetPost.name || '';
             document.getElementById('editorBody').innerHTML = targetPost.message || '';
             document.getElementById('linkUrl').value = targetPost.link_url || '';
             document.getElementById('linkTitle').value = targetPost.link_title || '';
@@ -1189,9 +1189,7 @@
                 }
 
                 if (editId) {
-                    // 訂正時にも名前(name)を更新対象に追加
                     const updateData = {
-                        name: document.getElementById('name').value.trim() || "名無しさん",
                         message: messageHtml,
                         subject: document.getElementById('subject').value.trim(),
                         is_edited: true,
