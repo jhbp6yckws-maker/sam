@@ -659,7 +659,7 @@
                 document.getElementById('btnAdminLogin').classList.add('hidden');
                 document.getElementById('btnAdminLogout').classList.remove('hidden');
                 document.getElementById('adminNgPanel').classList.remove('hidden');
-                document.getElementById('btnOpenContactModal').classList.add('hidden'); // 管理者時はお問い合わせボタンを非表示
+                document.getElementById('btnOpenContactModal').classList.add('hidden');
                 fetchInquiries();
             } else {
                 document.getElementById('adminStatusBadge').classList.add('hidden');
@@ -754,7 +754,6 @@
             }
         }
 
-        // お問い合わせメッセージの削除処理
         document.getElementById('inquiriesListContainer').addEventListener('click', async (e) => {
             if (e.target.classList.contains('btn-delete-inquiry')) {
                 const id = e.target.getAttribute('data-id');
@@ -1143,18 +1142,21 @@
                 const isOp = (res.creator_secret === userSecret);
                 const displayID = getDisplayIDForPost(res);
 
+                // 管理者以外の場合のみ、NG ID/ワード判定を適用する
                 let isNg = false;
-                if (ngIds.includes(displayID)) isNg = true;
-                if (!isNg && ngWords.length > 0) {
-                    const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
-                    if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
+                if (!isAdmin) {
+                    if (ngIds.includes(displayID)) isNg = true;
+                    if (!isNg && ngWords.length > 0) {
+                        const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
+                        if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
+                    }
                 }
 
                 const likesCount = res.likes || 0;
                 const dislikesCount = res.dislikes || 0;
                 const userReaction = userReactions[res.id] || null;
 
-                const postStateHash = `${res.id}_${res.name}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
+                const postStateHash = `${res.id}_${res.name}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}_${isAdmin}`;
 
                 if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
                     return;
@@ -1269,7 +1271,7 @@
 
             document.getElementById('editPostId').value = targetPost.id;
             document.getElementById('subject').value = targetPost.subject || '';
-            document.getElementById('name').value = targetPost.name || ''; // 名前の読み込み
+            document.getElementById('name').value = targetPost.name || '';
             document.getElementById('editorBody').innerHTML = targetPost.message || '';
             document.getElementById('linkUrl').value = targetPost.link_url || '';
             document.getElementById('linkTitle').value = targetPost.link_title || '';
@@ -1322,7 +1324,6 @@
                 }
 
                 if (editId) {
-                    // 名前の更新も反映できるように変更
                     const updateData = {
                         name: document.getElementById('name').value.trim() || "名無しさん",
                         message: messageHtml,
