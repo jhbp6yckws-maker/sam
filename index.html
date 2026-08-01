@@ -592,6 +592,7 @@
 
     <script>
         const ADMIN_PASSWORD = "sdkousaku321564";
+        const SITE_PASSWORD = "冷笑系321"; // 🔑 入室用パスワード
         let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
 
         const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
@@ -605,6 +606,84 @@
 
         let ngWords = JSON.parse(localStorage.getItem('bbs_ng_words') || '[]');
         let ngIds = JSON.parse(localStorage.getItem('bbs_ng_ids') || '[]');
+
+        function getMyDisplayID() {
+            const dateObj = new Date();
+            const yyyymmdd = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+            const salt = yyyymmdd + userSecret + "global";
+            let hash = 2166136261;
+            for (let i = 0; i < salt.length; i++) { hash ^= salt.charCodeAt(i); hash = Math.imul(hash, 16777619); }
+            return Math.abs(hash).toString(36).substring(0, 8).toUpperCase();
+        }
+
+        // --- 🔒 アクセス＆認証チェック機能 ---
+        function checkSiteAccessAndAuth() {
+            const myId = getMyDisplayID();
+
+            // 1. NG ID チェック
+            if (!isAdmin && ngIds.includes(myId)) {
+                document.body.innerHTML = `
+                    <div style="text-align:center; padding:50px; font-family:sans-serif;">
+                        <h2 style="color:red;">🚫 アクセス制限中</h2>
+                        <p>あなたのアカウント (ID: <b>${myId}</b>) は管理者により利用が制限されています。</p>
+                        <p style="font-size:12px; color:#666;">※管理者によるNG解除、またはIDの変更日時まで閲覧・アクセスができません。</p>
+                    </div>
+                `;
+                return false;
+            }
+
+            // 2. ペナルティロック時間のチェック
+            const lockUntil = parseInt(localStorage.getItem('bbs_lock_until') || '0', 10);
+            const now = Date.now();
+            if (now < lockUntil) {
+                const remainingSec = Math.ceil((lockUntil - now) / 1000);
+                document.body.innerHTML = `
+                    <div style="text-align:center; padding:50px; font-family:sans-serif;">
+                        <h2 style="color:red;">⏳ アクセス一時制限中</h2>
+                        <p>パスワード入力試行エラーのペナルティ期間中です。</p>
+                        <p style="font-size:18px; font-weight:bold; color:#CC0000;">解除まであと ${remainingSec} 秒</p>
+                        <button onclick="location.reload();" class="btn" style="margin-top:10px;">🔄 画面を更新する</button>
+                    </div>
+                `;
+                return false;
+            }
+
+            // 3. 入室パスワードチェック
+            if (sessionStorage.getItem('bbs_authenticated') === 'true') {
+                return true;
+            }
+
+            let attempts = parseInt(localStorage.getItem('bbs_pwd_attempts') || '0', 10);
+            const inputPass = prompt(`🔑 サイト閲覧用のパスワードを入力してください:\n(ミス回数: ${attempts}回)`);
+
+            if (inputPass === SITE_PASSWORD) {
+                localStorage.setItem('bbs_pwd_attempts', '0');
+                sessionStorage.setItem('bbs_authenticated', 'true');
+                alert("⭕ 認証に成功しました。");
+                return true;
+            } else if (inputPass !== null) {
+                attempts += 1;
+                localStorage.setItem('bbs_pwd_attempts', attempts.toString());
+                
+                // ミスに応じたペナルティ時間を追加 (失敗回数 × 30秒)
+                const penaltySeconds = attempts * 30;
+                const newLockUntil = Date.now() + (penaltySeconds * 1000);
+                localStorage.setItem('bbs_lock_until', newLockUntil.toString());
+
+                alert(`❌ パスワードが間違っています。\nペナルティとして ${penaltySeconds} 秒間アクセスを遮断します。`);
+                location.reload();
+                return false;
+            } else {
+                document.body.innerHTML = `
+                    <div style="text-align:center; padding:50px; font-family:sans-serif;">
+                        <h2>🔑 パスワード認証が必要です</h2>
+                        <p>正しいパスワードを入力しないとコンテンツを閲覧できません。</p>
+                        <button onclick="location.reload();" class="btn">再試行する</button>
+                    </div>
+                `;
+                return false;
+            }
+        }
 
         document.getElementById('ngWordsInput').value = ngWords.join(', ');
         document.getElementById('ngIdsInput').value = ngIds.join(', ');
@@ -1142,7 +1221,6 @@
                 const isOp = (res.creator_secret === userSecret);
                 const displayID = getDisplayIDForPost(res);
 
-                // 管理者以外の場合のみ、NG ID/ワード判定を適用する
                 let isNg = false;
                 if (!isAdmin) {
                     if (ngIds.includes(displayID)) isNg = true;
@@ -1479,6 +1557,10 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             updateAdminUI();
+            
+            // 🔒 アクセス制限・認証の実行
+            if (!checkSiteAccessAndAuth()) return;
+
             const hash = window.location.hash.substring(1);
             if (hash) { activeThreadId = hash; showScreen('thread'); } else showScreen('lobby');
         });
