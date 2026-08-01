@@ -319,6 +319,7 @@
         }
         .inquiry-item {
             background: #f9f9f9; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 4px; font-size: 13px;
+            position: relative;
         }
         .hidden { display: none !important; }
     </style>
@@ -338,7 +339,7 @@
     <div class="container">
         <div id="lobbyScreen">
             <div id="adminNgPanel" class="menu-box hidden" style="background-color: #FFF0F0; border-left: 4px solid #CC0000;">
-                <h4 style="margin: 0 0 8px 0; color: #CC0000;">🚫 掲示板 NG設定 & 📩 お問い合わせ一覧（管理者専用）</h4>
+                <h4 style="margin: 0 0 8px 0; color: #CC0000;">🚫 掲示板 NG設定 & 📩 お問い合わせ管理（管理者専用）</h4>
                 <div id="ngPanelBody">
                     <p style="font-size: 12px; color: #555; margin-bottom: 8px;">カンマ(,)区切りで非表示にしたいキーワードやIDを設定します。</p>
                     <div style="margin-bottom: 6px;">
@@ -352,7 +353,7 @@
                     <button class="btn btn-admin" id="btnSaveNgSettings" style="font-weight: bold; margin-bottom: 15px;">NG設定を保存する</button>
                     
                     <h5 style="margin: 10px 0 5px 0; border-top: 1px solid #ccc; padding-top: 10px;">📩 届いたお問い合わせ一覧</h5>
-                    <div id="inquiriesListContainer" style="max-height: 200px; overflow-y: auto; background: #fff; padding: 8px; border: 1px solid #ccc;">
+                    <div id="inquiriesListContainer" style="max-height: 250px; overflow-y: auto; background: #fff; padding: 8px; border: 1px solid #ccc;">
                         読み込み中...
                     </div>
                 </div>
@@ -658,12 +659,14 @@
                 document.getElementById('btnAdminLogin').classList.add('hidden');
                 document.getElementById('btnAdminLogout').classList.remove('hidden');
                 document.getElementById('adminNgPanel').classList.remove('hidden');
+                document.getElementById('btnOpenContactModal').classList.add('hidden'); // 管理者時はお問い合わせボタンを非表示
                 fetchInquiries();
             } else {
                 document.getElementById('adminStatusBadge').classList.add('hidden');
                 document.getElementById('btnAdminLogin').classList.remove('hidden');
                 document.getElementById('btnAdminLogout').classList.add('hidden');
                 document.getElementById('adminNgPanel').classList.add('hidden');
+                document.getElementById('btnOpenContactModal').classList.remove('hidden');
             }
         }
 
@@ -699,7 +702,6 @@
                     user_secret: userSecret
                 }]);
                 if (error) {
-                    // もしinquiriesテーブルがない場合はpostsテーブルをお問い合わせ用として流用するフォールバック
                     await _supabase.from('posts').insert([{
                         name: `[お問い合わせ] ${name}`,
                         subject: "管理者へのお問い合わせ",
@@ -723,12 +725,14 @@
             const container = document.getElementById('inquiriesListContainer');
             try {
                 let { data, error } = await _supabase.from('inquiries').select('*').order('created_at', { ascending: false });
+                let isPostFallback = false;
                 if (error || !data) {
                     const res = await _supabase.from('posts').select('*').eq('thread_id', 'admin-inquiries-log').order('created_at', { ascending: false });
                     data = res.data || [];
+                    isPostFallback = true;
                 }
                 if (data.length === 0) {
-                    container.innerHTML = '<div>届いたお問い合わせはありません。</div>';
+                    container.innerHTML = '<div style="font-size:12px; color:#666;">届いたお問い合わせはありません。</div>';
                     return;
                 }
                 let html = '';
@@ -736,7 +740,10 @@
                     const date = new Date(item.created_at).toLocaleString('ja-JP');
                     html += `
                         <div class="inquiry-item">
-                            <div><b>差出人:</b> ${escapeHtml(item.name)} <span style="color:#888; font-size:11px;">(${date})</span></div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div><b>差出人:</b> ${escapeHtml(item.name)} <span style="color:#888; font-size:11px;">(${date})</span></div>
+                                <button class="btn btn-delete-inquiry" data-id="${item.id}" data-fallback="${isPostFallback}" style="color:red; font-size:11px; padding:2px 6px;">🗑️ 削除</button>
+                            </div>
                             <div style="margin-top:4px; white-space:pre-wrap;">${escapeHtml(item.message)}</div>
                         </div>
                     `;
@@ -746,6 +753,22 @@
                 container.innerHTML = '<div>取得できませんでした。</div>';
             }
         }
+
+        // お問い合わせメッセージの削除処理
+        document.getElementById('inquiriesListContainer').addEventListener('click', async (e) => {
+            if (e.target.classList.contains('btn-delete-inquiry')) {
+                const id = e.target.getAttribute('data-id');
+                const isFallback = e.target.getAttribute('data-fallback') === 'true';
+                if (confirm("このお問い合わせメッセージを削除しますか？")) {
+                    if (isFallback) {
+                        await _supabase.from('posts').delete().eq('id', id);
+                    } else {
+                        await _supabase.from('inquiries').delete().eq('id', id);
+                    }
+                    fetchInquiries();
+                }
+            }
+        });
 
         function applyStyleToEditor(editorId, command, value) {
             const editor = document.getElementById(editorId);
@@ -819,7 +842,6 @@
             document.getElementById('mediaFile').value = "";
         }
 
-        // 📤 Supabase Storage へファイルをアップロードし公開URLを返す関数
         async function uploadFileToStorage(file) {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
@@ -845,7 +867,6 @@
             });
         }
 
-        // 📁 ファイル選択時の処理（画像の選択漏れ・不具合を修正）
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) {
@@ -853,7 +874,7 @@
                 return;
             }
 
-            const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MBまで拡大
+            const MAX_FILE_SIZE = 50 * 1024 * 1024;
             if (file.size > MAX_FILE_SIZE) {
                 alert("⚠️ ファイルサイズが大きすぎます（最大 50MB まで）。");
                 clearAttachments();
@@ -876,16 +897,10 @@
             previewEl.innerHTML = `📎 添付選択中: ${escapeHtml(file.name)} (${(file.size / (1024 * 1024)).toFixed(1)}MB)`;
         });
 
-        // 📷 4K解像度対応カメラ起動処理
         async function startCamera(facingMode, forVideo = false) {
             stopCamera(); stopAudio();
             try {
-                // 4K画質(3840x2160)をリクエスト
-                const videoConstraints = { 
-                    facingMode: facingMode, 
-                    width: { ideal: 3840 }, 
-                    height: { ideal: 2160 } 
-                };
+                const videoConstraints = { facingMode: facingMode, width: { ideal: 3840 }, height: { ideal: 2160 } };
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: forVideo });
                 const videoEl = document.getElementById('webcam');
                 videoEl.srcObject = cameraStream; videoEl.muted = !forVideo;
@@ -901,7 +916,7 @@
                     document.getElementById('btnStopVideoRec').classList.add('hidden');
                     document.getElementById('recTimer').classList.add('hidden');
                 }
-            } catch (e) { alert("カメラの起動に失敗しました（高解像度未対応の可能性があります）。"); }
+            } catch (e) { alert("カメラの起動に失敗しました。"); }
         }
 
         document.getElementById('btnStartCamPhotoUser').addEventListener('click', () => startCamera("user", false));
@@ -922,15 +937,10 @@
             }, 'image/jpeg', 0.95);
         });
 
-        // 🎥 4K高解像度録画設定
         document.getElementById('btnStartVideoRec').addEventListener('click', () => {
             chunks = [];
-            const options = { videoBitsPerSecond: 25000000 }; // 高ビットレート(25Mbps)で4K画質維持
-            try { 
-                mediaRecorder = new MediaRecorder(cameraStream, options); 
-            } catch(e) { 
-                mediaRecorder = new MediaRecorder(cameraStream); 
-            }
+            const options = { videoBitsPerSecond: 25000000 };
+            try { mediaRecorder = new MediaRecorder(cameraStream, options); } catch(e) { mediaRecorder = new MediaRecorder(cameraStream); }
             
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
             mediaRecorder.onstop = () => {
@@ -1034,7 +1044,7 @@
             const threadMap = {};
             data.forEach(post => {
                 const tId = post.thread_id;
-                if (tId === 'admin-inquiries-log') return; // お問い合わせ専用ログは除外
+                if (tId === 'admin-inquiries-log') return;
                 if (!threadMap[tId]) {
                     threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, createdAt: new Date(post.created_at), updatedAt: new Date(post.created_at) };
                 }
@@ -1144,7 +1154,7 @@
                 const dislikesCount = res.dislikes || 0;
                 const userReaction = userReactions[res.id] || null;
 
-                const postStateHash = `${res.id}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
+                const postStateHash = `${res.id}_${res.name}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${likesCount}_${dislikesCount}_${userReaction}_${isNg}`;
 
                 if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) {
                     return;
@@ -1259,7 +1269,7 @@
 
             document.getElementById('editPostId').value = targetPost.id;
             document.getElementById('subject').value = targetPost.subject || '';
-            document.getElementById('name').value = targetPost.name || '';
+            document.getElementById('name').value = targetPost.name || ''; // 名前の読み込み
             document.getElementById('editorBody').innerHTML = targetPost.message || '';
             document.getElementById('linkUrl').value = targetPost.link_url || '';
             document.getElementById('linkTitle').value = targetPost.link_title || '';
@@ -1312,7 +1322,9 @@
                 }
 
                 if (editId) {
+                    // 名前の更新も反映できるように変更
                     const updateData = {
+                        name: document.getElementById('name').value.trim() || "名無しさん",
                         message: messageHtml,
                         subject: document.getElementById('subject').value.trim(),
                         is_edited: true,
