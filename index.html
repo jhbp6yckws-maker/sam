@@ -5,25 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>321掲示板</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Kiwi+Maru:wght@500&family=Lobster&family=M+PLUS+Rounded+1c:wght@500;800&family=Pacifico&family=Shippori+Mincho:wght@600&family=Yuji+Syuku&display=swap" rel="stylesheet">
     
     <style>
         body {
-            font-family: "ＭＳ Ｐゴシック", "MS PGothic", "ヒラギノ角ゴ Pro W3", sans-serif;
+            font-family: "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
             background-color: #EFEFEF;
             color: #000000;
             padding: 20px;
-            padding-bottom: 80px;
+            max-width: 800px;
+            margin: 0 auto;
         }
         .header-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
+            border-bottom: 2px solid #CC0000;
+            padding-bottom: 10px;
         }
         h1 {
             color: #CC0000;
@@ -31,327 +29,137 @@
             margin: 0;
             cursor: pointer;
         }
-        h1:hover { text-decoration: underline; }
-
-        .admin-badge {
-            background-color: #CC0000;
-            color: #FFFFFF;
-            padding: 4px 8px;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 3px;
-        }
-
-        .container { max-width: 800px; }
-        .menu-box {
+        .box {
             background-color: #FFFFFF;
             border: 1px solid #CCCCCC;
             padding: 15px;
             margin-bottom: 20px;
         }
-        .thread-list-item { 
-            margin-bottom: 8px; 
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .form-row {
+            margin-bottom: 10px;
         }
-        .thread-link {
-            color: #0000FF;
-            text-decoration: underline;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .thread-box {
-            background-color: #FFFFFF;
-            border: 1px solid #CCCCCC;
-            padding: 15px;
-            margin-bottom: 20px;
-            position: relative;
-        }
-        .thread-title {
-            color: #CC0000;
-            font-size: 18px;
+        .form-row label {
+            display: inline-block;
+            width: 100px;
             font-weight: bold;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #CC0000;
-            padding-bottom: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            flex-wrap: wrap;
+            font-size: 14px;
         }
-        .thread-stats {
-            font-size: 13px;
-            color: #666666;
-            font-weight: normal;
+        input[type="text"] {
+            width: 60%;
+            padding: 5px;
+            font-size: 14px;
         }
-
-        .res {
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed #DDDDDD;
-            position: relative;
+        .editor-body {
+            min-height: 80px;
+            border: 1px solid #CCCCCC;
+            padding: 8px;
+            margin-top: 5px;
+            background: #FFF;
         }
-        .res-header { font-size: 14px; margin-bottom: 5px; }
-        .res-name { color: #008000; font-weight: bold; }
-        .res-date-id { color: #666666; font-size: 12px; }
-        .res-body { font-size: 16px; margin-left: 2em; line-height: 1.5; word-break: break-word; }
-
-        .uploaded-audio { display: block; margin-top: 10px; }
-
         .btn {
-            font-size: 12px;
-            padding: 4px 10px;
+            font-size: 13px;
+            padding: 5px 12px;
             cursor: pointer;
             background-color: #F0F0F0;
             border: 1px solid #999999;
             border-radius: 2px;
         }
         .btn:hover { background-color: #E0E0E0; }
-
-        .btn-admin {
-            background-color: #333333;
-            color: #FFFFFF;
-            border: 1px solid #000000;
+        .thread-link {
+            color: #0000FF;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 16px;
         }
-        .btn-contact {
-            background-color: #0066CC;
-            color: #FFFFFF;
-            border: 1px solid #004080;
-            font-weight: bold;
-        }
-
-        .back-btn { margin-bottom: 15px; margin-right: 5px; display: inline-block; }
-        .delete-btn { color: #CC0000; }
-
-        .form-box {
-            margin-top: 20px; background-color: #FFFFFF; padding: 15px;
-            border: 1px solid #CCCCCC; display: inline-block; width: 100%;
-            box-sizing: border-box; max-width: 550px;
-        }
-        .editor-container {
-            border: 1px solid #CCCCCC;
-            background: #FFFFFF;
-            margin-bottom: 10px;
-        }
-        .editor-toolbar {
-            background-color: #F7F7F7;
-            border-bottom: 1px solid #DDDDDD;
-            padding: 6px;
-        }
-        .editor-body {
-            min-height: 100px;
-            padding: 10px;
-            outline: none;
-        }
-
-        .media-capture-area {
-            border: 1px dashed #666; padding: 10px; margin-top: 10px;
-            background: #F9F9F9; text-align: center;
-        }
-        .recording-timer { color: red; font-weight: bold; font-size: 14px; margin-top: 5px; }
-
-        .thread-closed-msg {
-            background-color: #FFF0F0;
-            border: 2px solid #CC0000;
-            color: #CC0000;
-            padding: 15px;
-            font-weight: bold;
-            text-align: center;
-            margin-top: 20px;
-        }
-        .thread-expiry-msg {
-            background-color: #FFF8E1;
-            border: 2px dashed #FFA000;
-            color: #B71C1C;
-            padding: 10px;
-            font-weight: bold;
-            font-size: 13px;
-            text-align: center;
+        .res {
             margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #DDDDDD;
         }
-
-        .modal {
-            display: none; position: fixed; z-index: 3000; top: 0; left: 0;
-            width: 100%; height: 100%; background-color: rgba(0,0,0,0.85);
-            justify-content: center; align-items: center;
-        }
-        .modal-box {
-            background: #fff; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%;
-        }
+        .res-name { color: #008000; font-weight: bold; }
+        .res-body { margin-top: 5px; margin-left: 1em; line-height: 1.4; }
         .hidden { display: none !important; }
+        .notice-box {
+            background-color: #FFF0F0;
+            border: 1px solid #CC0000;
+            color: #CC0000;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
 
     <div class="header-bar">
         <h1 id="siteTitle">■ 321掲示板 ■</h1>
-        <div style="display:flex; gap:6px; align-items:center;">
-            <button id="btnOpenContactModal" class="btn btn-contact">📩 管理者にお問い合わせ</button>
-            <span id="adminStatusBadge" class="admin-badge hidden">🔑 管理者モード有効中</span>
-            <button id="btnAdminLogin" class="btn btn-admin">🔐 管理者ログイン</button>
-            <button id="btnAdminLogout" class="btn hidden">🔓 ログアウト</button>
-        </div>
     </div>
 
-    <div class="container">
-        <div id="lobbyScreen">
-            <div id="adminNgPanel" class="menu-box hidden" style="background-color: #FFF0F0; border-left: 4px solid #CC0000;">
-                <h4 style="margin: 0 0 8px 0; color: #CC0000;">🚫 掲示板 NG設定 & 📩 お問い合わせ管理（管理者専用）</h4>
-                <div id="ngPanelBody">
-                    <p style="font-size: 12px; color: #555; margin-bottom: 8px;">カンマ(,)区切りで非表示にしたいキーワードやIDを設定します。</p>
-                    <div style="margin-bottom: 6px;">
-                        <label style="font-size: 12px; font-weight: bold;">NGワード:</label><br>
-                        <input type="text" id="ngWordsInput" placeholder="例: 暴言, スパム" style="width:100%; font-size:12px;">
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <label style="font-size: 12px; font-weight: bold;">NG ID:</label><br>
-                        <input type="text" id="ngIdsInput" placeholder="例: A1B2C3D4, X9Y8Z7W6" style="width:100%; font-size:12px;">
-                    </div>
-                    <button class="btn btn-admin" id="btnSaveNgSettings" style="font-weight: bold; margin-bottom: 15px;">NG設定を保存する</button>
-                    
-                    <h5 style="margin: 10px 0 5px 0; border-top: 1px solid #ccc; padding-top: 10px;">📩 届いたお問い合わせ一覧</h5>
-                    <div id="inquiriesListContainer" style="max-height: 250px; overflow-y: auto; background: #fff; padding: 8px; border: 1px solid #ccc;">
-                        読み込み中...
-                    </div>
+    <div id="lobbyScreen">
+        <div class="box">
+            <h3>新規スレッドを作成する</h3>
+            <form id="createThreadForm">
+                <div class="form-row">
+                    <label for="newThreadTitle">タイトル :</label>
+                    <input type="text" id="newThreadTitle" placeholder="スレッドのタイトル" required>
                 </div>
-            </div>
-
-            <div class="menu-box">
-                <h3>新しいお題でスレッドを立てる</h3>
-                <form id="createThreadForm">
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="newThreadTitle">お題(タイトル) :</label>
-                        <input type="text" id="newThreadTitle" placeholder="例：雑談スレ" required>
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="creatorName">名前 :</label>
-                        <input type="text" id="creatorName" placeholder="名無しさん">
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="firstMessage">最初の本文 :</label>
-                        <div class="editor-container">
-                            <div class="editor-toolbar">
-                                <div>
-                                    <label>🎨 色:</label>
-                                    <select id="lobbyFmtColor">
-                                        <option value="">黒 (標準)</option>
-                                        <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
-                                        <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
-                                        <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div id="firstMessage" class="editor-body" contenteditable="true" placeholder="スレッドの解説など"></div>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn" id="btnCreateThread">新規スレッドを立てる</button>
-                </form>
-            </div>
-
-            <div class="menu-box">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-                    <h3 style="margin:0;">スレッド一覧</h3>
-                    <input type="text" id="threadSearchInput" placeholder="🔍 キーワード検索..." style="font-size:12px; width:140px; padding:3px 6px;">
+                <div class="form-row">
+                    <label for="creatorName">名前 :</label>
+                    <input type="text" id="creatorName" placeholder="名無しさん">
                 </div>
-                <div id="threadList">読み込み中...</div>
-            </div>
-        </div>
-
-        <div id="threadScreen" class="hidden">
-            <button class="btn back-btn" id="btnBack">← スレッド一覧に戻る</button>
-            <button class="btn back-btn share-btn" id="btnShare">🔗 共有リンクを取得</button>
-            <button class="btn back-btn delete-btn hidden" id="btnDeleteThread">🗑️ このスレッドを削除</button>
-            
-            <div class="thread-box">
-                <div class="thread-title">
-                    <span id="activeThreadTitle">読み込み中...</span>
-                    <span id="threadStats" class="thread-stats"></span>
+                <div class="form-row">
+                    <label>本文 :</label>
+                    <div id="firstMessage" class="editor-body" contenteditable="true" placeholder="最初の書き込み"></div>
                 </div>
-                <div id="threadExpiryNotice" class="thread-expiry-msg hidden"></div>
-                <div id="resContainer"></div>
-            </div>
-
-            <div id="threadClosedNotice" class="thread-closed-msg hidden">
-                🚫 このスレッドは321レスに達したため書き込み制限中です。（3日21時間後に完全消去されます）
-            </div>
-
-            <div class="form-box" id="postFormBox">
-                <div class="form-title" id="writeFormTitle">このスレッドに書き込む</div>
-                <form id="postForm">
-                    <input type="hidden" id="editPostId" value="">
-
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="subject">件名 :</label>
-                        <input type="text" id="subject" placeholder="無題">
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="name">名前 :</label>
-                        <input type="text" id="name" placeholder="名無しさん">
-                    </div>
-
-                    <div class="editor-container">
-                        <div class="editor-toolbar">
-                            <div>
-                                <label>🎨 文字色:</label>
-                                <select id="fmtColor">
-                                    <option value="">黒 (標準)</option>
-                                    <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
-                                    <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
-                                    <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div id="editorBody" class="editor-body" contenteditable="true" placeholder="本文を入力してください"></div>
-                    </div>
-                    
-                    <div id="mediaFieldsGroup">
-                        <div class="form-row" style="margin-bottom: 10px;">
-                            <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 録音を開始 (最大60秒)</button>
-                        </div>
-                    </div>
-
-                    <div id="audioArea" class="media-capture-area hidden">
-                        <div id="audioTimer" class="recording-timer">🔴 REC: 0秒 / 60秒</div>
-                        <button type="button" class="btn" id="btnAudioStart" style="color:red;">🔴 録音スタート</button>
-                        <button type="button" class="btn hidden" id="btnAudioStop">■ 停止</button>
-                        <button type="button" class="btn" id="btnStopAudio">中止</button>
-                    </div>
-
-                    <div id="attachmentPreview" style="margin: 8px 0; color: #008000; font-weight: bold; font-size: 12px;"></div>
-                    
-                    <button type="submit" class="btn" id="btnSubmitPost">書き込む</button>
-                    <button type="button" class="btn hidden" id="btnCancelEdit" style="background-color: #FF6600; color: white;">訂正をキャンセル</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div id="contactModal" class="modal" style="display:none; z-index:3500;">
-        <div class="modal-box">
-            <h3 style="margin-top:0; color:#0066CC;">📩 管理者へのお問い合わせ</h3>
-            <form id="contactForm">
-                <div style="margin-bottom:10px;">
-                    <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:4px;">お名前 / 連絡先 (任意):</label>
-                    <input type="text" id="contactName" placeholder="例: 名無し / mail@example.com" style="width:100%;">
-                </div>
-                <div style="margin-bottom:10px;">
-                    <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:4px;">お問い合わせ内容 (必須):</label>
-                    <textarea id="contactMessage" required placeholder="通報、不具合報告など" style="width:100%; height:100px;"></textarea>
-                </div>
-                <div style="display:flex; justify-content:flex-end; gap:8px;">
-                    <button type="button" class="btn" id="btnCloseContactModal">キャンセル</button>
-                    <button type="submit" class="btn btn-contact" id="btnSubmitContact">送信する</button>
-                </div>
+                <button type="submit" class="btn" id="btnCreateThread">スレッドを建てる</button>
             </form>
+        </div>
+
+        <div class="box">
+            <h3>スレッド一覧</h3>
+            <div id="threadList">読み込み中...</div>
+        </div>
+    </div>
+
+    <div id="threadScreen" class="hidden">
+        <button class="btn" id="btnBack" style="margin-bottom: 15px;">← スレッド一覧に戻る</button>
+
+        <div class="box">
+            <h2 id="activeThreadTitle" style="color:#CC0000; margin-top:0;"></h2>
+            <div id="threadStats" style="color:#666; font-size:12px; margin-bottom:15px;"></div>
+            
+            <div id="threadExpiryNotice" class="notice-box hidden"></div>
+            <div id="resContainer"></div>
+        </div>
+
+        <div class="box" id="postFormBox">
+            <h3>このスレッドにレスを書く</h3>
+            <form id="postForm">
+                <div class="form-row">
+                    <label for="name">名前 :</label>
+                    <input type="text" id="name" placeholder="名無しさん">
+                </div>
+                <div class="form-row">
+                    <label>本文 :</label>
+                    <div id="editorBody" class="editor-body" contenteditable="true"></div>
+                </div>
+
+                <div class="form-row">
+                    <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 音声を録音 (最大60秒)</button>
+                    <span id="audioStatus" style="font-size:12px; color:red; margin-left:10px;"></span>
+                </div>
+
+                <button type="submit" class="btn" id="btnSubmitPost">書き込む</button>
+            </form>
+        </div>
+
+        <div id="threadClosedNotice" class="notice-box hidden">
+            🚫 このスレッドは321レスに達したため書き込みできません。（3日21時間後に自動削除されます）
         </div>
     </div>
 
     <script>
-        const ADMIN_PASSWORD = "sdkousaku321564";
-        const SITE_PASSWORD = "冷笑系321";
-        let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
-
         const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -361,227 +169,141 @@
         }
         const userSecret = localStorage.getItem('bbs_user_secret');
 
-        let ngWords = JSON.parse(localStorage.getItem('bbs_ng_words') || '[]');
-        let ngIds = JSON.parse(localStorage.getItem('bbs_ng_ids') || '[]');
-
-        function getMyDisplayID() {
-            const dateObj = new Date();
-            const yyyymmdd = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-            const salt = yyyymmdd + userSecret + "global";
-            let hash = 2166136261;
-            for (let i = 0; i < salt.length; i++) { hash ^= salt.charCodeAt(i); hash = Math.imul(hash, 16777619); }
-            return Math.abs(hash).toString(36).substring(0, 8).toUpperCase();
-        }
-
-        // 🔒 アクセス制限＆パスワード認証
-        function checkSiteAccessAndAuth() {
-            const myId = getMyDisplayID();
-
-            if (!isAdmin && ngIds.includes(myId)) {
-                document.body.innerHTML = `
-                    <div style="text-align:center; padding:50px;">
-                        <h2 style="color:red;">🚫 アクセス制限中</h2>
-                        <p>あなたのアカウント (ID: <b>${myId}</b>) は制限されています。</p>
-                    </div>
-                `;
-                return false;
-            }
-
-            const lockUntil = parseInt(localStorage.getItem('bbs_lock_until') || '0', 10);
-            const now = Date.now();
-            if (now < lockUntil) {
-                const remainingSec = Math.ceil((lockUntil - now) / 1000);
-                document.body.innerHTML = `
-                    <div style="text-align:center; padding:50px;">
-                        <h2 style="color:red;">⏳ ペナルティ制限中</h2>
-                        <p>あと ${remainingSec} 秒後に再試行可能です。</p>
-                    </div>
-                `;
-                return false;
-            }
-
-            if (sessionStorage.getItem('bbs_authenticated') === 'true') return true;
-
-            let attempts = parseInt(localStorage.getItem('bbs_pwd_attempts') || '0', 10);
-            const inputPass = prompt(`🔑 パスワードを入力してください (ミス: ${attempts}回):`);
-
-            if (inputPass === SITE_PASSWORD) {
-                localStorage.setItem('bbs_pwd_attempts', '0');
-                sessionStorage.setItem('bbs_authenticated', 'true');
-                alert("⭕ 認証成功");
-                return true;
-            } else if (inputPass !== null) {
-                attempts += 1;
-                localStorage.setItem('bbs_pwd_attempts', attempts.toString());
-                const penaltySeconds = attempts * 30;
-                localStorage.setItem('bbs_lock_until', (Date.now() + penaltySeconds * 1000).toString());
-                alert(`❌ 間違いです。${penaltySeconds}秒ロックされました。`);
-                location.reload();
-                return false;
-            } else {
-                document.body.innerHTML = `<div style="text-align:center; padding:50px;">閲覧できません。<a href="" onclick="location.reload();">再試行</a></div>`;
-                return false;
-            }
-        }
-
         let activeThreadId = null;
-        let pendingFileToUpload = null;
-        let audioStream = null, mediaRecorder = null, chunks = [];
-        let recordSeconds = 0, recordInterval = null;
+        let pendingAudioBlob = null;
+        let mediaRecorder = null, audioChunks = [];
 
-        function escapeHtml(str) { return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; }
-
-        // 🎙️ 音声録音制御
-        document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
-            stopAudio();
-            try {
-                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                document.getElementById('audioArea').classList.remove('hidden');
-            } catch(e) { alert("マイクの起動に失敗しました。"); }
-        });
-
-        document.getElementById('btnAudioStart').addEventListener('click', () => {
-            chunks = []; mediaRecorder = new MediaRecorder(audioStream);
-            mediaRecorder.ondataavailable = e => chunks.push(e.data);
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                pendingFileToUpload = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
-                document.getElementById('attachmentPreview').innerHTML = "🎙️ 録音完了（音声をセットしました）";
-                stopAudio();
-            };
-            mediaRecorder.start();
-            document.getElementById('btnAudioStart').classList.add('hidden');
-            document.getElementById('btnAudioStop').classList.remove('hidden');
-            recordSeconds = 0;
-            recordInterval = setInterval(() => {
-                recordSeconds++;
-                document.getElementById('audioTimer').innerText = `🔴 REC: ${recordSeconds}秒 / 60秒`;
-                if (recordSeconds >= 60) stopAudioRecording();
-            }, 1000);
-        });
-
-        document.getElementById('btnAudioStop').addEventListener('click', stopAudioRecording);
-        function stopAudioRecording() { clearInterval(recordInterval); if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); }
-        function stopAudio() { clearInterval(recordInterval); if(audioStream){ audioStream.getTracks().forEach(t=>t.stop()); audioStream=null; } document.getElementById('audioArea').classList.add('hidden'); }
-        document.getElementById('btnStopAudio').addEventListener('click', stopAudio);
-
-        async function uploadFileToStorage(file) {
-            const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.webm`;
-            const filePath = `uploads/${fileName}`;
-            const { error } = await _supabase.storage.from('media').upload(filePath, file);
-            if (error) throw error;
-            const { data } = _supabase.storage.from('media').getPublicUrl(filePath);
-            return data.publicUrl;
+        function escapeHtml(str) { 
+            return str ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; 
         }
 
-        // ⏳ 321レス到達時の「3日21時間（93時間）後」自動削除ロジック
+        // --- 録音機能 ---
+        document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
+            const status = document.getElementById('audioStatus');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioChunks = [];
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    pendingAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    status.innerText = "録音完了！";
+                };
+                mediaRecorder.start();
+                status.innerText = "🔴 録音中... (5秒後に自動停止)";
+                setTimeout(() => {
+                    if(mediaRecorder && mediaRecorder.state === "recording") {
+                        mediaRecorder.stop();
+                        stream.getTracks().forEach(t => t.stop());
+                    }
+                }, 5000);
+            } catch(e) {
+                alert("マイクの使用が許可されていません。");
+            }
+        });
+
+        async function uploadAudio(blob) {
+            const fileName = `audio_${Date.now()}.webm`;
+            const { data, error } = await _supabase.storage.from('media').upload(`uploads/${fileName}`, blob);
+            if (error) return "";
+            const res = _supabase.storage.from('media').getPublicUrl(`uploads/${fileName}`);
+            return res.data.publicUrl;
+        }
+
+        // --- 321レス自動削除ロジック ---
         async function checkAndCleanExpiredThreads() {
-            const { data: posts } = await _supabase.from('posts').select('*');
+            const { data: posts } = await _supabase.from('posts').select('id, thread_id, created_at');
             if (!posts) return;
 
-            const thread321TimeMap = {};
+            const map = {};
             posts.forEach(p => {
-                if (!thread321TimeMap[p.thread_id]) thread321TimeMap[p.thread_id] = [];
-                thread321TimeMap[p.thread_id].push(p);
+                if(!map[p.thread_id]) map[p.thread_id] = [];
+                map[p.thread_id].push(p);
             });
 
-            const now = new Date().getTime();
-            const HOURS_93_MS = (3 * 24 + 21) * 60 * 60 * 1000; // 3日21時間（93時間）
+            const now = Date.now();
+            const LIMIT_MS = (3 * 24 + 21) * 60 * 60 * 1000; // 3日21時間
 
-            for (const [tId, tPosts] of Object.entries(thread321TimeMap)) {
+            for (const [tId, tPosts] of Object.entries(map)) {
                 if (tPosts.length >= 321) {
                     tPosts.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-                    const res321Date = new Date(tPosts[320].created_at).getTime();
-                    const deleteAt = res321Date + HOURS_93_MS;
-
-                    if (now >= deleteAt) {
+                    const res321Time = new Date(tPosts[320].created_at).getTime();
+                    if (now >= (res321Time + LIMIT_MS)) {
                         await _supabase.from('posts').delete().eq('thread_id', tId);
-                        if (activeThreadId === tId) {
-                            alert("⚠️ このスレッドは321レス到達から3日21時間が経過したため自動削除されました。");
-                            showScreen('lobby');
-                        }
                     }
                 }
             }
         }
 
+        // --- スレッド一覧取得 ---
         async function fetchThreads() {
             await checkAndCleanExpiredThreads();
-            const { data } = await _supabase.from('posts').select('id, thread_id, subject, created_at').order('id', { ascending: true });
-            if (!data) return;
+            const { data, error } = await _supabase.from('posts').select('thread_id, subject, id').order('id', { ascending: true });
+            
+            if (error) {
+                document.getElementById('threadList').innerText = "取得失敗: Supabaseのアクセス権限(RLS)を確認してください。";
+                return;
+            }
 
             const threadMap = {};
-            data.forEach(post => {
-                const tId = post.thread_id;
-                if (tId === 'admin-inquiries-log') return;
-                if (!threadMap[tId]) {
-                    threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0 };
+            data.forEach(p => {
+                if (!threadMap[p.thread_id]) {
+                    threadMap[p.thread_id] = { title: p.subject || "無題", count: 0 };
                 }
-                threadMap[tId].count++;
+                threadMap[p.thread_id].count++;
             });
 
             const container = document.getElementById('threadList');
             let html = "";
-            Object.values(threadMap).forEach(t => {
-                const isClosed = t.count >= 321 ? ' <span style="color:red;">[321到達: 自動削除待ち]</span>' : '';
-                html += `<div class="thread-list-item"><span class="thread-link" onclick="openThread('${t.id}')">■ ${escapeHtml(t.title)} (${t.count})${isClosed}</span></div>`;
+            Object.keys(threadMap).forEach(tId => {
+                const t = threadMap[tId];
+                const closed = t.count >= 321 ? ' <span style="color:red;">[321到達: 満杯]</span>' : '';
+                html += `<div style="margin-bottom:8px;"><span class="thread-link" onclick="openThread('${tId}')">■ ${escapeHtml(t.title)} (${t.count}レス)${closed}</span></div>`;
             });
+
             container.innerHTML = html || "スレッドがありません。";
         }
 
-        async function openThread(tId) {
-            activeThreadId = tId;
-            window.location.hash = tId;
-            showScreen('thread');
-        }
-
+        // --- スレッド表示 ---
         async function renderActiveThread() {
-            if (!activeThreadId) return;
-            await checkAndCleanExpiredThreads();
-
             const { data } = await _supabase.from('posts').select('*').eq('thread_id', activeThreadId).order('id', { ascending: true });
-            if (!data || data.length === 0) { showScreen('lobby'); return; }
-
-            const resCount = data.length;
-            document.getElementById('activeThreadTitle').innerText = data[0].subject || "無題";
-            document.getElementById('threadStats').innerText = `(${resCount} / 321レス)`;
-
-            const closedNotice = document.getElementById('threadClosedNotice');
-            const expiryNotice = document.getElementById('threadExpiryNotice');
-
-            if (resCount >= 321) {
-                document.getElementById('postFormBox').classList.add('hidden');
-                closedNotice.classList.remove('hidden');
-
-                const res321Date = new Date(data[320].created_at).getTime();
-                const deleteAt = res321Date + ((3 * 24 + 21) * 60 * 60 * 1000);
-                const remainingHours = Math.max(0, Math.ceil((deleteAt - Date.now()) / (1000 * 60 * 60)));
-
-                expiryNotice.classList.remove('hidden');
-                expiryNotice.innerText = `⏳ このスレッドは321レスに達しました。残り約 ${remainingHours} 時間後（3日21時間経過時）に完全に消去されます。`;
-            } else {
-                document.getElementById('postFormBox').classList.remove('hidden');
-                closedNotice.classList.add('hidden');
-                expiryNotice.classList.add('hidden');
+            if (!data || data.length === 0) {
+                showScreen('lobby');
+                return;
             }
 
-            const container = document.getElementById('resContainer');
+            document.getElementById('activeThreadTitle').innerText = data[0].subject || "無題";
+            document.getElementById('threadStats').innerText = `全 ${data.length} / 321 レス`;
+
+            const resCount = data.length;
+            if (resCount >= 321) {
+                document.getElementById('postFormBox').classList.add('hidden');
+                document.getElementById('threadClosedNotice').classList.remove('hidden');
+            } else {
+                document.getElementById('postFormBox').classList.remove('hidden');
+                document.getElementById('threadClosedNotice').classList.add('hidden');
+            }
+
             let html = "";
-            data.forEach((res, index) => {
-                const audioTag = res.audio ? `<audio src="${res.audio}" class="uploaded-audio" controls></audio>` : '';
+            data.forEach((p, index) => {
+                const audioHtml = p.audio ? `<br><audio src="${p.audio}" controls></audio>` : '';
                 html += `
                     <div class="res">
-                        <div class="res-header"><span class="res-name">${index + 1}: ${escapeHtml(res.name)}</span></div>
-                        <div class="res-body">${res.message}${audioTag}</div>
+                        <div><b>${index + 1}: ${escapeHtml(p.name)}</b></div>
+                        <div class="res-body">${p.message}${audioHtml}</div>
                     </div>
                 `;
             });
-            container.innerHTML = html;
+            document.getElementById('resContainer').innerHTML = html;
         }
 
-        function showScreen(id) {
-            stopAudio();
-            if (id === 'lobby') {
+        function openThread(tId) {
+            activeThreadId = tId;
+            showScreen('thread');
+        }
+
+        function showScreen(type) {
+            if (type === 'lobby') {
                 document.getElementById('lobbyScreen').classList.remove('hidden');
                 document.getElementById('threadScreen').classList.add('hidden');
                 fetchThreads();
@@ -592,55 +314,71 @@
             }
         }
 
-        document.getElementById('postForm').addEventListener('submit', async function(e) {
+        // --- 新規スレッド作成処理 ---
+        document.getElementById('createThreadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const msg = document.getElementById('editorBody').innerHTML.trim();
-            if (!msg) return alert("本文を入力してください。");
+            const title = document.getElementById('newThreadTitle').value.trim();
+            const name = document.getElementById('creatorName').value.trim() || "名無しさん";
+            const msg = document.getElementById('firstMessage').innerText.trim() || "（本文なし）";
 
-            let audioUrl = "";
-            if (pendingFileToUpload) {
-                audioUrl = await uploadFileToStorage(pendingFileToUpload);
-            }
+            if (!title) return alert("タイトルを入力してください。");
 
-            await _supabase.from('posts').insert([{
-                name: document.getElementById('name').value.trim() || "名無しさん",
-                subject: document.getElementById('subject').value.trim(),
-                message: msg,
-                thread_id: activeThreadId,
-                creator_secret: userSecret,
-                audio: audioUrl
-            }]);
+            const newThreadId = 'thread_' + Date.now();
 
-            this.reset();
-            document.getElementById('editorBody').innerHTML = "";
-            pendingFileToUpload = null;
-            document.getElementById('attachmentPreview').innerHTML = "";
-            renderActiveThread();
-        });
-
-        document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const newThreadId = 'thread-' + Date.now();
-            await _supabase.from('posts').insert([{
-                name: document.getElementById('creatorName').value.trim() || "名無しさん",
-                subject: document.getElementById('newThreadTitle').value.trim(),
-                message: document.getElementById('firstMessage').innerHTML.trim(),
+            const { error } = await _supabase.from('posts').insert([{
                 thread_id: newThreadId,
+                subject: title,
+                name: name,
+                message: msg,
                 creator_secret: userSecret
             }]);
-            this.reset();
-            document.getElementById('firstMessage').innerHTML = "";
-            openThread(newThreadId);
+
+            if (error) {
+                alert("スレッドの作成に失敗しました:\n" + error.message);
+                console.error(error);
+            } else {
+                document.getElementById('newThreadTitle').value = "";
+                document.getElementById('firstMessage').innerText = "";
+                openThread(newThreadId);
+            }
         });
 
-        document.getElementById('btnBack').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
-        document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
+        // --- レス投稿処理 ---
+        document.getElementById('postForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value.trim() || "名無しさん";
+            const msg = document.getElementById('editorBody').innerText.trim();
 
-        window.addEventListener('DOMContentLoaded', () => {
-            if (!checkSiteAccessAndAuth()) return;
-            const hash = window.location.hash.substring(1);
-            if (hash) { activeThreadId = hash; showScreen('thread'); } else showScreen('lobby');
+            if (!msg && !pendingAudioBlob) return alert("本文を入力してください。");
+
+            let audioUrl = "";
+            if (pendingAudioBlob) {
+                audioUrl = await uploadAudio(pendingAudioBlob);
+            }
+
+            const { error } = await _supabase.from('posts').insert([{
+                thread_id: activeThreadId,
+                name: name,
+                message: msg,
+                audio: audioUrl,
+                creator_secret: userSecret
+            }]);
+
+            if (error) {
+                alert("書き込みに失敗しました: " + error.message);
+            } else {
+                document.getElementById('editorBody').innerText = "";
+                document.getElementById('audioStatus').innerText = "";
+                pendingAudioBlob = null;
+                renderActiveThread();
+            }
         });
+
+        document.getElementById('btnBack').addEventListener('click', () => showScreen('lobby'));
+        document.getElementById('siteTitle').addEventListener('click', () => showScreen('lobby'));
+
+        // 初期化
+        fetchThreads();
     </script>
 </body>
 </html>
