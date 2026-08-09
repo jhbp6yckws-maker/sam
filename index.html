@@ -663,7 +663,7 @@
             }
         });
 
-        // テキストスタイル
+        // テキストスタイル設定
         function applyStyleToEditor(editorId, command, value) {
             const editor = document.getElementById(editorId);
             editor.focus();
@@ -749,7 +749,7 @@
             document.getElementById('attachmentPreview').innerHTML = `📎 添付選択中: ${escapeHtml(file.name)} (${(file.size / (1024 * 1024)).toFixed(1)}MB)`;
         });
 
-        // 録音処理
+        // 録音機能
         document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
             stopAudio();
             try {
@@ -800,7 +800,7 @@
             else return (bytes / (1024 * 1024)).toFixed(2) + " MB";
         }
 
-        // スレッド一覧取得（エラー対策・キャッチ強化版）
+        // スレッド一覧取得
         async function fetchThreads() {
             const container = document.getElementById('threadList');
             try {
@@ -879,7 +879,7 @@
             }
         }
 
-        // リアルタイム閲覧数（Presence）
+        // リアルタイム閲覧数設定
         function setupPresence(threadId) {
             if (presenceChannel) {
                 _supabase.removeChannel(presenceChannel);
@@ -1047,7 +1047,58 @@
             }
         }
 
-        // 投稿フォーム送信
+        // 新規スレッド作成処理（エラー詳細通知付き）
+        document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btnCreateThread');
+            btn.disabled = true;
+            btn.innerText = "作成中...";
+
+            const newThreadId = 'thread-' + Date.now();
+            const title = document.getElementById('newThreadTitle').value.trim();
+            const name = document.getElementById('creatorName').value.trim() || "名無しさん";
+            const message = document.getElementById('firstMessage').innerHTML.trim();
+
+            if (!title) {
+                alert("⚠️ お題(タイトル)を入力してください。");
+                btn.disabled = false;
+                btn.innerText = "新規スレッドを立てる";
+                return;
+            }
+
+            try {
+                const { data, error } = await _supabase.from('posts').insert([{
+                    name: name,
+                    subject: title,
+                    message: message,
+                    thread_id: newThreadId,
+                    creator_secret: userSecret,
+                    link_url: document.getElementById('threadLinkUrl').value.trim(),
+                    link_title: document.getElementById('threadLinkTitle').value.trim()
+                }]);
+
+                if (error) {
+                    console.error("スレッド作成エラー:", error);
+                    alert("❌ スレッド作成に失敗しました:\n" + error.message + "\n\n※SupabaseのSQL Editorで書き込み(INSERT)権限のポリシー(RLS)が許可されているか確認してください。");
+                    return;
+                }
+
+                this.reset(); 
+                document.getElementById('firstMessage').innerHTML = "";
+                activeThreadId = newThreadId; 
+                window.location.hash = newThreadId; 
+                showScreen('thread');
+            } catch(err) {
+                console.error("例外エラー:", err);
+                alert("❌ エラーが発生しました:\n" + (err.message || err));
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "新規スレッドを立てる";
+            }
+        });
+
+        // レス投稿フォーム送信
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (currentPostsData.length >= 1000) return alert("1000レスに達しています。");
@@ -1126,7 +1177,7 @@
             }
         });
 
-        // スレッド全削除
+        // スレッド完全削除
         async function deleteThread(threadId) {
             if (confirm("このスレッドおよび関連する全投稿を完全に削除しますか？")) {
                 const { error } = await _supabase.from('posts').delete().eq('thread_id', threadId);
@@ -1147,27 +1198,6 @@
 
         document.getElementById('btnDeleteThread').addEventListener('click', () => { if (activeThreadId) deleteThread(activeThreadId); });
 
-        // 新規スレッド作成
-        document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const newThreadId = 'thread-' + Date.now();
-            try {
-                await _supabase.from('posts').insert([{
-                    name: document.getElementById('creatorName').value.trim() || "名無しさん",
-                    subject: document.getElementById('newThreadTitle').value.trim(),
-                    message: document.getElementById('firstMessage').innerHTML.trim(),
-                    thread_id: newThreadId,
-                    creator_secret: userSecret,
-                    link_url: document.getElementById('threadLinkUrl').value.trim(),
-                    link_title: document.getElementById('threadLinkTitle').value.trim()
-                }]);
-                this.reset(); document.getElementById('firstMessage').innerHTML = "";
-                activeThreadId = newThreadId; window.location.hash = newThreadId; showScreen('thread');
-            } catch(err) {
-                alert("スレッド作成に失敗しました。");
-            }
-        });
-
         document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         document.getElementById('btnBack').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
 
@@ -1182,6 +1212,7 @@
             }
         });
 
+        // リアルタイム同期（WebSockets）
         _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
             if (activeThreadId) { renderActiveThread(); } else fetchThreads();
         }).subscribe();
