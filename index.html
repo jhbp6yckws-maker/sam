@@ -187,7 +187,7 @@
             margin-left: 5px;
         }
 
-        /* パスワード認証モーダル */
+        /* 🔒 パスワード認証モーダル */
         .auth-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -326,7 +326,7 @@
         let isAdmin = false;
         let activeThreadId = null;
 
-        // --- 認証機能 ---
+        // --- 🔒 アクセス制限・合い言葉認証 ---
         function checkSiteAuth() {
             const pass = document.getElementById('sitePassInput').value;
             if (pass === SITE_PASSWORD) {
@@ -345,6 +345,7 @@
             return false;
         }
 
+        // --- 🔑 管理者ログイン処理 ---
         function toggleAdminLogin() {
             if (isAdmin) {
                 isAdmin = false;
@@ -425,7 +426,6 @@
                 return;
             }
 
-            // thread_id ごとにグループ化
             const threadsMap = {};
             const now = new Date().getTime();
 
@@ -444,19 +444,19 @@
                 return;
             }
 
-            // 新しい順に並び替え
+            // 新しい順にソート
             threadIds.reverse();
 
             for (const tId of threadIds) {
                 const threadPosts = threadsMap[tId];
-                const firstPost = threadPosts[0]; // 親投稿
+                const firstPost = threadPosts[0];
                 const createdAt = new Date(firstPost.created_at).getTime();
                 const elapsed = now - createdAt;
 
-                // ⏰ 投稿から5日（120時間）以上経過している場合は自動削除
+                // ⏰ 5日（120時間）を経過したスレッドの自動消去
                 if (elapsed > FIVE_DAYS_MS) {
                     deleteExpiredThread(tId);
-                    continue; // 表示しない
+                    continue;
                 }
 
                 const replyCount = threadPosts.length - 1;
@@ -466,7 +466,7 @@
                 threadEl.className = 'thread-summary';
                 threadEl.innerHTML = `
                     <div>
-                        <span class="thread-title-link" onclick="openThread('${tId}')">${escapeHtml(threadTitle)}</span>
+                        <span class="thread-title-link" data-id="${tId}">${escapeHtml(threadTitle)}</span>
                         ${isAdmin ? `<button class="admin-delete-btn admin-delete-thread-btn" data-threadid="${tId}">スレッド削除</button>` : ''}
                     </div>
                     <div class="thread-meta">
@@ -475,12 +475,6 @@
                 `;
                 container.appendChild(threadEl);
             }
-        }
-
-        function openThread(threadId) {
-            activeThreadId = threadId;
-            window.location.hash = threadId;
-            showScreen('thread');
         }
 
         // ==========================================
@@ -572,7 +566,9 @@
                 document.getElementById('newThreadTitle').value = '';
                 document.getElementById('newThreadBody').value = '';
                 document.getElementById('newThreadMedia').value = '';
-                openThread(threadId);
+                activeThreadId = threadId;
+                window.location.hash = threadId;
+                showScreen('thread');
             }
         });
 
@@ -634,32 +630,47 @@
             console.log(`🗑️ 5日以上経過したスレッド(${threadId})を自動消去しました。`);
         }
 
+        // イベントデリゲーション（クリックイベントの集約）
         document.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('thread-title-link')) { 
+                activeThreadId = e.target.getAttribute('data-id'); 
+                window.location.hash = activeThreadId; 
+                showScreen('thread'); 
+            }
             if (e.target.classList.contains('admin-delete-thread-btn')) {
                 const targetThreadId = e.target.getAttribute('data-threadid');
                 if (confirm("【管理者】このスレッドを完全削除しますか？")) {
                     const { error } = await _supabase.from('posts').delete().eq('thread_id', targetThreadId);
-                    if (error) alert("削除に失敗しました: " + error.message);
-                    else fetchThreads();
+                    if (error) {
+                        alert("スレッドの削除に失敗しました: " + error.message);
+                    } else {
+                        alert("スレッドを削除しました。");
+                        fetchThreads();
+                    }
                 }
             }
+        });
+
+        // リアルタイム同期 & 1.5秒ポーリング
+        _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+            if (activeThreadId) { renderActiveThread(); } else fetchThreads();
+        }).subscribe();
+
+        setInterval(() => { if (activeThreadId) renderActiveThread(); else fetchThreads(); }, 1500);
+
+        // 初期ロード時処理
+        window.addEventListener('DOMContentLoaded', () => {
+            updateAdminUI();
+            if (!checkSiteAccessAndAuth()) return;
+
+            const hash = window.location.hash.substring(1);
+            if (hash) { activeThreadId = hash; showScreen('thread'); } else showScreen('lobby');
         });
 
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
-
-        // Realtimeリアルタイム同期機能
-        _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-            if (activeThreadId) { renderActiveThread(); } else fetchThreads();
-        }).subscribe();
-
-        window.addEventListener('DOMContentLoaded', () => {
-            checkSiteAccessAndAuth();
-            const hash = window.location.hash.substring(1);
-            if (hash) { activeThreadId = hash; showScreen('thread'); } else showScreen('lobby');
-        });
     </script>
 </body>
 </html>
