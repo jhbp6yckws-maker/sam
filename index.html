@@ -3,181 +3,285 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高画質動画対応 掲示板</title>
+    <title>掲示板 (5日間限定自動消去)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1200.0.min.js"></script>
-
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
-        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .hidden { display: none; }
-        input[type="text"], textarea { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
-        button { padding: 10px 15px; background: #0070f3; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0051a2; }
-        .thread { border-bottom: 1px solid #eee; padding: 15px 0; }
-        .thread-time { color: #888; font-size: 0.8em; }
-        video { max-width: 100%; height: auto; border-radius: 4px; margin-top: 10px; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            padding: 20px 10px;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        header h1 {
+            font-size: 1.8rem;
+            color: #1a202c;
+        }
+        header p {
+            font-size: 0.85rem;
+            color: #718096;
+            margin-top: 4px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            color: #4a5568;
+        }
+        input[type="text"], textarea, input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .file-hint {
+            font-size: 0.8rem;
+            color: #e53e3e;
+            margin-top: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3182ce;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #2b6cb0;
+        }
+        button:disabled {
+            background-color: #a0aec0;
+            cursor: not-allowed;
+        }
+        .thread-list-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #2d3748;
+            border-left: 4px solid #3182ce;
+            padding-left: 10px;
+        }
+        .thread {
+            border: 1px solid #e2e8f0;
+            transition: transform 0.1s;
+        }
+        .thread-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #2b6cb0;
+            margin-bottom: 8px;
+        }
+        .thread-content {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            color: #2d3748;
+            margin-bottom: 12px;
+        }
+        .thread-media {
+            margin-top: 10px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        .thread-media img, .thread-media video {
+            width: 100%;
+            max-height: 450px;
+            object-fit: contain;
+            display: block;
+        }
+        .thread-footer {
+            margin-top: 12px;
+            font-size: 0.75rem;
+            color: #a0aec0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .loading {
+            text-align: center;
+            color: #718096;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>🎬 掲示板 (5日間限定保存)</h1>
+    <div class="container">
+        <header>
+            <h1>💬 掲示板</h1>
+            <p>※投稿された内容は 5日間（120時間）経過すると自動消去されます</p>
+        </header>
 
-    <div class="card">
-        <h3>新規スレッド作成</h3>
-        <input type="text" id="titleInput" placeholder="タイトルを入力">
-        <textarea id="contentInput" rows="4" placeholder="本文を入力..."></textarea>
-        
-        <input type="file" id="mediaFile" accept="video/*,image/*">
-        <div id="attachmentPreview" style="margin: 10px 0; font-size: 0.9em;"></div>
+        <div class="card">
+            <div class="form-group">
+                <label for="titleInput">タイトル</label>
+                <input type="text" id="titleInput" placeholder="スレッドのタイトルを入力">
+            </div>
+            <div class="form-group">
+                <label for="contentInput">本文</label>
+                <textarea id="contentInput" placeholder="投稿内容を入力してください..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="mediaFile">画像・動画を添付 (任意)</label>
+                <input type="file" id="mediaFile" accept="image/*,video/*">
+                <div class="file-hint">※無料枠保護のため、動画は短いもの（50MB以下推奨）にしてください</div>
+            </div>
+            <button id="submitBtn">投稿する</button>
+        </div>
 
-        <button id="submitBtn">投稿する</button>
+        <h2 class="thread-list-title">最新の投稿</h2>
+        <div id="threadList" class="loading">投稿を読み込んでいます...</div>
     </div>
 
-    <h2>スレッド一覧</h2>
-    <div id="threadList">読み込み中...</div>
-
     <script>
-        // --- 1. Supabase 設定情報 ---
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // ご自身のSupabase URL
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // ご自身のSupabase Anon Key
+        // ==========================================
+        // 🛠️ 1. Supabase 接続設定 (ここを変更してください)
+        // ==========================================
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // --- 2. Cloudflare R2 設定情報 ---
-        const R2_ACCOUNT_ID = 'YOUR_R2_ACCOUNT_ID';
-        const R2_ACCESS_KEY_ID = 'YOUR_R2_ACCESS_KEY_ID';
-        const R2_SECRET_ACCESS_KEY = 'YOUR_R2_SECRET_ACCESS_KEY';
-        const R2_BUCKET_NAME = 'bbs-media-bucket';
-        const R2_PUBLIC_URL = 'https://pub-xxxxxxxx.r2.dev'; // 設定したR2.devのURL
-
-        // S3 SDK初期化 (R2用)
-        const s3 = new AWS.S3({
-            endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-            accessKeyId: R2_ACCESS_KEY_ID,
-            secretAccessKey: R2_SECRET_ACCESS_KEY,
-            signatureVersion: 'v4',
-            region: 'auto'
-        });
-
-        // 定数：5日間（ミリ秒）
+        // 定数設定: 5日間 (ミリ秒)
         const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
-        let selectedFile = null;
 
-        // --- 3. ファイル選択時のバリデーション（2GB & 10分制限） ---
-        document.getElementById('mediaFile').addEventListener('change', async function(e) {
-            const file = e.target.files[0];
-            if (!file) { selectedFile = null; return; }
-
-            // 上限 2GB
-            if (file.size > 2048 * 1024 * 1024) {
-                alert("⚠️ ファイルサイズが大きすぎます（最大 2GB まで）。");
-                this.value = '';
-                return;
-            }
-
-            // 動画の長さチェック (10分＝600秒)
-            if (file.type.startsWith('video/')) {
-                const duration = await getVideoDuration(file);
-                if (duration > 600.5) {
-                    alert(`⚠️ 動画が長すぎます（${(duration / 60).toFixed(1)}分）。10分以内の動画を選択してください。`);
-                    this.value = '';
-                    return;
-                }
-            }
-
-            selectedFile = file;
-            document.getElementById('attachmentPreview').innerText = `📎 選択中: ${file.name} (${(file.size / (1024*1024)).toFixed(1)}MB)`;
-        });
-
-        function getVideoDuration(file) {
-            return new Promise((resolve) => {
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                video.src = URL.createObjectURL(file);
-                video.onloadedmetadata = () => {
-                    URL.revokeObjectURL(video.src);
-                    resolve(video.duration);
-                };
-            });
-        }
-
-        // --- 4. R2へのファイルアップロード処理 ---
-        async function uploadToR2(file) {
-            const fileExt = file.name.split('.').pop();
-            const filePath = `uploads/${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-
-            const params = {
-                Bucket: R2_BUCKET_NAME,
-                Key: filePath,
-                Body: file,
-                ContentType: file.type
-            };
-
-            return new Promise((resolve, reject) => {
-                s3.upload(params, (err, data) => {
-                    if (err) reject(err);
-                    else resolve(`${R2_PUBLIC_URL}/${filePath}`);
-                });
-            });
-        }
-
-        // --- 5. 投稿ボタン処理 ---
+        // ==========================================
+        // 📤 2. 新規投稿処理
+        // ==========================================
         document.getElementById('submitBtn').addEventListener('click', async () => {
-            const title = document.getElementById('titleInput').value.trim();
-            const content = document.getElementById('contentInput').value.trim();
+            const titleInput = document.getElementById('titleInput');
+            const contentInput = document.getElementById('contentInput');
+            const fileInput = document.getElementById('mediaFile');
+            const submitBtn = document.getElementById('submitBtn');
+
+            const title = titleInput.value.trim();
+            const content = contentInput.value.trim();
+            const file = fileInput.files[0];
 
             if (!title || !content) {
                 alert("タイトルと本文を入力してください。");
                 return;
             }
 
+            // 二重投稿防止
+            submitBtn.disabled = true;
+            submitBtn.innerText = "送信中...";
+
             let mediaUrl = null;
-            if (selectedFile) {
-                document.getElementById('submitBtn').innerText = "アップロード中...";
-                document.getElementById('submitBtn').disabled = true;
-                try {
-                    mediaUrl = await uploadToR2(selectedFile);
-                } catch (e) {
-                    alert("ファイルのアップロードに失敗しました。");
-                    console.error(e);
-                    document.getElementById('submitBtn').innerText = "投稿する";
-                    document.getElementById('submitBtn').disabled = false;
-                    return;
+
+            try {
+                // ファイルが存在する場合、Supabase Storageへアップロード
+                if (file) {
+                    // 50MBを超えるファイルはエラーにする（Supabase無料枠保護）
+                    if (file.size > 50 * 1024 * 1024) {
+                        alert("⚠️ ファイルサイズが大きすぎます。50MB以下のファイルを選択してください。");
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = "投稿する";
+                        return;
+                    }
+
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+                    const filePath = `uploads/${fileName}`;
+
+                    // 'media' バケットにファイルをアップロード
+                    const { error: uploadError } = await supabase.storage
+                        .from('media')
+                        .upload(filePath, file);
+
+                    if (uploadError) {
+                        throw new Error("ファイルのアップロードに失敗しました: " + uploadError.message);
+                    }
+
+                    // ファイルの公開URLを取得
+                    const { data: urlData } = supabase.storage
+                        .from('media')
+                        .getPublicUrl(filePath);
+
+                    mediaUrl = urlData.publicUrl;
                 }
+
+                // データベース 'threads' テーブルへ投稿情報を追加
+                const { error: insertError } = await supabase
+                    .from('threads')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        media_url: mediaUrl,
+                        created_at: new Date().toISOString()
+                    }]);
+
+                if (insertError) {
+                    throw new Error("データベースへの保存に失敗しました: " + insertError.message);
+                }
+
+                // 入力欄のリセット
+                titleInput.value = '';
+                contentInput.value = '';
+                fileInput.value = '';
+
+                // スレッド一覧の再読み込み
+                await fetchThreads();
+
+            } catch (err) {
+                alert(err.message);
+                console.error(err);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "投稿する";
             }
-
-            // Supabaseへスレッド書き込み
-            const { error } = await supabase.from('threads').insert([
-                { title, content, media_url: mediaUrl, created_at: new Date().toISOString() }
-            ]);
-
-            if (error) {
-                alert("投稿に失敗しました。");
-                console.error(error);
-            } else {
-                // フォーム初期化と一覧再読み込み
-                document.getElementById('titleInput').value = '';
-                document.getElementById('contentInput').value = '';
-                document.getElementById('mediaFile').value = '';
-                document.getElementById('attachmentPreview').innerText = '';
-                selectedFile = null;
-                fetchThreads();
-            }
-
-            document.getElementById('submitBtn').innerText = "投稿する";
-            document.getElementById('submitBtn').disabled = false;
         });
 
-        // --- 6. スレッド取得 & 5日経過したスレッドの自動削除 ---
+        // ==========================================
+        // 📥 3. スレッド取得 & 5日経過スレッドの自動削除
+        // ==========================================
         async function fetchThreads() {
             const container = document.getElementById('threadList');
+
             const { data: threads, error } = await supabase
                 .from('threads')
                 .select('*')
                 .order('created_at', { ascending: false });
 
             if (error) {
-                container.innerHTML = "スレッドの読み込みに失敗しました。";
+                container.innerHTML = `<div class="loading">データの読み込みに失敗しました。<br>${error.message}</div>`;
+                return;
+            }
+
+            if (!threads || threads.length === 0) {
+                container.innerHTML = '<div class="loading">投稿されたスレッドはまだありません。</div>';
                 return;
             }
 
@@ -188,46 +292,88 @@
                 const createdAt = new Date(thread.created_at).getTime();
                 const elapsed = now - createdAt;
 
-                // ⏰ 5日（120時間）を経過したスレッドの処理
+                // ⏰ 投稿から5日（120時間）以上経過している場合
                 if (elapsed > FIVE_DAYS_MS) {
-                    deleteExpiredThread(thread.id); // データベースから削除実行
-                    continue; // 画面描画をスキップ
+                    // バックグラウンドでデータベースから完全削除
+                    deleteExpiredThread(thread.id, thread.media_url);
+                    continue; // 画面表示をスキップ
                 }
 
-                // 5日以内の新しいスレッドのみ表示
+                // 画面描画用のカード要素を作成
                 const threadEl = document.createElement('div');
                 threadEl.className = 'card thread';
-                
+
                 let mediaHtml = '';
                 if (thread.media_url) {
-                    if (thread.media_url.match(/\.(mp4|webm|mov)$/i)) {
-                        mediaHtml = `<video src="${thread.media_url}" controls></video>`;
+                    // 動画ファイルか画像ファイルかを判定
+                    if (thread.media_url.match(/\.(mp4|webm|mov|ogg)$/i)) {
+                        mediaHtml = `
+                            <div class="thread-media">
+                                <video src="${thread.media_url}" controls preload="metadata"></video>
+                            </div>`;
                     } else {
-                        mediaHtml = `<img src="${thread.media_url}" style="max-width:100%; margin-top:10px;">`;
+                        mediaHtml = `
+                            <div class="thread-media">
+                                <img src="${thread.media_url}" alt="添付画像" loading="lazy">
+                            </div>`;
                     }
                 }
 
+                const postDate = new Date(thread.created_at).toLocaleString('ja-JP');
+
                 threadEl.innerHTML = `
-                    <h3>${escapeHtml(thread.title)}</h3>
-                    <p>${escapeHtml(thread.content)}</p>
+                    <div class="thread-title">${escapeHtml(thread.title)}</div>
+                    <div class="thread-content">${escapeHtml(thread.content)}</div>
                     ${mediaHtml}
-                    <div class="thread-time">投稿日時: ${new Date(thread.created_at).toLocaleString()}</div>
+                    <div class="thread-footer">
+                        <span>投稿日時: ${postDate}</span>
+                        <span>自動消去まで: あと ${Math.ceil((FIVE_DAYS_MS - elapsed) / (1000 * 60 * 60 * 24))} 日</span>
+                    </div>
                 `;
+
                 container.appendChild(threadEl);
+            }
+
+            // 表示できるスレッドがなくなった場合
+            if (container.children.length === 0) {
+                container.innerHTML = '<div class="loading">表示できるスレッドがありません（すべて有効期限切れです）。</div>';
             }
         }
 
-        // 期限切れスレッド削除関数
-        async function deleteExpiredThread(id) {
-            await supabase.from('threads').delete().eq('id', id);
-            console.log(`🗑️ 5日以上経過したスレッド(ID: ${id})を削除しました。`);
+        // ==========================================
+        // 🗑️ 4. 期限切れスレッドの自動消去処理
+        // ==========================================
+        async function deleteExpiredThread(id, mediaUrl) {
+            try {
+                // 1. 添付ストレージファイルがある場合は削除
+                if (mediaUrl) {
+                    const urlParts = mediaUrl.split('/uploads/');
+                    if (urlParts.length > 1) {
+                        const filePath = `uploads/${urlParts[1]}`;
+                        await supabase.storage.from('media').remove([filePath]);
+                    }
+                }
+
+                // 2. データベースのレコードを削除
+                await supabase.from('threads').delete().eq('id', id);
+                console.log(`🗑️ 5日以上経過したため自動削除しました (ID: ${id})`);
+            } catch (err) {
+                console.error("自動削除エラー:", err);
+            }
         }
 
+        // HTMLエスケープ関数 (XSS対策)
         function escapeHtml(str) {
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
-        // 初期読み込み
+        // ページロード時に初期化実行
         fetchThreads();
     </script>
 </body>
