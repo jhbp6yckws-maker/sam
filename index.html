@@ -826,13 +826,13 @@
                 const threadMap = {};
                 data.forEach(post => {
                     const tId = post.thread_id;
-                    if (tId === 'admin-inquiries-log') return;
+                    if (!tId || tId === 'admin-inquiries-log') return;
                     if (!threadMap[tId]) {
-                        threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, rawBytes: 0, createdAt: new Date(post.created_at), updatedAt: new Date(post.created_at) };
+                        threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, rawBytes: 0, createdAt: new Date(post.created_at || Date.now()), updatedAt: new Date(post.created_at || Date.now()) };
                     }
                     threadMap[tId].count++;
                     threadMap[tId].rawBytes += calculateByteSize(post);
-                    const postDate = new Date(post.created_at);
+                    const postDate = new Date(post.created_at || Date.now());
                     if (postDate > threadMap[tId].updatedAt) threadMap[tId].updatedAt = postDate;
                 });
 
@@ -983,7 +983,7 @@
                         }
                     }
 
-                    const dateObj = new Date(res.created_at);
+                    const dateObj = new Date(res.created_at || Date.now());
                     const days = ['日', '月', '火', '水', '木', '金', '土'];
                     const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
 
@@ -1047,7 +1047,7 @@
             }
         }
 
-        // 新規スレッド作成処理（エラー詳細通知付き）
+        // 新規スレッド作成処理（修正版：ID自動採番対応）
         document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -1068,6 +1068,7 @@
             }
 
             try {
+                // idは指定せず自動採番にまかせる
                 const { data, error } = await _supabase.from('posts').insert([{
                     name: name,
                     subject: title,
@@ -1080,7 +1081,9 @@
 
                 if (error) {
                     console.error("スレッド作成エラー:", error);
-                    alert("❌ スレッド作成に失敗しました:\n" + error.message + "\n\n※SupabaseのSQL Editorで書き込み(INSERT)権限のポリシー(RLS)が許可されているか確認してください。");
+                    alert("❌ スレッド作成に失敗しました:\n" + error.message + "\n\n(コード: " + (error.code || '不明') + ")");
+                    btn.disabled = false;
+                    btn.innerText = "新規スレッドを立てる";
                     return;
                 }
 
@@ -1091,7 +1094,7 @@
                 showScreen('thread');
             } catch(err) {
                 console.error("例外エラー:", err);
-                alert("❌ エラーが発生しました:\n" + (err.message || err));
+                alert("❌ システムエラーが発生しました:\n" + (err.message || err));
             } finally {
                 btn.disabled = false;
                 btn.innerText = "新規スレッドを立てる";
