@@ -3,378 +3,663 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>掲示板 (5日間限定自動消去)</title>
+    <title>321掲示板</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Kiwi+Maru:wght@500&family=Lobster&family=M+PLUS+Rounded+1c:wght@500;800&family=Pacifico&family=Shippori+Mincho:wght@600&family=Yuji+Syuku&display=swap" rel="stylesheet">
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f4f6f8;
-            color: #333;
-            padding: 20px 10px;
-        }
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-        }
-        header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        header h1 {
-            font-size: 1.8rem;
-            color: #1a202c;
-        }
-        header p {
-            font-size: 0.85rem;
-            color: #718096;
-            margin-top: 4px;
-        }
-        .card {
-            background: #ffffff;
-            border-radius: 12px;
+            font-family: "ＭＳ Ｐゴシック", "MS PGothic", "ヒラギノ角ゴ Pro W3", sans-serif;
+            background-color: #EFEFEF;
+            color: #000000;
             padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding-bottom: 80px;
         }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            font-weight: bold;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-            color: #4a5568;
-        }
-        input[type="text"], textarea, input[type="file"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #cbd5e0;
-            border-radius: 6px;
-            font-size: 0.95rem;
-        }
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        .file-hint {
-            font-size: 0.8rem;
-            color: #e53e3e;
-            margin-top: 4px;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #3182ce;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        button:hover {
-            background-color: #2b6cb0;
-        }
-        button:disabled {
-            background-color: #a0aec0;
-            cursor: not-allowed;
-        }
-        .thread-list-title {
-            font-size: 1.3rem;
-            margin-bottom: 15px;
-            color: #2d3748;
-            border-left: 4px solid #3182ce;
-            padding-left: 10px;
-        }
-        .thread {
-            border: 1px solid #e2e8f0;
-            transition: transform 0.1s;
-        }
-        .thread-title {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #2b6cb0;
-            margin-bottom: 8px;
-        }
-        .thread-content {
-            font-size: 0.95rem;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            color: #2d3748;
-            margin-bottom: 12px;
-        }
-        .thread-media {
-            margin-top: 10px;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #000;
-        }
-        .thread-media img, .thread-media video {
-            width: 100%;
-            max-height: 450px;
-            object-fit: contain;
-            display: block;
-        }
-        .thread-footer {
-            margin-top: 12px;
-            font-size: 0.75rem;
-            color: #a0aec0;
+        .header-bar {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        .loading {
-            text-align: center;
-            color: #718096;
+        h1 {
+            color: #800000;
+            font-size: 24px;
+            border-bottom: 2px solid #800000;
+            padding-bottom: 5px;
+            margin: 0;
+        }
+        .admin-controls {
+            background-color: #e0e0e0;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .admin-badge {
+            background-color: #d9534f;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        .notice-bar {
+            background-color: #ffffcc;
+            border: 1px solid #dcdcdc;
+            padding: 8px;
+            font-size: 12px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .board-container {
+            background-color: #FFFFFF;
+            border: 1px solid #999999;
+            padding: 15px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        .btn-back {
+            display: inline-block;
+            margin-bottom: 15px;
+            background-color: #DDD;
+            border: 1px solid #666;
+            padding: 3px 10px;
+            color: #000;
+            text-decoration: none;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .btn-back:hover { background-color: #CCC; }
+
+        .form-box {
+            background-color: #F9F9F9;
+            border: 1px solid #CCC;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .form-box h3 {
+            margin-top: 0;
+            font-size: 14px;
+            color: #000080;
+            border-bottom: 1px dashed #CCC;
+            padding-bottom: 5px;
+        }
+        .form-row {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .form-row label {
+            font-size: 12px;
+            width: 70px;
+        }
+        input[type="text"], textarea, select {
+            border: 1px solid #666;
+            padding: 3px;
+            font-size: 13px;
+        }
+        input[type="text"] { width: 250px; }
+        textarea { width: 100%; height: 80px; box-sizing: border-box; }
+        button.submit-btn {
+            background-color: #ECE9D8;
+            border: 1px solid #7F9DB9;
+            padding: 3px 15px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        button.submit-btn:hover { background-color: #E3DFCE; }
+
+        .thread-summary {
+            border-bottom: 1px dotted #CCC;
+            padding: 10px 0;
+        }
+        .thread-title-link {
+            color: #0000CC;
+            font-weight: bold;
+            font-size: 16px;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .thread-title-link:hover { color: #FF0000; }
+        .thread-meta {
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .post-item {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #E0E0E0;
+        }
+        .post-header {
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+        .post-num { color: #0000CC; font-weight: bold; }
+        .post-name { color: #008000; font-weight: bold; }
+        .post-date { color: #666; font-size: 11px; }
+        .post-id { color: #666; font-size: 11px; }
+        .post-body {
+            font-size: 14px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 5px;
+        }
+
+        .media-preview {
+            margin-top: 8px;
+            max-width: 100%;
+        }
+        .media-preview img, .media-preview video {
+            max-width: 300px;
+            max-height: 300px;
+            border: 1px solid #CCC;
+            display: block;
+        }
+
+        .font-default { font-family: "ＭＳ Ｐゴシック", "MS PGothic", sans-serif; }
+        .font-mincho { font-family: 'Shippori Mincho', serif; }
+        .font-rounded { font-family: 'M PLUS Rounded 1c', sans-serif; }
+        .font-kiwi { font-family: 'Kiwi Maru', serif; }
+        .font-yuji { font-family: 'Yuji Syuku', serif; }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        .font-lobster { font-family: 'Lobster', cursive; }
+        .font-pacifico { font-family: 'Pacifico', cursive; }
+
+        .admin-delete-btn {
+            background: #d9534f;
+            color: white;
+            border: none;
+            padding: 1px 5px;
+            font-size: 10px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        /* パスワード認証モーダル */
+        .auth-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .auth-box {
+            background: white;
             padding: 20px;
+            border: 2px solid #800000;
+            text-align: center;
+            max-width: 300px;
+            width: 90%;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <header>
-            <h1>💬 掲示板</h1>
-            <p>※投稿された内容は 5日間（120時間）経過すると自動消去されます</p>
-        </header>
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-box">
+            <h3 style="color:#800000; margin-top:0;">321掲示板 認証</h3>
+            <p style="font-size:12px;">合い言葉を入力してください</p>
+            <input type="password" id="sitePassInput" style="width:80%; margin-bottom:10px; text-align:center;">
+            <br>
+            <button onclick="checkSiteAuth()" class="submit-btn">入室</button>
+        </div>
+    </div>
 
-        <div class="card">
-            <div class="form-group">
-                <label for="titleInput">タイトル</label>
-                <input type="text" id="titleInput" placeholder="スレッドのタイトルを入力">
+    <div class="header-bar">
+        <h1>321掲示板</h1>
+        <div class="admin-controls">
+            <span id="adminBadge" class="admin-badge" style="display:none;">管理者モード</span>
+            <button id="adminLoginBtn" onclick="toggleAdminLogin()" class="submit-btn">管理者ログイン</button>
+        </div>
+    </div>
+
+    <div class="notice-bar">
+        📢 <b>お知らせ:</b> 投稿から5日間（120時間）が経過したスレッドおよび投稿は自動的に削除されます。
+    </div>
+
+    <div class="board-container">
+        <div id="screenLobby" class="screen active">
+            <div class="form-box">
+                <h3>新規スレッド作成</h3>
+                <div class="form-row">
+                    <label>タイトル:</label>
+                    <input type="text" id="newThreadTitle" placeholder="スレッドのタイトル">
+                </div>
+                <div class="form-row">
+                    <label>名前:</label>
+                    <input type="text" id="newThreadName" value="名無しさん">
+                </div>
+                <div class="form-row">
+                    <label>フォント:</label>
+                    <select id="newThreadFont">
+                        <option value="font-default">標準 (MS PGothic)</option>
+                        <option value="font-mincho">明朝体 (しっぽり明朝)</option>
+                        <option value="font-rounded">丸ゴシック (M PLUS Rounded)</option>
+                        <option value="font-kiwi">手書き風 (Kiwi Maru)</option>
+                        <option value="font-yuji">毛筆風 (Yuji Syuku)</option>
+                        <option value="font-cinzel">Cinzel (西洋風)</option>
+                        <option value="font-lobster">Lobster (ポップ英語)</option>
+                        <option value="font-pacifico">Pacifico (筆記体英語)</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>本文:</label>
+                    <textarea id="newThreadBody" placeholder="スレッドの1番目の投稿内容..."></textarea>
+                </div>
+                <div class="form-row">
+                    <label>メディア:</label>
+                    <input type="file" id="newThreadMedia" accept="image/*,video/*">
+                </div>
+                <button class="submit-btn" id="btnCreateThread">新規スレッド作成</button>
             </div>
-            <div class="form-group">
-                <label for="contentInput">本文</label>
-                <textarea id="contentInput" placeholder="投稿内容を入力してください..."></textarea>
-            </div>
-            <div class="form-group">
-                <label for="mediaFile">画像・動画を添付 (任意)</label>
-                <input type="file" id="mediaFile" accept="image/*,video/*">
-                <div class="file-hint">※無料枠保護のため、動画は短いもの（50MB以下推奨）にしてください</div>
-            </div>
-            <button id="submitBtn">投稿する</button>
+
+            <h3 style="font-size:14px; color:#800000; border-bottom:1px solid #800000; padding-bottom:3px;">スレッド一覧</h3>
+            <div id="threadListArea">読み込み中...</div>
         </div>
 
-        <h2 class="thread-list-title">最新の投稿</h2>
-        <div id="threadList" class="loading">投稿を読み込んでいます...</div>
+        <div id="screenThread" class="screen">
+            <button class="btn-back" onclick="showScreen('lobby')">← スレッド一覧に戻る</button>
+            
+            <h2 id="currentThreadTitle" style="font-size:18px; color:#800000; margin-top:0;"></h2>
+            
+            <div id="postsArea">読み込み中...</div>
+
+            <div class="form-box" style="margin-top:20px;">
+                <h3>レスを投稿する</h3>
+                <div class="form-row">
+                    <label>名前:</label>
+                    <input type="text" id="newReplyName" value="名無しさん">
+                </div>
+                <div class="form-row">
+                    <label>フォント:</label>
+                    <select id="newReplyFont">
+                        <option value="font-default">標準 (MS PGothic)</option>
+                        <option value="font-mincho">明朝体</option>
+                        <option value="font-rounded">丸ゴシック</option>
+                        <option value="font-kiwi">手書き風</option>
+                        <option value="font-yuji">毛筆風</option>
+                        <option value="font-cinzel">Cinzel</option>
+                        <option value="font-lobster">Lobster</option>
+                        <option value="font-pacifico">Pacifico</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>本文:</label>
+                    <textarea id="newReplyBody" placeholder="レス内容を入力..."></textarea>
+                </div>
+                <div class="form-row">
+                    <label>メディア:</label>
+                    <input type="file" id="newReplyMedia" accept="image/*,video/*">
+                </div>
+                <button class="submit-btn" id="btnCreateReply">書き込む</button>
+            </div>
+        </div>
     </div>
 
     <script>
         // ==========================================
-        // 🛠️ 1. Supabase 接続設定 (ここを変更してください)
+        // 🛠️ Supabase 設定 (接続情報)
         // ==========================================
         const SUPABASE_URL = 'YOUR_SUPABASE_URL';
         const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-        
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // 定数設定: 5日間 (ミリ秒)
-        const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
+        // 定数設定
+        const SITE_PASSWORD = "321"; // 合言葉
+        const ADMIN_PASSWORD = "admin"; // 管理者パスワード
+        const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000; // 5日間 (ミリ秒)
+
+        let isAdmin = false;
+        let activeThreadId = null;
+
+        // --- 認証機能 ---
+        function checkSiteAuth() {
+            const pass = document.getElementById('sitePassInput').value;
+            if (pass === SITE_PASSWORD) {
+                sessionStorage.setItem('site_authenticated', 'true');
+                document.getElementById('authOverlay').style.display = 'none';
+            } else {
+                alert("合い言葉が違います");
+            }
+        }
+
+        function checkSiteAccessAndAuth() {
+            if (sessionStorage.getItem('site_authenticated') === 'true') {
+                document.getElementById('authOverlay').style.display = 'none';
+                return true;
+            }
+            return false;
+        }
+
+        function toggleAdminLogin() {
+            if (isAdmin) {
+                isAdmin = false;
+                updateAdminUI();
+                alert("管理者ログアウトしました。");
+            } else {
+                const pass = prompt("管理者パスワードを入力してください:");
+                if (pass === ADMIN_PASSWORD) {
+                    isAdmin = true;
+                    updateAdminUI();
+                    alert("管理者としてログインしました。");
+                } else if (pass !== null) {
+                    alert("パスワードが違います。");
+                }
+            }
+        }
+
+        function updateAdminUI() {
+            const badge = document.getElementById('adminBadge');
+            const btn = document.getElementById('adminLoginBtn');
+            if (isAdmin) {
+                badge.style.display = 'inline';
+                btn.innerText = 'ログアウト';
+            } else {
+                badge.style.display = 'none';
+                btn.innerText = '管理者ログイン';
+            }
+            if (activeThreadId) renderActiveThread(); else fetchThreads();
+        }
+
+        // --- 画面切り替え ---
+        function showScreen(screenName) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            if (screenName === 'lobby') {
+                activeThreadId = null;
+                window.location.hash = '';
+                document.getElementById('screenLobby').classList.add('active');
+                fetchThreads();
+            } else if (screenName === 'thread') {
+                document.getElementById('screenThread').classList.add('active');
+                renderActiveThread();
+            }
+        }
+
+        // --- メディアファイルアップロード ---
+        async function uploadMedia(file) {
+            if (!file) return null;
+            if (file.size > 50 * 1024 * 1024) {
+                alert("ファイルサイズは50MB以下にしてください。");
+                return null;
+            }
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+            const filePath = `uploads/${fileName}`;
+
+            const { error } = await _supabase.storage.from('media').upload(filePath, file);
+            if (error) {
+                console.error("Upload error:", error);
+                alert("メディアのアップロードに失敗しました。");
+                return null;
+            }
+            const { data } = _supabase.storage.from('media').getPublicUrl(filePath);
+            return data.publicUrl;
+        }
 
         // ==========================================
-        // 📤 2. 新規投稿処理
+        // 📥 スレッド一覧取得 & 5日経過の自動消去
         // ==========================================
-        document.getElementById('submitBtn').addEventListener('click', async () => {
-            const titleInput = document.getElementById('titleInput');
-            const contentInput = document.getElementById('contentInput');
-            const fileInput = document.getElementById('mediaFile');
-            const submitBtn = document.getElementById('submitBtn');
+        async function fetchThreads() {
+            const container = document.getElementById('threadListArea');
+            const { data: posts, error } = await _supabase
+                .from('posts')
+                .select('*')
+                .order('created_at', { ascending: true });
 
-            const title = titleInput.value.trim();
-            const content = contentInput.value.trim();
-            const file = fileInput.files[0];
+            if (error) {
+                container.innerHTML = 'スレッドの読み込みに失敗しました。';
+                return;
+            }
 
-            if (!title || !content) {
+            // thread_id ごとにグループ化
+            const threadsMap = {};
+            const now = new Date().getTime();
+
+            posts.forEach(post => {
+                if (!threadsMap[post.thread_id]) {
+                    threadsMap[post.thread_id] = [];
+                }
+                threadsMap[post.thread_id].push(post);
+            });
+
+            container.innerHTML = '';
+            const threadIds = Object.keys(threadsMap);
+
+            if (threadIds.length === 0) {
+                container.innerHTML = '<div style="font-size:12px; color:#666;">スレッドはありません。</div>';
+                return;
+            }
+
+            // 新しい順に並び替え
+            threadIds.reverse();
+
+            for (const tId of threadIds) {
+                const threadPosts = threadsMap[tId];
+                const firstPost = threadPosts[0]; // 親投稿
+                const createdAt = new Date(firstPost.created_at).getTime();
+                const elapsed = now - createdAt;
+
+                // ⏰ 投稿から5日（120時間）以上経過している場合は自動削除
+                if (elapsed > FIVE_DAYS_MS) {
+                    deleteExpiredThread(tId);
+                    continue; // 表示しない
+                }
+
+                const replyCount = threadPosts.length - 1;
+                const threadTitle = firstPost.title || '無題';
+
+                const threadEl = document.createElement('div');
+                threadEl.className = 'thread-summary';
+                threadEl.innerHTML = `
+                    <div>
+                        <span class="thread-title-link" onclick="openThread('${tId}')">${escapeHtml(threadTitle)}</span>
+                        ${isAdmin ? `<button class="admin-delete-btn admin-delete-thread-btn" data-threadid="${tId}">スレッド削除</button>` : ''}
+                    </div>
+                    <div class="thread-meta">
+                        レス数: ${replyCount} | 作成日時: ${new Date(firstPost.created_at).toLocaleString()} | 自動消去まで: あと${Math.ceil((FIVE_DAYS_MS - elapsed) / (1000 * 60 * 60 * 24))}日
+                    </div>
+                `;
+                container.appendChild(threadEl);
+            }
+        }
+
+        function openThread(threadId) {
+            activeThreadId = threadId;
+            window.location.hash = threadId;
+            showScreen('thread');
+        }
+
+        // ==========================================
+        // 💬 スレッド詳細表示
+        // ==========================================
+        async function renderActiveThread() {
+            if (!activeThreadId) return;
+            const container = document.getElementById('postsArea');
+            const titleEl = document.getElementById('currentThreadTitle');
+
+            const { data: posts, error } = await _supabase
+                .from('posts')
+                .select('*')
+                .eq('thread_id', activeThreadId)
+                .order('created_at', { ascending: true });
+
+            if (error || !posts || posts.length === 0) {
+                container.innerHTML = '投稿が存在しないか削除されました。';
+                return;
+            }
+
+            titleEl.innerText = posts[0].title || '無題';
+            container.innerHTML = '';
+
+            posts.forEach((post, index) => {
+                const postEl = document.createElement('div');
+                postEl.className = `post-item ${post.font_style || 'font-default'}`;
+
+                let mediaHtml = '';
+                if (post.media_url) {
+                    if (post.media_url.match(/\.(mp4|webm|mov)$/i)) {
+                        mediaHtml = `<div class="media-preview"><video src="${post.media_url}" controls></video></div>`;
+                    } else {
+                        mediaHtml = `<div class="media-preview"><img src="${post.media_url}" alt="添付"></div>`;
+                    }
+                }
+
+                postEl.innerHTML = `
+                    <div class="post-header">
+                        <span class="post-num">${index + 1}</span> : 
+                        <span class="post-name">${escapeHtml(post.name || '名無しさん')}</span> 
+                        <span class="post-date">[${new Date(post.created_at).toLocaleString()}]</span>
+                        ${isAdmin ? `<button class="admin-delete-btn" onclick="deleteSinglePost(${post.id})">削除</button>` : ''}
+                    </div>
+                    <div class="post-body">${escapeHtml(post.body)}</div>
+                    ${mediaHtml}
+                `;
+                container.appendChild(postEl);
+            });
+        }
+
+        // ==========================================
+        // ➕ 新規スレッド作成処理
+        // ==========================================
+        document.getElementById('btnCreateThread').addEventListener('click', async () => {
+            const title = document.getElementById('newThreadTitle').value.trim();
+            const name = document.getElementById('newThreadName').value.trim() || '名無しさん';
+            const font = document.getElementById('newThreadFont').value;
+            const body = document.getElementById('newThreadBody').value.trim();
+            const file = document.getElementById('newThreadMedia').files[0];
+
+            if (!title || !body) {
                 alert("タイトルと本文を入力してください。");
                 return;
             }
 
-            // 二重投稿防止
-            submitBtn.disabled = true;
-            submitBtn.innerText = "送信中...";
+            const btn = document.getElementById('btnCreateThread');
+            btn.disabled = true;
+            btn.innerText = "作成中...";
 
-            let mediaUrl = null;
+            const mediaUrl = await uploadMedia(file);
+            const threadId = 't_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
 
-            try {
-                // ファイルが存在する場合、Supabase Storageへアップロード
-                if (file) {
-                    // 50MBを超えるファイルはエラーにする（Supabase無料枠保護）
-                    if (file.size > 50 * 1024 * 1024) {
-                        alert("⚠️ ファイルサイズが大きすぎます。50MB以下のファイルを選択してください。");
-                        submitBtn.disabled = false;
-                        submitBtn.innerText = "投稿する";
-                        return;
-                    }
+            const { error } = await _supabase.from('posts').insert([{
+                thread_id: threadId,
+                title: title,
+                name: name,
+                font_style: font,
+                body: body,
+                media_url: mediaUrl
+            }]);
 
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-                    const filePath = `uploads/${fileName}`;
+            btn.disabled = false;
+            btn.innerText = "新規スレッド作成";
 
-                    // 'media' バケットにファイルをアップロード
-                    const { error: uploadError } = await supabase.storage
-                        .from('media')
-                        .upload(filePath, file);
-
-                    if (uploadError) {
-                        throw new Error("ファイルのアップロードに失敗しました: " + uploadError.message);
-                    }
-
-                    // ファイルの公開URLを取得
-                    const { data: urlData } = supabase.storage
-                        .from('media')
-                        .getPublicUrl(filePath);
-
-                    mediaUrl = urlData.publicUrl;
-                }
-
-                // データベース 'threads' テーブルへ投稿情報を追加
-                const { error: insertError } = await supabase
-                    .from('threads')
-                    .insert([{
-                        title: title,
-                        content: content,
-                        media_url: mediaUrl,
-                        created_at: new Date().toISOString()
-                    }]);
-
-                if (insertError) {
-                    throw new Error("データベースへの保存に失敗しました: " + insertError.message);
-                }
-
-                // 入力欄のリセット
-                titleInput.value = '';
-                contentInput.value = '';
-                fileInput.value = '';
-
-                // スレッド一覧の再読み込み
-                await fetchThreads();
-
-            } catch (err) {
-                alert(err.message);
-                console.error(err);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerText = "投稿する";
+            if (error) {
+                alert("スレッド作成に失敗しました: " + error.message);
+            } else {
+                document.getElementById('newThreadTitle').value = '';
+                document.getElementById('newThreadBody').value = '';
+                document.getElementById('newThreadMedia').value = '';
+                openThread(threadId);
             }
         });
 
         // ==========================================
-        // 📥 3. スレッド取得 & 5日経過スレッドの自動削除
+        // ✍️ 返信投稿処理
         // ==========================================
-        async function fetchThreads() {
-            const container = document.getElementById('threadList');
+        document.getElementById('btnCreateReply').addEventListener('click', async () => {
+            if (!activeThreadId) return;
 
-            const { data: threads, error } = await supabase
-                .from('threads')
-                .select('*')
-                .order('created_at', { ascending: false });
+            const name = document.getElementById('newReplyName').value.trim() || '名無しさん';
+            const font = document.getElementById('newReplyFont').value;
+            const body = document.getElementById('newReplyBody').value.trim();
+            const file = document.getElementById('newReplyMedia').files[0];
+
+            if (!body) {
+                alert("本文を入力してください。");
+                return;
+            }
+
+            const btn = document.getElementById('btnCreateReply');
+            btn.disabled = true;
+            btn.innerText = "送信中...";
+
+            const mediaUrl = await uploadMedia(file);
+
+            const { error } = await _supabase.from('posts').insert([{
+                thread_id: activeThreadId,
+                name: name,
+                font_style: font,
+                body: body,
+                media_url: mediaUrl
+            }]);
+
+            btn.disabled = false;
+            btn.innerText = "書き込む";
 
             if (error) {
-                container.innerHTML = `<div class="loading">データの読み込みに失敗しました。<br>${error.message}</div>`;
-                return;
+                alert("書き込みに失敗しました: " + error.message);
+            } else {
+                document.getElementById('newReplyBody').value = '';
+                document.getElementById('newReplyMedia').value = '';
+                renderActiveThread();
             }
+        });
 
-            if (!threads || threads.length === 0) {
-                container.innerHTML = '<div class="loading">投稿されたスレッドはまだありません。</div>';
-                return;
-            }
-
-            container.innerHTML = '';
-            const now = new Date().getTime();
-
-            for (const thread of threads) {
-                const createdAt = new Date(thread.created_at).getTime();
-                const elapsed = now - createdAt;
-
-                // ⏰ 投稿から5日（120時間）以上経過している場合
-                if (elapsed > FIVE_DAYS_MS) {
-                    // バックグラウンドでデータベースから完全削除
-                    deleteExpiredThread(thread.id, thread.media_url);
-                    continue; // 画面表示をスキップ
-                }
-
-                // 画面描画用のカード要素を作成
-                const threadEl = document.createElement('div');
-                threadEl.className = 'card thread';
-
-                let mediaHtml = '';
-                if (thread.media_url) {
-                    // 動画ファイルか画像ファイルかを判定
-                    if (thread.media_url.match(/\.(mp4|webm|mov|ogg)$/i)) {
-                        mediaHtml = `
-                            <div class="thread-media">
-                                <video src="${thread.media_url}" controls preload="metadata"></video>
-                            </div>`;
-                    } else {
-                        mediaHtml = `
-                            <div class="thread-media">
-                                <img src="${thread.media_url}" alt="添付画像" loading="lazy">
-                            </div>`;
-                    }
-                }
-
-                const postDate = new Date(thread.created_at).toLocaleString('ja-JP');
-
-                threadEl.innerHTML = `
-                    <div class="thread-title">${escapeHtml(thread.title)}</div>
-                    <div class="thread-content">${escapeHtml(thread.content)}</div>
-                    ${mediaHtml}
-                    <div class="thread-footer">
-                        <span>投稿日時: ${postDate}</span>
-                        <span>自動消去まで: あと ${Math.ceil((FIVE_DAYS_MS - elapsed) / (1000 * 60 * 60 * 24))} 日</span>
-                    </div>
-                `;
-
-                container.appendChild(threadEl);
-            }
-
-            // 表示できるスレッドがなくなった場合
-            if (container.children.length === 0) {
-                container.innerHTML = '<div class="loading">表示できるスレッドがありません（すべて有効期限切れです）。</div>';
+        // ==========================================
+        // 🗑️ 削除処理 (管理者 & 自動消去)
+        // ==========================================
+        async function deleteSinglePost(postId) {
+            if (confirm("この投稿を削除しますか？")) {
+                const { error } = await _supabase.from('posts').delete().eq('id', postId);
+                if (error) alert("削除に失敗しました: " + error.message);
+                else renderActiveThread();
             }
         }
 
-        // ==========================================
-        // 🗑️ 4. 期限切れスレッドの自動消去処理
-        // ==========================================
-        async function deleteExpiredThread(id, mediaUrl) {
-            try {
-                // 1. 添付ストレージファイルがある場合は削除
-                if (mediaUrl) {
-                    const urlParts = mediaUrl.split('/uploads/');
-                    if (urlParts.length > 1) {
-                        const filePath = `uploads/${urlParts[1]}`;
-                        await supabase.storage.from('media').remove([filePath]);
-                    }
-                }
-
-                // 2. データベースのレコードを削除
-                await supabase.from('threads').delete().eq('id', id);
-                console.log(`🗑️ 5日以上経過したため自動削除しました (ID: ${id})`);
-            } catch (err) {
-                console.error("自動削除エラー:", err);
-            }
+        async function deleteExpiredThread(threadId) {
+            await _supabase.from('posts').delete().eq('thread_id', threadId);
+            console.log(`🗑️ 5日以上経過したスレッド(${threadId})を自動消去しました。`);
         }
 
-        // HTMLエスケープ関数 (XSS対策)
+        document.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('admin-delete-thread-btn')) {
+                const targetThreadId = e.target.getAttribute('data-threadid');
+                if (confirm("【管理者】このスレッドを完全削除しますか？")) {
+                    const { error } = await _supabase.from('posts').delete().eq('thread_id', targetThreadId);
+                    if (error) alert("削除に失敗しました: " + error.message);
+                    else fetchThreads();
+                }
+            }
+        });
+
         function escapeHtml(str) {
             if (!str) return '';
-            return str
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
-        // ページロード時に初期化実行
-        fetchThreads();
+        // Realtimeリアルタイム同期機能
+        _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+            if (activeThreadId) { renderActiveThread(); } else fetchThreads();
+        }).subscribe();
+
+        window.addEventListener('DOMContentLoaded', () => {
+            checkSiteAccessAndAuth();
+            const hash = window.location.hash.substring(1);
+            if (hash) { activeThreadId = hash; showScreen('thread'); } else showScreen('lobby');
+        });
     </script>
 </body>
 </html>
