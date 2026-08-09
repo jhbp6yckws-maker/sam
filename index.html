@@ -3,18 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>321掲示板</title>
+    <title>321掲示板 (高機能版)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Kiwi+Maru:wght@500&family=Lobster&family=M+PLUS+Rounded+1c:wght@500;800&family=Pacifico&family=Shippori+Mincho:wght@600&family=Yuji+Syuku&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #EFEFEF;
+            --text-color: #000000;
+            --container-bg: #FFFFFF;
+            --border-color: #999999;
+            --header-color: #800000;
+            --form-bg: #F9F9F9;
+            --link-color: #0000CC;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #E0E0E0;
+            --container-bg: #1E1E1E;
+            --border-color: #444444;
+            --header-color: #FF6B6B;
+            --form-bg: #2A2A2A;
+            --link-color: #64B5F6;
+        }
+
         body {
             font-family: "ＭＳ Ｐゴシック", "MS PGothic", "ヒラギノ角ゴ Pro W3", sans-serif;
-            background-color: #EFEFEF;
-            color: #000000;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             padding: 20px;
             padding-bottom: 80px;
+            transition: background-color 0.3s, color 0.3s;
         }
         .header-bar {
             display: flex;
@@ -25,15 +46,15 @@
             gap: 10px;
         }
         h1 {
-            color: #800000;
+            color: var(--header-color);
             font-size: 24px;
-            border-bottom: 2px solid #800000;
+            border-bottom: 2px solid var(--header-color);
             padding-bottom: 5px;
             margin: 0;
         }
         .admin-controls {
-            background-color: #e0e0e0;
-            border: 1px solid #ccc;
+            background-color: var(--form-bg);
+            border: 1px solid var(--border-color);
             padding: 5px 10px;
             font-size: 12px;
             display: flex;
@@ -56,9 +77,14 @@
             margin-bottom: 15px;
             color: #333;
         }
+        body.dark-mode .notice-bar {
+            background-color: #333300;
+            color: #ffffcc;
+            border-color: #555500;
+        }
         .board-container {
-            background-color: #FFFFFF;
-            border: 1px solid #999999;
+            background-color: var(--container-bg);
+            border: 1px solid var(--border-color);
             padding: 15px;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
         }
@@ -68,27 +94,26 @@
         .btn-back {
             display: inline-block;
             margin-bottom: 15px;
-            background-color: #DDD;
-            border: 1px solid #666;
+            background-color: var(--form-bg);
+            border: 1px solid var(--border-color);
             padding: 3px 10px;
-            color: #000;
+            color: var(--text-color);
             text-decoration: none;
             font-size: 13px;
             cursor: pointer;
         }
-        .btn-back:hover { background-color: #CCC; }
 
         .form-box {
-            background-color: #F9F9F9;
-            border: 1px solid #CCC;
+            background-color: var(--form-bg);
+            border: 1px solid var(--border-color);
             padding: 10px;
             margin-bottom: 20px;
         }
         .form-box h3 {
             margin-top: 0;
             font-size: 14px;
-            color: #000080;
-            border-bottom: 1px dashed #CCC;
+            color: var(--header-color);
+            border-bottom: 1px dashed var(--border-color);
             padding-bottom: 5px;
         }
         .form-row {
@@ -103,7 +128,9 @@
             width: 70px;
         }
         input[type="text"], textarea, select {
-            border: 1px solid #666;
+            border: 1px solid var(--border-color);
+            background-color: var(--container-bg);
+            color: var(--text-color);
             padding: 3px;
             font-size: 13px;
         }
@@ -111,6 +138,7 @@
         textarea { width: 100%; height: 80px; box-sizing: border-box; }
         button.submit-btn {
             background-color: #ECE9D8;
+            color: #000;
             border: 1px solid #7F9DB9;
             padding: 3px 15px;
             font-size: 12px;
@@ -119,11 +147,11 @@
         button.submit-btn:hover { background-color: #E3DFCE; }
 
         .thread-summary {
-            border-bottom: 1px dotted #CCC;
+            border-bottom: 1px dotted var(--border-color);
             padding: 10px 0;
         }
         .thread-title-link {
-            color: #0000CC;
+            color: var(--link-color);
             font-weight: bold;
             font-size: 16px;
             text-decoration: underline;
@@ -132,23 +160,28 @@
         .thread-title-link:hover { color: #FF0000; }
         .thread-meta {
             font-size: 11px;
-            color: #666;
+            color: #888;
             margin-top: 3px;
         }
 
         .post-item {
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 1px solid #E0E0E0;
+            border-bottom: 1px solid var(--border-color);
         }
         .post-header {
             font-size: 13px;
             margin-bottom: 5px;
         }
-        .post-num { color: #0000CC; font-weight: bold; }
+        .post-num {
+            color: var(--link-color);
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .post-num:hover { text-decoration: underline; }
         .post-name { color: #008000; font-weight: bold; }
-        .post-date { color: #666; font-size: 11px; }
-        .post-id { color: #666; font-size: 11px; }
+        .trip-code { color: #888800; font-weight: normal; font-size: 11px; }
+        .post-date { color: #888; font-size: 11px; }
         .post-body {
             font-size: 14px;
             line-height: 1.4;
@@ -157,6 +190,26 @@
             margin-top: 5px;
         }
 
+        /* 引用アンカーのハイライト */
+        .post-anchor {
+            color: var(--link-color);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        /* いいねボタン */
+        .like-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 2px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+        .like-btn:hover { background-color: var(--form-bg); }
+
         .media-preview {
             margin-top: 8px;
             max-width: 100%;
@@ -164,8 +217,25 @@
         .media-preview img, .media-preview video {
             max-width: 300px;
             max-height: 300px;
-            border: 1px solid #CCC;
+            border: 1px solid var(--border-color);
             display: block;
+            cursor: pointer;
+        }
+
+        /* ライトボックス（画像拡大表示） */
+        .lightbox-overlay {
+            position: fixed;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .lightbox-overlay img, .lightbox-overlay video {
+            max-width: 90%;
+            max-height: 90%;
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
         }
 
         .font-default { font-family: "ＭＳ Ｐゴシック", "MS PGothic", sans-serif; }
@@ -187,7 +257,6 @@
             margin-left: 5px;
         }
 
-        /* 🔒 パスワード認証モーダル */
         .auth-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -204,6 +273,7 @@
             text-align: center;
             max-width: 300px;
             width: 90%;
+            color: #000;
         }
     </style>
 </head>
@@ -219,20 +289,30 @@
         </div>
     </div>
 
+    <div id="lightbox" class="lightbox-overlay" onclick="closeLightbox()">
+        <div id="lightboxContent"></div>
+    </div>
+
     <div class="header-bar">
         <h1>321掲示板</h1>
         <div class="admin-controls">
+            <button onclick="toggleDarkMode()" class="submit-btn">🌙/☀️ テーマ切替</button>
             <span id="adminBadge" class="admin-badge" style="display:none;">管理者モード</span>
             <button id="adminLoginBtn" onclick="toggleAdminLogin()" class="submit-btn">管理者ログイン</button>
         </div>
     </div>
 
     <div class="notice-bar">
-        📢 <b>お知らせ:</b> 投稿から5日間（120時間）が経過したスレッドおよび投稿は自動的に削除されます。
+        📢 <b>お知らせ:</b> 投稿から5日間（120時間）が経過したスレッドは自動的に削除されます。名前欄に <code>名前#パスワード</code> と書くとトリップが付与されます。
     </div>
 
     <div class="board-container">
         <div id="screenLobby" class="screen active">
+            
+            <div style="margin-bottom: 15px; display: flex; gap: 5px;">
+                <input type="text" id="searchBar" placeholder="スレッドタイトルを検索..." style="flex:1;" oninput="filterThreads()">
+            </div>
+
             <div class="form-box">
                 <h3>新規スレッド作成</h3>
                 <div class="form-row">
@@ -241,7 +321,7 @@
                 </div>
                 <div class="form-row">
                     <label>名前:</label>
-                    <input type="text" id="newThreadName" value="名無しさん">
+                    <input type="text" id="newThreadName" placeholder="名無しさん#トリップ用パス">
                 </div>
                 <div class="form-row">
                     <label>フォント:</label>
@@ -267,14 +347,14 @@
                 <button class="submit-btn" id="btnCreateThread">新規スレッド作成</button>
             </div>
 
-            <h3 style="font-size:14px; color:#800000; border-bottom:1px solid #800000; padding-bottom:3px;">スレッド一覧</h3>
+            <h3 style="font-size:14px; color:var(--header-color); border-bottom:1px solid var(--header-color); padding-bottom:3px;">スレッド一覧</h3>
             <div id="threadListArea">読み込み中...</div>
         </div>
 
         <div id="screenThread" class="screen">
             <button class="btn-back" onclick="showScreen('lobby')">← スレッド一覧に戻る</button>
             
-            <h2 id="currentThreadTitle" style="font-size:18px; color:#800000; margin-top:0;"></h2>
+            <h2 id="currentThreadTitle" style="font-size:18px; color:var(--header-color); margin-top:0;"></h2>
             
             <div id="postsArea">読み込み中...</div>
 
@@ -282,7 +362,7 @@
                 <h3>レスを投稿する</h3>
                 <div class="form-row">
                     <label>名前:</label>
-                    <input type="text" id="newReplyName" value="名無しさん">
+                    <input type="text" id="newReplyName" placeholder="名無しさん#トリップ用パス">
                 </div>
                 <div class="form-row">
                     <label>フォント:</label>
@@ -318,13 +398,24 @@
         const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // 定数設定
-        const SITE_PASSWORD = "321"; // 合言葉
-        const ADMIN_PASSWORD = "admin"; // 管理者パスワード
-        const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000; // 5日間 (ミリ秒)
+        // 定数 & NGワードリスト
+        const SITE_PASSWORD = "321"; 
+        const ADMIN_PASSWORD = "admin"; 
+        const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000; 
+        const NG_WORDS = ["バカ", "アホ", "死ね", "殺す"]; // 簡易NGワードフィルター
 
         let isAdmin = false;
         let activeThreadId = null;
+        let cachedThreads = [];
+
+        // --- 🌙 ダークモード切替 ---
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('dark_mode', document.body.classList.contains('dark-mode'));
+        }
+        if (localStorage.getItem('dark_mode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
 
         // --- 🔒 アクセス制限・合い言葉認証 ---
         function checkSiteAuth() {
@@ -345,7 +436,7 @@
             return false;
         }
 
-        // --- 🔑 管理者ログイン処理 ---
+        // --- 🔑 管理者機能 ---
         function toggleAdminLogin() {
             if (isAdmin) {
                 isAdmin = false;
@@ -376,7 +467,7 @@
             if (activeThreadId) renderActiveThread(); else fetchThreads();
         }
 
-        // --- 画面切り替え ---
+        // --- 画面切替 ---
         function showScreen(screenName) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             if (screenName === 'lobby') {
@@ -388,6 +479,24 @@
                 document.getElementById('screenThread').classList.add('active');
                 renderActiveThread();
             }
+        }
+
+        // --- 🏷️ トリップ機能生成 (名前#パスワード) ---
+        function parseNameAndTrip(rawName) {
+            if (!rawName) return { name: '名無しさん', trip: '' };
+            const parts = rawName.split('#');
+            if (parts.length < 2 || !parts[1]) {
+                return { name: parts[0] || '名無しさん', trip: '' };
+            }
+            const name = parts[0] || '名無しさん';
+            // 簡易ハッシュ化でトリップコード作成
+            let hash = 0;
+            for (let i = 0; i < parts[1].length; i++) {
+                hash = (hash << 5) - hash + parts[1].charCodeAt(i);
+                hash |= 0;
+            }
+            const tripCode = '◆' + Math.abs(hash).toString(36).substring(0, 8);
+            return { name, trip: tripCode };
         }
 
         // --- メディアファイルアップロード ---
@@ -436,16 +545,8 @@
                 threadsMap[post.thread_id].push(post);
             });
 
-            container.innerHTML = '';
-            const threadIds = Object.keys(threadsMap);
-
-            if (threadIds.length === 0) {
-                container.innerHTML = '<div style="font-size:12px; color:#666;">スレッドはありません。</div>';
-                return;
-            }
-
-            // 新しい順にソート
-            threadIds.reverse();
+            cachedThreads = [];
+            const threadIds = Object.keys(threadsMap).reverse();
 
             for (const tId of threadIds) {
                 const threadPosts = threadsMap[tId];
@@ -453,28 +554,54 @@
                 const createdAt = new Date(firstPost.created_at).getTime();
                 const elapsed = now - createdAt;
 
-                // ⏰ 5日（120時間）を経過したスレッドの自動消去
                 if (elapsed > FIVE_DAYS_MS) {
                     deleteExpiredThread(tId);
                     continue;
                 }
 
-                const replyCount = threadPosts.length - 1;
-                const threadTitle = firstPost.title || '無題';
+                cachedThreads.push({
+                    id: tId,
+                    title: firstPost.title || '無題',
+                    replyCount: threadPosts.length - 1,
+                    createdAt: firstPost.created_at,
+                    elapsed: elapsed
+                });
+            }
 
+            renderFilteredThreads();
+        }
+
+        // スレッドの検索フィルター描画
+        function filterThreads() {
+            renderFilteredThreads();
+        }
+
+        function renderFilteredThreads() {
+            const container = document.getElementById('threadListArea');
+            const query = document.getElementById('searchBar').value.toLowerCase().trim();
+
+            const filtered = cachedThreads.filter(t => t.title.toLowerCase().includes(query));
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="font-size:12px; color:#888;">一致するスレッドはありません。</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            filtered.forEach(t => {
                 const threadEl = document.createElement('div');
                 threadEl.className = 'thread-summary';
                 threadEl.innerHTML = `
                     <div>
-                        <span class="thread-title-link" data-id="${tId}">${escapeHtml(threadTitle)}</span>
-                        ${isAdmin ? `<button class="admin-delete-btn admin-delete-thread-btn" data-threadid="${tId}">スレッド削除</button>` : ''}
+                        <span class="thread-title-link" data-id="${t.id}">${escapeHtml(t.title)}</span>
+                        ${isAdmin ? `<button class="admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">スレッド削除</button>` : ''}
                     </div>
                     <div class="thread-meta">
-                        レス数: ${replyCount} | 作成日時: ${new Date(firstPost.created_at).toLocaleString()} | 自動消去まで: あと${Math.ceil((FIVE_DAYS_MS - elapsed) / (1000 * 60 * 60 * 24))}日
+                        レス数: ${t.replyCount} | 作成日時: ${new Date(t.createdAt).toLocaleString()} | 自動消去まで: あと${Math.ceil((FIVE_DAYS_MS - t.elapsed) / (1000 * 60 * 60 * 24))}日
                     </div>
                 `;
                 container.appendChild(threadEl);
-            }
+            });
         }
 
         // ==========================================
@@ -503,27 +630,74 @@
                 const postEl = document.createElement('div');
                 postEl.className = `post-item ${post.font_style || 'font-default'}`;
 
+                // 本文内の >>1 などのアンカーリンク変換 & 本文表示
+                let formattedBody = escapeHtml(post.body);
+                formattedBody = formattedBody.replace(/&gt;&gt;(\d+)/g, '<span class="post-anchor" onclick="scrollToPost($1)">>>$1</span>');
+
                 let mediaHtml = '';
                 if (post.media_url) {
                     if (post.media_url.match(/\.(mp4|webm|mov)$/i)) {
                         mediaHtml = `<div class="media-preview"><video src="${post.media_url}" controls></video></div>`;
                     } else {
-                        mediaHtml = `<div class="media-preview"><img src="${post.media_url}" alt="添付"></div>`;
+                        mediaHtml = `<div class="media-preview"><img src="${post.media_url}" alt="添付" onclick="openLightbox('${post.media_url}')"></div>`;
                     }
                 }
 
+                // いいね数のローカル取得
+                const likesKey = `like_${post.id}`;
+                const localLikes = parseInt(localStorage.getItem(likesKey) || '0');
+
+                postEl.id = `post-${index + 1}`;
                 postEl.innerHTML = `
                     <div class="post-header">
-                        <span class="post-num">${index + 1}</span> : 
+                        <span class="post-num" onclick="addAnchor(${index + 1})">${index + 1}</span> : 
                         <span class="post-name">${escapeHtml(post.name || '名無しさん')}</span> 
                         <span class="post-date">[${new Date(post.created_at).toLocaleString()}]</span>
                         ${isAdmin ? `<button class="admin-delete-btn" onclick="deleteSinglePost(${post.id})">削除</button>` : ''}
                     </div>
-                    <div class="post-body">${escapeHtml(post.body)}</div>
+                    <div class="post-body">${formattedBody}</div>
                     ${mediaHtml}
+                    <button class="like-btn" onclick="addLike(${post.id})">👍 いいね <span id="like-count-${post.id}">${localLikes}</span></button>
                 `;
                 container.appendChild(postEl);
             });
+        }
+
+        // --- 📌 返信アンカー（>>1）追加 ---
+        function addAnchor(num) {
+            const textarea = document.getElementById('newReplyBody');
+            textarea.value += `>>${num}\n`;
+            textarea.focus();
+        }
+
+        function scrollToPost(num) {
+            const target = document.getElementById(`post-${num}`);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+                target.style.backgroundColor = 'rgba(255, 235, 59, 0.3)';
+                setTimeout(() => { target.style.backgroundColor = ''; }, 1500);
+            } else {
+                alert(`>>${num} の投稿は見つかりませんでした。`);
+            }
+        }
+
+        // --- 👍 いいね機能 ---
+        function addLike(postId) {
+            const likesKey = `like_${postId}`;
+            let count = parseInt(localStorage.getItem(likesKey) || '0') + 1;
+            localStorage.setItem(likesKey, count);
+            const countEl = document.getElementById(`like-count-${postId}`);
+            if (countEl) countEl.innerText = count;
+        }
+
+        // --- 🔍 ライトボックス (拡大表示) ---
+        function openLightbox(url) {
+            const content = document.getElementById('lightboxContent');
+            content.innerHTML = `<img src="${url}">`;
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+        function closeLightbox() {
+            document.getElementById('lightbox').style.display = 'none';
         }
 
         // ==========================================
@@ -531,7 +705,7 @@
         // ==========================================
         document.getElementById('btnCreateThread').addEventListener('click', async () => {
             const title = document.getElementById('newThreadTitle').value.trim();
-            const name = document.getElementById('newThreadName').value.trim() || '名無しさん';
+            const rawName = document.getElementById('newThreadName').value.trim();
             const font = document.getElementById('newThreadFont').value;
             const body = document.getElementById('newThreadBody').value.trim();
             const file = document.getElementById('newThreadMedia').files[0];
@@ -540,6 +714,15 @@
                 alert("タイトルと本文を入力してください。");
                 return;
             }
+
+            // NGワード判定
+            if (NG_WORDS.some(word => title.includes(word) || body.includes(word))) {
+                alert("⚠️ 不適切な単語が含まれているため投稿できません。");
+                return;
+            }
+
+            const { name, trip } = parseNameAndTrip(rawName);
+            const finalName = trip ? `${name} ${trip}` : name;
 
             const btn = document.getElementById('btnCreateThread');
             btn.disabled = true;
@@ -551,7 +734,7 @@
             const { error } = await _supabase.from('posts').insert([{
                 thread_id: threadId,
                 title: title,
-                name: name,
+                name: finalName,
                 font_style: font,
                 body: body,
                 media_url: mediaUrl
@@ -578,7 +761,7 @@
         document.getElementById('btnCreateReply').addEventListener('click', async () => {
             if (!activeThreadId) return;
 
-            const name = document.getElementById('newReplyName').value.trim() || '名無しさん';
+            const rawName = document.getElementById('newReplyName').value.trim();
             const font = document.getElementById('newReplyFont').value;
             const body = document.getElementById('newReplyBody').value.trim();
             const file = document.getElementById('newReplyMedia').files[0];
@@ -588,6 +771,14 @@
                 return;
             }
 
+            if (NG_WORDS.some(word => body.includes(word))) {
+                alert("⚠️ 不適切な単語が含まれているため投稿できません。");
+                return;
+            }
+
+            const { name, trip } = parseNameAndTrip(rawName);
+            const finalName = trip ? `${name} ${trip}` : name;
+
             const btn = document.getElementById('btnCreateReply');
             btn.disabled = true;
             btn.innerText = "送信中...";
@@ -596,7 +787,7 @@
 
             const { error } = await _supabase.from('posts').insert([{
                 thread_id: activeThreadId,
-                name: name,
+                name: finalName,
                 font_style: font,
                 body: body,
                 media_url: mediaUrl
@@ -627,10 +818,9 @@
 
         async function deleteExpiredThread(threadId) {
             await _supabase.from('posts').delete().eq('thread_id', threadId);
-            console.log(`🗑️ 5日以上経過したスレッド(${threadId})を自動消去しました。`);
         }
 
-        // イベントデリゲーション（クリックイベントの集約）
+        // イベントデリゲーション
         document.addEventListener('click', async (e) => {
             if (e.target.classList.contains('thread-title-link')) { 
                 activeThreadId = e.target.getAttribute('data-id'); 
@@ -641,24 +831,20 @@
                 const targetThreadId = e.target.getAttribute('data-threadid');
                 if (confirm("【管理者】このスレッドを完全削除しますか？")) {
                     const { error } = await _supabase.from('posts').delete().eq('thread_id', targetThreadId);
-                    if (error) {
-                        alert("スレッドの削除に失敗しました: " + error.message);
-                    } else {
-                        alert("スレッドを削除しました。");
-                        fetchThreads();
-                    }
+                    if (error) alert("削除に失敗しました: " + error.message);
+                    else fetchThreads();
                 }
             }
         });
 
-        // リアルタイム同期 & 1.5秒ポーリング
+        // リアルタイム同期 & 自動取得
         _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
             if (activeThreadId) { renderActiveThread(); } else fetchThreads();
         }).subscribe();
 
-        setInterval(() => { if (activeThreadId) renderActiveThread(); else fetchThreads(); }, 1500);
+        setInterval(() => { if (activeThreadId) renderActiveThread(); else fetchThreads(); }, 2000);
 
-        // 初期ロード時処理
+        // 初期化
         window.addEventListener('DOMContentLoaded', () => {
             updateAdminUI();
             if (!checkSiteAccessAndAuth()) return;
