@@ -352,14 +352,25 @@
                                         <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
                                         <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
                                         <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
+                                        <option value="#800080" style="color:#800080; font-weight:bold;">紫色</option>
+                                        <option value="#FF6600" style="color:#FF6600; font-weight:bold;">オレンジ</option>
+                                        <option value="#FF1493" style="color:#FF1493; font-weight:bold;">ピンク</option>
+                                        <option value="#008080" style="color:#008080; font-weight:bold;">ターコイズ</option>
+                                        <option value="#8B4513" style="color:#8B4513; font-weight:bold;">ブラウン</option>
+                                        <option value="#555555" style="color:#555555; font-weight:bold;">ダークグレー</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label>🔤 書体:</label>
                                     <select id="lobbyFmtFont">
                                         <option value="">標準(ゴシック)</option>
-                                        <option value="'Shippori Mincho', serif">明朝体</option>
-                                        <option value="'M PLUS Rounded 1c', sans-serif">丸ゴシック</option>
+                                        <option value="'Shippori Mincho', serif">明朝体 (しっぽり明朝)</option>
+                                        <option value="'M PLUS Rounded 1c', sans-serif">丸ゴシック (M PLUS)</option>
+                                        <option value="'Kiwi Maru', serif">キウイ丸</option>
+                                        <option value="'Yuji Syuku', serif">祐字 宿</option>
+                                        <option value="'Cinzel', serif">Cinzel (洋風銘字)</option>
+                                        <option value="'Lobster', cursive">Lobster (筆記体)</option>
+                                        <option value="'Pacifico', cursive">Pacifico (カジュアル)</option>
                                     </select>
                                 </div>
                             </div>
@@ -436,14 +447,25 @@
                                     <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
                                     <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
                                     <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
+                                    <option value="#800080" style="color:#800080; font-weight:bold;">紫色</option>
+                                    <option value="#FF6600" style="color:#FF6600; font-weight:bold;">オレンジ</option>
+                                    <option value="#FF1493" style="color:#FF1493; font-weight:bold;">ピンク</option>
+                                    <option value="#008080" style="color:#008080; font-weight:bold;">ターコイズ</option>
+                                    <option value="#8B4513" style="color:#8B4513; font-weight:bold;">ブラウン</option>
+                                    <option value="#555555" style="color:#555555; font-weight:bold;">ダークグレー</option>
                                 </select>
                             </div>
                             <div>
                                 <label>🔤 書体:</label>
                                 <select id="fmtFont">
                                     <option value="">標準(ゴシック)</option>
-                                    <option value="'Shippori Mincho', serif">明朝体</option>
-                                    <option value="'M PLUS Rounded 1c', sans-serif">丸ゴシック</option>
+                                    <option value="'Shippori Mincho', serif">明朝体 (しっぽり明朝)</option>
+                                    <option value="'M PLUS Rounded 1c', sans-serif">丸ゴシック (M PLUS)</option>
+                                    <option value="'Kiwi Maru', serif">キウイ丸</option>
+                                    <option value="'Yuji Syuku', serif">祐字 宿</option>
+                                    <option value="'Cinzel', serif">Cinzel (洋風銘字)</option>
+                                    <option value="'Lobster', cursive">Lobster (筆記体)</option>
+                                    <option value="'Pacifico', cursive">Pacifico (カジュアル)</option>
                                 </select>
                             </div>
                         </div>
@@ -788,10 +810,18 @@
         const imgModal = document.getElementById('imageModal');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
-        // データサイズ計算
-        function calculateByteSize(data) {
-            let jsonString = JSON.stringify(data);
-            return new Blob([jsonString]).size;
+        // データサイズ計算の共通処理
+        function calculateByteSize(item) {
+            if (!item) return 0;
+            let str = '';
+            if (Array.isArray(item)) {
+                str = JSON.stringify(item);
+            } else if (typeof item === 'object') {
+                str = JSON.stringify(item);
+            } else {
+                str = String(item);
+            }
+            return new TextEncoder().encode(str).length;
         }
 
         function formatBytes(bytes) {
@@ -804,7 +834,7 @@
         async function fetchThreads() {
             const container = document.getElementById('threadList');
             try {
-                const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, message, created_at').order('id', { ascending: true });
+                const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, message, created_at, name, creator_secret, link_url, link_title, image, video, audio, is_edited, is_deleted').order('id', { ascending: true });
                 
                 if (error) {
                     console.error("Supabaseエラー:", error);
@@ -926,7 +956,9 @@
                 }
 
                 const resCount = data.length;
-                const byteSize = formatBytes(calculateByteSize(data));
+                let threadTotalBytes = 0;
+                data.forEach(p => threadTotalBytes += calculateByteSize(p));
+                const byteSize = formatBytes(threadTotalBytes);
 
                 const firstPost = data[0];
                 document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
@@ -1047,7 +1079,7 @@
             }
         }
 
-        // 新規スレッド作成処理（修正版：ID自動採番対応）
+        // 新規スレッド作成処理
         document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -1068,7 +1100,6 @@
             }
 
             try {
-                // idは指定せず自動採番にまかせる
                 const { data, error } = await _supabase.from('posts').insert([{
                     name: name,
                     subject: title,
