@@ -4,1260 +4,278 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>321掲示板</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Kiwi+Maru:wght@500&family=Lobster&family=M+PLUS+Rounded+1c:wght@500;800&family=Pacifico&family=Shippori+Mincho:wght@600&family=Yuji+Syuku&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: "ＭＳ Ｐゴシック", "MS PGothic", "ヒラギノ角ゴ Pro W3", sans-serif;
-            background-color: #EFEFEF;
-            color: #000000;
-            padding: 20px;
-            padding-bottom: 80px;
-        }
-        .header-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        h1 {
-            color: #CC0000;
-            font-size: 22px;
-            margin: 0;
-            cursor: pointer;
-        }
-        h1:hover { text-decoration: underline; }
-        
-        .admin-badge {
-            background-color: #CC0000;
-            color: #FFFFFF;
-            padding: 4px 8px;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 3px;
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 15px;
+            background-color: #f4f4f9;
+            color: #333;
         }
 
-        .container { max-width: 800px; margin: 0 auto; }
-        .menu-box {
-            background-color: #FFFFFF;
-            border: 1px solid #CCCCCC;
-            padding: 15px;
-            margin-bottom: 20px;
+        h1 {
+            text-align: center;
+            color: #444;
         }
-        .thread-list-item { 
-            margin-bottom: 8px; 
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px dashed #eee;
-            padding-bottom: 6px;
+
+        .post-form {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
         }
-        .thread-link {
-            color: #0000FF;
-            text-decoration: underline;
+
+        .form-row {
+            margin-bottom: 12px;
+        }
+
+        .form-row label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-row input[type="text"],
+        .form-row textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .submit-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
         }
-        .thread-size-info {
-            font-size: 11px;
-            color: #666;
-            margin-left: 8px;
-        }
-        .thread-box {
-            background-color: #FFFFFF;
-            border: 1px solid #CCCCCC;
-            padding: 15px;
-            margin-bottom: 20px;
-            position: relative;
-        }
-        .thread-title {
-            color: #CC0000;
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #CC0000;
-            padding-bottom: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            flex-wrap: wrap;
-        }
-        .thread-stats {
-            font-size: 13px;
-            color: #666666;
-            font-weight: normal;
-        }
-        .viewer-count-badge {
-            background-color: #008000;
-            color: #fff;
-            font-size: 11px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-left: 5px;
+
+        .submit-btn:hover {
+            background-color: #0056b3;
         }
 
-        .res {
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed #DDDDDD;
-            position: relative;
+        /* --- 画像高画質表示・プレビュー用CSS --- */
+        .img-preview-box {
+            margin-top: 10px;
+            max-width: 200px;
+            max-height: 200px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+            object-fit: contain;
         }
-        .res-header { font-size: 14px; margin-bottom: 5px; }
-        .res-number { color: #000000; }
-        .res-name { color: #008000; font-weight: bold; }
-        .res-date-id { color: #666666; font-size: 12px; }
-        .res-body { font-size: 16px; margin-left: 2em; line-height: 1.5; word-break: break-word; }
-        .res-subject { font-weight: bold; color: #CC0000; font-size: 16px; }
-        .edited-tag { color: #FF6600; font-size: 11px; font-weight: bold; margin-left: 5px; }
-        .ng-masked { color: #999999; font-style: italic; }
-        
-        .anchor {
-            color: #0000FF;
-            text-decoration: underline;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
-        .res-body a { color: #0000FF; text-decoration: underline; }
-
-        .res-attached-link {
-            margin-top: 12px;
-            padding: 6px 12px;
-            background-color: #F4F7F9;
-            border-left: 3px solid #0066CC;
-            font-size: 14px;
-            display: inline-block;
-        }
-        .res-attached-link a { color: #0066CC; font-weight: bold; text-decoration: underline; }
-        
-        .youtube-embed-container {
-            margin-top: 12px;
-            margin-bottom: 12px;
-            max-width: 520px;
-            width: 100%;
-            border-radius: 6px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            background: #000;
-        }
-        .youtube-embed-frame {
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            border: none;
-            display: block;
-        }
-
-        .res-actions {
-            margin-top: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            font-size: 12px;
-            padding: 4px 10px;
-            cursor: pointer;
-            background-color: #F0F0F0;
-            border: 1px solid #999999;
-            border-radius: 2px;
-        }
-        .btn:hover { background-color: #E0E0E0; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .btn-admin {
-            background-color: #333333;
-            color: #FFFFFF;
-            border: 1px solid #000000;
-        }
-        .btn-admin:hover { background-color: #555555; }
-        
-        .btn-contact {
-            background-color: #0066CC;
-            color: #FFFFFF;
-            border: 1px solid #004080;
-            font-weight: bold;
-        }
-        .btn-contact:hover { background-color: #0052A3; }
-
-        .back-btn { margin-bottom: 15px; margin-right: 5px; display: inline-block; }
-        .delete-btn { color: #CC0000; }
-        .admin-delete-btn { color: #FFFFFF; background-color: #CC0000; border-color: #990000; font-weight: bold; }
-        .edit-btn { color: #0066CC; font-weight: bold; }
 
         .uploaded-img {
-            max-width: 520px;
-            width: 100%;
+            max-width: 100%;
+            max-height: 400px;
             height: auto;
             display: block;
             margin-top: 10px;
             border: 1px solid #CCCCCC;
             border-radius: 4px;
             cursor: zoom-in;
-        }
-        .uploaded-video {
-            max-width: 520px;
-            width: 100%;
-            height: auto;
-            display: block;
-            margin-top: 10px;
-            border: 1px solid #CCCCCC;
-            border-radius: 4px;
-        }
-        .uploaded-audio { display: block; margin-top: 10px; }
-
-        .form-box {
-            margin-top: 20px; background-color: #FFFFFF; padding: 15px;
-            border: 1px solid #CCCCCC; display: inline-block; width: 100%;
-            box-sizing: border-box; max-width: 550px;
-        }
-        .form-title { font-weight: bold; margin-bottom: 10px; font-size: 14px; }
-        .form-box label { display: inline-block; width: 75px; }
-        input[type="text"], select, textarea { padding: 4px; box-sizing: border-box; }
-        input[type="text"] { width: 80%; }
-        textarea { width: 100%; height: 80px; resize: vertical; }
-        
-        .editor-container {
-            border: 1px solid #CCCCCC;
-            background: #FFFFFF;
-            margin-bottom: 10px;
-        }
-        .editor-toolbar {
-            background-color: #F7F7F7;
-            border-bottom: 1px solid #DDDDDD;
-            padding: 6px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            font-size: 12px;
-        }
-        .editor-toolbar label { width: auto !important; font-weight: bold; }
-        .editor-body {
-            min-height: 120px;
-            padding: 10px;
-            outline: none;
-            overflow-y: auto;
-            line-height: 1.5;
-            font-size: 16px;
-        }
-        .editor-body[placeholder]:empty:before {
-            content: attr(placeholder);
-            color: #AAAAAA;
+            /* ブラウザによるぼやけを軽減 */
+            image-rendering: -webkit-optimize-contrast;
+            object-fit: contain;
         }
 
-        .media-capture-area {
-            border: 1px dashed #666; padding: 10px; margin-top: 10px;
-            background: #F9F9F9; text-align: center;
-        }
-        .recording-timer { color: red; font-weight: bold; font-size: 14px; margin-top: 5px; }
-
-        .thread-closed-msg {
-            background-color: #FFF0F0;
-            border: 2px solid #CC0000;
-            color: #CC0000;
-            padding: 15px;
-            font-weight: bold;
-            font-size: 15px;
-            text-align: center;
-            margin-top: 20px;
-            border-radius: 4px;
-        }
-
+        /* 拡大モーダル表示 */
         .modal {
-            display: none; position: fixed; z-index: 3000; top: 0; left: 0;
-            width: 100%; height: 100%; background-color: rgba(0,0,0,0.85);
-            justify-content: center; align-items: center;
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
         }
-        .modal-content { max-width: 90%; max-height: 90%; box-shadow: 0 0 20px rgba(255,255,255,0.2); border-radius: 4px; }
-        .modal-box {
-            background: #fff; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; box-sizing: border-box;
+
+        .modal-content {
+            max-width: 95vw;
+            max-height: 95vh;
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+            border-radius: 4px;
+            object-fit: contain;
         }
-        .modal-close {
-            position: absolute; top: 20px; right: 25px; color: #fff;
-            font-size: 35px; font-weight: bold; cursor: pointer; z-index: 3010;
+
+        /* 投稿一覧表示 */
+        .post-list {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        .inquiry-item {
-            background: #f9f9f9; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 4px; font-size: 13px;
+
+        .post-item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
         }
-        .hidden { display: none !important; }
+
+        .post-item:last-child {
+            border-bottom: none;
+        }
+
+        .post-header {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .post-name {
+            font-weight: bold;
+            color: #007bff;
+        }
     </style>
 </head>
 <body>
 
-    <div class="header-bar">
-        <h1 id="siteTitle">■ 321掲示板 ■</h1>
-        <div style="display:flex; gap:6px; align-items:center;">
-            <button id="btnOpenContactModal" class="btn btn-contact">📩 管理者にお問い合わせ</button>
-            <span id="adminStatusBadge" class="admin-badge hidden">🔑 管理者モード有効中</span>
-            <button id="btnAdminLogin" class="btn btn-admin">🔐 管理者ログイン</button>
-            <button id="btnAdminLogout" class="btn hidden">🔓 ログアウト</button>
+    <h1>321掲示板</h1>
+
+    <!-- 投稿フォーム -->
+    <div class="post-form">
+        <form id="postForm">
+            <div class="form-row">
+                <label for="username">名前</label>
+                <input type="text" id="username" placeholder="名無しさん" value="名無しさん">
+            </div>
+            <div class="form-row">
+                <label for="comment">コメント</label>
+                <textarea id="comment" rows="4" required placeholder="コメントを入力してください"></textarea>
+            </div>
+            <div class="form-row">
+                <label for="mediaFile">画像・ファイル添付</label>
+                <input type="file" id="mediaFile" accept="image/*,video/*,audio/*">
+                <!-- 高画質プレビュー表示用エリア -->
+                <img id="imagePreview" class="img-preview-box" alt="添付プレビュー">
+            </div>
+            <div id="attachmentPreview"></div>
+            <button type="submit" class="submit-btn">投稿する</button>
+        </form>
+    </div>
+
+    <!-- 投稿一覧 -->
+    <div class="post-list">
+        <h2>投稿一覧</h2>
+        <div id="postsContainer">
+            <!-- 投稿内容がここに追加されます -->
         </div>
     </div>
 
-    <div class="container">
-        <div id="lobbyScreen">
-            <div id="adminNgPanel" class="menu-box hidden" style="background-color: #FFF0F0; border-left: 4px solid #CC0000;">
-                <h4 style="margin: 0 0 8px 0; color: #CC0000;">🚫 管理者ダッシュボード（データ容量 & フィルタ管理）</h4>
-                
-                <div style="background:#fff; padding:10px; border:1px solid #ffcccc; margin-bottom:12px; border-radius:4px;">
-                    <h5 style="margin:0 0 6px 0; color:#333;">💾 全データ使用量（概算）</h5>
-                    <div id="storageUsageInfo" style="font-size:13px; font-weight:bold; color:#0066CC;">計算中...</div>
-                    <div style="font-size:11px; color:#666; margin-top:2px;">※テキストおよび添付メディア情報の概算データ量を示します。</div>
-                </div>
-
-                <div id="ngPanelBody">
-                    <p style="font-size: 12px; color: #555; margin-bottom: 8px;">カンマ(,)区切りで非表示にしたいキーワードやIDを設定します。</p>
-                    <div style="margin-bottom: 6px;">
-                        <label style="font-size: 12px; font-weight: bold;">NGワード:</label><br>
-                        <input type="text" id="ngWordsInput" placeholder="例: 暴言, スパム" style="width:100%; font-size:12px;">
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <label style="font-size: 12px; font-weight: bold;">NG ID:</label><br>
-                        <input type="text" id="ngIdsInput" placeholder="例: A1B2C3D4, X9Y8Z7W6" style="width:100%; font-size:12px;">
-                    </div>
-                    <button class="btn btn-admin" id="btnSaveNgSettings" style="font-weight: bold; margin-bottom: 15px;">NG設定を保存する</button>
-                    
-                    <h5 style="margin: 10px 0 5px 0; border-top: 1px solid #ccc; padding-top: 10px;">📩 届いたお問い合わせ一覧</h5>
-                    <div id="inquiriesListContainer" style="max-height: 200px; overflow-y: auto; background: #fff; padding: 8px; border: 1px solid #ccc;">
-                        読み込み中...
-                    </div>
-                </div>
-            </div>
-
-            <div class="menu-box">
-                <h3>新しいお題でスレッドを立てる</h3>
-                <form id="createThreadForm">
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="newThreadTitle">お題(タイトル) :</label>
-                        <input type="text" id="newThreadTitle" placeholder="例：雑談スレ" required>
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="creatorName">名前 :</label>
-                        <input type="text" id="creatorName" placeholder="名無しさん">
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="firstMessage">最初の本文 :</label>
-                        <div class="editor-container">
-                            <div class="editor-toolbar">
-                                <div>
-                                    <label>🎨 色:</label>
-                                    <select id="lobbyFmtColor">
-                                        <option value="">黒 (標準)</option>
-                                        <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
-                                        <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
-                                        <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
-                                        <option value="#800080" style="color:#800080; font-weight:bold;">紫色</option>
-                                        <option value="#FF6600" style="color:#FF6600; font-weight:bold;">オレンジ</option>
-                                        <option value="#FF1493" style="color:#FF1493; font-weight:bold;">ピンク</option>
-                                        <option value="#008080" style="color:#008080; font-weight:bold;">ターコイズ</option>
-                                        <option value="#8B4513" style="color:#8B4513; font-weight:bold;">ブラウン</option>
-                                        <option value="#555555" style="color:#555555; font-weight:bold;">ダークグレー</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label>🔤 書体:</label>
-                                    <select id="lobbyFmtFont">
-                                        <option value="">標準(ゴシック)</option>
-                                        <option value="'Shippori Mincho', serif">明朝体 (しっぽり明朝)</option>
-                                        <option value="'M PLUS Rounded 1c', sans-serif">丸ゴシック (M PLUS)</option>
-                                        <option value="'Kiwi Maru', serif">キウイ丸</option>
-                                        <option value="'Yuji Syuku', serif">祐字 宿</option>
-                                        <option value="'Cinzel', serif">Cinzel (洋風銘字)</option>
-                                        <option value="'Lobster', cursive">Lobster (筆記体)</option>
-                                        <option value="'Pacifico', cursive">Pacifico (カジュアル)</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div id="firstMessage" class="editor-body" contenteditable="true" placeholder="スレッドの解説やYouTubeのURLなど"></div>
-                        </div>
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="threadLinkUrl">リンクURL :</label>
-                        <input type="text" id="threadLinkUrl" placeholder="https://example.com (任意)">
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="threadLinkTitle">リンク名 :</label>
-                        <input type="text" id="threadLinkTitle" placeholder="サイト名など (任意)">
-                    </div>
-                    <button type="submit" class="btn" id="btnCreateThread">新規スレッドを立てる</button>
-                </form>
-            </div>
-
-            <div class="menu-box">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-                    <h3 style="margin:0;">スレッド一覧</h3>
-                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                        <input type="text" id="threadSearchInput" placeholder="🔍 キーワード検索..." style="font-size:12px; width:140px; padding:3px 6px;">
-                        <select id="threadSortSelect" style="font-size:12px; padding:3px 6px;">
-                            <option value="updated">最終更新順 (デフォルト)</option>
-                            <option value="count">勢い順 (レス数が多い順)</option>
-                            <option value="created">作成日時順 (新しい順)</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="threadList">読み込み中...</div>
-            </div>
-        </div>
-
-        <div id="threadScreen" class="hidden">
-            <button class="btn back-btn" id="btnBack">← スレッド一覧に戻る</button>
-            <button class="btn back-btn delete-btn hidden" id="btnDeleteThread">🗑️ このスレッドを削除</button>
-            
-            <div class="thread-box">
-                <div class="thread-title">
-                    <div>
-                        <span id="activeThreadTitle">読み込み中...</span>
-                        <span id="liveViewerBadge" class="viewer-count-badge">👀 リアルタイム閲覧数: 1人</span>
-                    </div>
-                    <span id="threadStats" class="thread-stats"></span>
-                </div>
-                <div id="resContainer">読み込み中...</div>
-            </div>
-
-            <div id="threadClosedNotice" class="thread-closed-msg hidden">
-                🚫 このスレッドは1000レスを超えたため、これ以上書き込みできません。
-            </div>
-
-            <div class="form-box" id="postFormBox">
-                <div class="form-title" id="writeFormTitle">このスレッドに書き込む</div>
-                <form id="postForm">
-                    <input type="hidden" id="editPostId" value="">
-
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="subject">件名 :</label>
-                        <input type="text" id="subject" placeholder="無題">
-                    </div>
-                    <div class="form-row" style="margin-bottom: 10px;">
-                        <label for="name">名前 :</label>
-                        <input type="text" id="name" placeholder="名無しさん">
-                    </div>
-
-                    <div class="editor-container">
-                        <div class="editor-toolbar">
-                            <div>
-                                <label>🎨 文字色:</label>
-                                <select id="fmtColor">
-                                    <option value="">黒 (標準)</option>
-                                    <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
-                                    <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
-                                    <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
-                                    <option value="#800080" style="color:#800080; font-weight:bold;">紫色</option>
-                                    <option value="#FF6600" style="color:#FF6600; font-weight:bold;">オレンジ</option>
-                                    <option value="#FF1493" style="color:#FF1493; font-weight:bold;">ピンク</option>
-                                    <option value="#008080" style="color:#008080; font-weight:bold;">ターコイズ</option>
-                                    <option value="#8B4513" style="color:#8B4513; font-weight:bold;">ブラウン</option>
-                                    <option value="#555555" style="color:#555555; font-weight:bold;">ダークグレー</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>🔤 書体:</label>
-                                <select id="fmtFont">
-                                    <option value="">標準(ゴシック)</option>
-                                    <option value="'Shippori Mincho', serif">明朝体 (しっぽり明朝)</option>
-                                    <option value="'M PLUS Rounded 1c', sans-serif">丸ゴシック (M PLUS)</option>
-                                    <option value="'Kiwi Maru', serif">キウイ丸</option>
-                                    <option value="'Yuji Syuku', serif">祐字 宿</option>
-                                    <option value="'Cinzel', serif">Cinzel (洋風銘字)</option>
-                                    <option value="'Lobster', cursive">Lobster (筆記体)</option>
-                                    <option value="'Pacifico', cursive">Pacifico (カジュアル)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div id="editorBody" class="editor-body" contenteditable="true" placeholder="本文を入力してください"></div>
-                    </div>
-                    
-                    <div id="mediaFieldsGroup">
-                        <div class="form-row" style="margin-bottom: 10px;">
-                            <label for="linkUrl">リンクURL :</label>
-                            <input type="text" id="linkUrl" placeholder="https://...">
-                        </div>
-                        <div class="form-row" style="margin-bottom: 10px;">
-                            <label for="linkTitle">リンク名 :</label>
-                            <input type="text" id="linkTitle" placeholder="タイトル">
-                        </div>
-                        <div class="form-row" style="margin-bottom: 10px;">
-                            <label for="mediaFile">ファイル添付:</label>
-                            <input type="file" id="mediaFile" accept="image/*,video/*,audio/*">
-                        </div>
-                        <div class="form-row" style="margin-bottom: 10px;">
-                            <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 録音(最大60秒)</button>
-                        </div>
-                    </div>
-
-                    <div id="audioArea" class="media-capture-area hidden">
-                        <div id="audioTimer" class="recording-timer">🔴 REC: 0秒 / 60秒</div>
-                        <button type="button" class="btn" id="btnAudioStart" style="color:red;">🔴 録音開始</button>
-                        <button type="button" class="btn hidden" id="btnAudioStop">■ 停止</button>
-                        <button type="button" class="btn" id="btnStopAudio">中止</button>
-                    </div>
-
-                    <div id="attachmentPreview" style="margin: 8px 0; color: #008000; font-weight: bold; font-size: 12px;"></div>
-                    
-                    <button type="submit" class="btn" id="btnSubmitPost">書き込む</button>
-                    <button type="button" class="btn hidden" id="btnCancelEdit" style="background-color: #FF6600; color: white;">訂正をキャンセル</button>
-                </form>
-            </div>
-        </div>
+    <!-- 画像拡大表示用モーダル -->
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <img id="modalImage" class="modal-content" src="" alt="拡大画像">
     </div>
-
-    <div id="contactModal" class="modal">
-        <div class="modal-box">
-            <h3 style="margin-top:0; color:#0066CC;">📩 管理者へのお問い合わせ</h3>
-            <form id="contactForm">
-                <div style="margin-bottom:10px;">
-                    <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:4px;">お名前 / 連絡先 (任意):</label>
-                    <input type="text" id="contactName" placeholder="例: 名無し / mail@example.com" style="width:100%;">
-                </div>
-                <div style="margin-bottom:10px;">
-                    <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:4px;">お問い合わせ内容 (必須):</label>
-                    <textarea id="contactMessage" required placeholder="通報、不具合報告、要望など" style="width:100%; height:100px;"></textarea>
-                </div>
-                <div style="display:flex; justify-content:flex-end; gap:8px;">
-                    <button type="button" class="btn" id="btnCloseContactModal">キャンセル</button>
-                    <button type="submit" class="btn btn-contact" id="btnSubmitContact">送信する</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="imageModal" class="modal"><span class="modal-close" id="modalClose">&times;</span><img class="modal-content" id="modalTargetImage"></div>
 
     <script>
-        const ADMIN_PASSWORD = "sdkousaku321564";
-        const SITE_PASSWORD = "冷笑系321";
-        let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
-
-        const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
-        const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        if (!localStorage.getItem('bbs_user_secret')) {
-            localStorage.setItem('bbs_user_secret', Math.random().toString(36).substring(2, 12).toUpperCase() + Math.random().toString(36).substring(2, 12).toUpperCase());
-        }
-        const userSecret = localStorage.getItem('bbs_user_secret');
-
-        let ngWords = JSON.parse(localStorage.getItem('bbs_ng_words') || '[]');
-        let ngIds = JSON.parse(localStorage.getItem('bbs_ng_ids') || '[]');
-
-        function escapeHtml(str) { 
-            return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : ''; 
-        }
-
-        function getMyDisplayID() {
-            const dateObj = new Date();
-            const yyyymmdd = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-            const salt = yyyymmdd + userSecret + "global";
-            let hash = 2166136261;
-            for (let i = 0; i < salt.length; i++) { hash ^= salt.charCodeAt(i); hash = Math.imul(hash, 16777619); }
-            return Math.abs(hash).toString(36).substring(0, 8).toUpperCase();
-        }
-
-        function checkSiteAccessAndAuth() {
-            const myId = getMyDisplayID();
-            if (!isAdmin && ngIds.includes(myId)) {
-                document.body.innerHTML = `<div style="text-align:center; padding:50px;"><h2>🚫 アクセス制限中</h2><p>ID: <b>${myId}</b> はアクセスできません。</p></div>`;
-                return false;
-            }
-            if (sessionStorage.getItem('bbs_authenticated') === 'true') return true;
-
-            const inputPass = prompt("🔑 サイト閲覧用のパスワードを入力してください:");
-            if (inputPass === SITE_PASSWORD) {
-                sessionStorage.setItem('bbs_authenticated', 'true');
-                return true;
-            } else {
-                document.body.innerHTML = `<div style="text-align:center; padding:50px;"><h2>🔑 パスワードが違います</h2><button onclick="location.reload();" class="btn">再試行</button></div>`;
-                return false;
-            }
-        }
-
-        document.getElementById('ngWordsInput').value = ngWords.join(', ');
-        document.getElementById('ngIdsInput').value = ngIds.join(', ');
-
-        document.getElementById('btnSaveNgSettings').addEventListener('click', () => {
-            if (!isAdmin) return;
-            ngWords = document.getElementById('ngWordsInput').value.split(',').map(s => s.trim()).filter(Boolean);
-            ngIds = document.getElementById('ngIdsInput').value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-            localStorage.setItem('bbs_ng_words', JSON.stringify(ngWords));
-            localStorage.setItem('bbs_ng_ids', JSON.stringify(ngIds));
-            alert("🚫 管理者NG設定を保存しました。");
-            renderedPostsMap.clear();
-            if (activeThreadId) renderActiveThread(true);
-        });
-
-        let currentPostsData = [];
-        let renderedPostsMap = new Map();
-        let activeThreadId = null;
-        let presenceChannel = null;
-
-        function setAdminMode(status) {
-            isAdmin = status;
-            localStorage.setItem('bbs_is_admin', status ? 'true' : 'false');
-            updateAdminUI();
-            renderedPostsMap.clear();
-            if (activeThreadId) renderActiveThread(true);
-            else fetchThreads();
-        }
-
-        function updateAdminUI() {
-            if (isAdmin) {
-                document.getElementById('adminStatusBadge').classList.remove('hidden');
-                document.getElementById('btnAdminLogin').classList.add('hidden');
-                document.getElementById('btnAdminLogout').classList.remove('hidden');
-                document.getElementById('adminNgPanel').classList.remove('hidden');
-                document.getElementById('btnOpenContactModal').classList.add('hidden');
-                fetchInquiries();
-            } else {
-                document.getElementById('adminStatusBadge').classList.add('hidden');
-                document.getElementById('btnAdminLogin').classList.remove('hidden');
-                document.getElementById('btnAdminLogout').classList.add('hidden');
-                document.getElementById('adminNgPanel').classList.add('hidden');
-                document.getElementById('btnOpenContactModal').classList.remove('hidden');
-            }
-        }
-
-        document.getElementById('btnAdminLogin').addEventListener('click', () => {
-            const inputPass = prompt("管理者パスワードを入力してください：");
-            if (inputPass === ADMIN_PASSWORD) setAdminMode(true);
-            else if (inputPass !== null) alert("❌ パスワードが違います。");
-        });
-        document.getElementById('btnAdminLogout').addEventListener('click', () => setAdminMode(false));
-
-        // お問い合わせ管理
-        const contactModal = document.getElementById('contactModal');
-        document.getElementById('btnOpenContactModal').addEventListener('click', () => contactModal.style.display = 'flex');
-        document.getElementById('btnCloseContactModal').addEventListener('click', () => contactModal.style.display = 'none');
-
-        document.getElementById('contactForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('contactName').value.trim() || '匿名';
-            const message = document.getElementById('contactMessage').value.trim();
-            if (!message) return;
-
-            try {
-                await _supabase.from('inquiries').insert([{ name, message, user_secret: userSecret }]);
-                alert("✉️ 管理者にお問い合わせを送信しました。");
-                document.getElementById('contactForm').reset();
-                contactModal.style.display = 'none';
-            } catch(e) {
-                alert("送信に失敗しました。");
-            }
-        });
-
-        async function fetchInquiries() {
-            const container = document.getElementById('inquiriesListContainer');
-            try {
-                let { data, error } = await _supabase.from('inquiries').select('*').order('created_at', { ascending: false });
-                if (error || !data || data.length === 0) {
-                    container.innerHTML = '<div style="font-size:12px; color:#666;">届いたお問い合わせはありません。</div>';
-                    return;
-                }
-                let html = '';
-                data.forEach(item => {
-                    html += `
-                        <div class="inquiry-item">
-                            <div style="display:flex; justify-content:space-between;">
-                                <b>${escapeHtml(item.name)}</b>
-                                <button class="btn btn-delete-inquiry" data-id="${item.id}" style="color:red; font-size:10px;">🗑️ 削除</button>
-                            </div>
-                            <div style="margin-top:4px;">${escapeHtml(item.message)}</div>
-                        </div>
-                    `;
-                });
-                container.innerHTML = html;
-            } catch(e) {
-                container.innerHTML = '<div style="font-size:12px; color:red;">取得できませんでした。</div>';
-            }
-        }
-
-        document.getElementById('inquiriesListContainer').addEventListener('click', async (e) => {
-            if (e.target.classList.contains('btn-delete-inquiry')) {
-                const id = e.target.getAttribute('data-id');
-                if (confirm("削除しますか？")) {
-                    await _supabase.from('inquiries').delete().eq('id', id);
-                    fetchInquiries();
-                }
-            }
-        });
-
-        // テキストスタイル設定
-        function applyStyleToEditor(editorId, command, value) {
-            const editor = document.getElementById(editorId);
-            editor.focus();
-            document.execCommand('styleWithCSS', false, true);
-            document.execCommand(command, false, value);
-        }
-
-        ['change', 'input'].forEach(evtType => {
-            document.getElementById('fmtColor').addEventListener(evtType, function() { applyStyleToEditor('editorBody', 'foreColor', this.value || '#000000'); });
-            document.getElementById('fmtFont').addEventListener(evtType, function() { applyStyleToEditor('editorBody', 'fontName', this.value || 'inherit'); });
-            document.getElementById('lobbyFmtColor').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'foreColor', this.value || '#000000'); });
-            document.getElementById('lobbyFmtFont').addEventListener(evtType, function() { applyStyleToEditor('firstMessage', 'fontName', this.value || 'inherit'); });
-        });
-
-        function getDisplayIDForPost(post) {
-            const dateObj = new Date(post.created_at);
-            const yyyymmdd = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-            const salt = yyyymmdd + (post.creator_secret || "unknown") + (post.thread_id || "global");
-            let hash = 2166136261;
-            for (let i = 0; i < salt.length; i++) { hash ^= salt.charCodeAt(i); hash = Math.imul(hash, 16777619); }
-            return Math.abs(hash).toString(36).substring(0, 8).toUpperCase();
-        }
-
         let pendingFileToUpload = null;
-        let audioStream = null, mediaRecorder = null, chunks = [];
-        let recordSeconds = 0, recordInterval = null;
 
-        function sanitizeAndFormatHtml(html) {
-            if (!html) return '';
-            const container = document.createElement('div');
-            container.innerHTML = html;
-            container.querySelectorAll('script, iframe, object, embed').forEach(s => s.remove());
-            let cleanHtml = container.innerHTML;
-            cleanHtml = cleanHtml.replace(/&gt;&gt;(\d+)/g, '<span class="anchor" data-resnum="$1">&gt;&gt;$1</span>').replace(/>>(\d+)/g, '<span class="anchor" data-resnum="$1">&gt;&gt;$1</span>');
-            return cleanHtml;
+        // HTMLエスケープ処理
+        function escapeHtml(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
         }
 
-        function parseYouTubeEmbeds(rawText) {
-            if (!rawText) return "";
-            const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/gi;
-            let match, embedsHtml = "", matchedIds = new Set();
-            const plainText = rawText.replace(/<[^>]+>/g, ' ');
-            
-            while ((match = ytRegex.exec(plainText)) !== null) {
-                const videoId = match[1];
-                if (!matchedIds.has(videoId)) {
-                    matchedIds.add(videoId);
-                    embedsHtml += `
-                        <div class="youtube-embed-container">
-                            <iframe class="youtube-embed-frame" src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe>
-                        </div>`;
-                }
-            }
-            return embedsHtml;
-        }
-
+        // 添付ファイルの解除処理
         function clearAttachments() { 
             pendingFileToUpload = null; 
             document.getElementById('attachmentPreview').innerHTML = ""; 
             document.getElementById('mediaFile').value = "";
+            
+            const previewImg = document.getElementById('imagePreview');
+            if (previewImg) {
+                previewImg.style.display = 'none';
+                previewImg.src = '';
+            }
         }
 
-        async function uploadFileToStorage(file) {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-            const filePath = `uploads/${fileName}`;
-
-            const { data, error } = await _supabase.storage.from('media').upload(filePath, file);
-            if (error) throw error;
-
-            const { data: publicUrlData } = _supabase.storage.from('media').getPublicUrl(filePath);
-            return publicUrlData.publicUrl;
-        }
-
+        // ファイル選択時の処理（高画質プレビュー表示）
         document.getElementById('mediaFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
-            if (!file) return clearAttachments();
+            const previewImg = document.getElementById('imagePreview');
+            
+            if (!file) {
+                return clearAttachments();
+            }
+            
             if (file.size > 50 * 1024 * 1024) {
                 alert("⚠️ 50MBを超えるファイルは選択できません。");
                 return clearAttachments();
             }
+            
             pendingFileToUpload = file;
             document.getElementById('attachmentPreview').innerHTML = `📎 添付選択中: ${escapeHtml(file.name)} (${(file.size / (1024 * 1024)).toFixed(1)}MB)`;
-        });
 
-        // 録音機能
-        document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
-            stopAudio();
-            try {
-                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                document.getElementById('audioArea').classList.remove('hidden');
-                document.getElementById('btnAudioStart').classList.remove('hidden');
-                document.getElementById('btnAudioStop').classList.add('hidden');
-            } catch(e) { alert("マイクの起動に失敗しました。"); }
-        });
-
-        document.getElementById('btnAudioStart').addEventListener('click', () => {
-            chunks = []; mediaRecorder = new MediaRecorder(audioStream);
-            mediaRecorder.ondataavailable = e => chunks.push(e.data);
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                pendingFileToUpload = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
-                document.getElementById('attachmentPreview').innerHTML = "🎙️ 録音完了（音声をセットしました）";
-                stopAudio();
-            };
-            mediaRecorder.start();
-            document.getElementById('btnAudioStart').classList.add('hidden');
-            document.getElementById('btnAudioStop').classList.remove('hidden');
-            recordSeconds = 0;
-            recordInterval = setInterval(() => {
-                recordSeconds++;
-                document.getElementById('audioTimer').innerText = `🔴 REC: ${recordSeconds}秒 / 60秒`;
-                if (recordSeconds >= 60) stopAudioRecording();
-            }, 1000);
-        });
-
-        document.getElementById('btnAudioStop').addEventListener('click', stopAudioRecording);
-        function stopAudioRecording() { clearInterval(recordInterval); if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); }
-        function stopAudio() { clearInterval(recordInterval); if(audioStream){ audioStream.getTracks().forEach(t=>t.stop()); audioStream=null; } document.getElementById('audioArea').classList.add('hidden'); }
-        document.getElementById('btnStopAudio').addEventListener('click', stopAudio);
-
-        const imgModal = document.getElementById('imageModal');
-        imgModal.addEventListener('click', () => imgModal.style.display = "none");
-
-        // データサイズ計算の共通処理
-        function calculateByteSize(item) {
-            if (!item) return 0;
-            let str = '';
-            if (Array.isArray(item)) {
-                str = JSON.stringify(item);
-            } else if (typeof item === 'object') {
-                str = JSON.stringify(item);
+            // 画像ファイルの場合は高画質で即時プレビュー表示
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    previewImg.src = evt.target.result;
+                    previewImg.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
             } else {
-                str = String(item);
+                previewImg.style.display = 'none';
+                previewImg.src = '';
             }
-            return new TextEncoder().encode(str).length;
-        }
+        });
 
-        function formatBytes(bytes) {
-            if (bytes < 1024) return bytes + " B";
-            else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-            else return (bytes / (1024 * 1024)).toFixed(2) + " MB";
-        }
-
-        // スレッド一覧取得
-        async function fetchThreads() {
-            const container = document.getElementById('threadList');
-            try {
-                const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, message, created_at, name, creator_secret, link_url, link_title, image, video, audio, is_edited, is_deleted').order('id', { ascending: true });
-                
-                if (error) {
-                    console.error("Supabaseエラー:", error);
-                    container.innerHTML = `<div style="color:red; padding:10px; background:#fff; border:1px solid red;">⚠️ データの取得に失敗しました。<br><small>${escapeHtml(error.message)}</small></div>`;
-                    return;
-                }
-
-                if (!data || data.length === 0) {
-                    container.innerHTML = '<div style="padding:10px; background:#fff;">まだスレッドがありません。</div>';
-                    if (isAdmin) document.getElementById('storageUsageInfo').innerText = "0 B (投稿数: 0件)";
-                    return;
-                }
-
-                let totalBytes = calculateByteSize(data);
-                if (isAdmin) {
-                    document.getElementById('storageUsageInfo').innerText = `${formatBytes(totalBytes)} （投稿数: ${data.length} 件）`;
-                }
-
-                const threadMap = {};
-                data.forEach(post => {
-                    const tId = post.thread_id;
-                    if (!tId || tId === 'admin-inquiries-log') return;
-                    if (!threadMap[tId]) {
-                        threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, rawBytes: 0, createdAt: new Date(post.created_at || Date.now()), updatedAt: new Date(post.created_at || Date.now()) };
-                    }
-                    threadMap[tId].count++;
-                    threadMap[tId].rawBytes += calculateByteSize(post);
-                    const postDate = new Date(post.created_at || Date.now());
-                    if (postDate > threadMap[tId].updatedAt) threadMap[tId].updatedAt = postDate;
-                });
-
-                let threadList = Object.values(threadMap);
-
-                const keyword = document.getElementById('threadSearchInput').value.trim().toLowerCase();
-                if (keyword) {
-                    threadList = threadList.filter(t => t.title.toLowerCase().includes(keyword));
-                }
-
-                const sortBy = document.getElementById('threadSortSelect').value;
-                if (sortBy === 'count') {
-                    threadList.sort((a, b) => b.count - a.count);
-                } else if (sortBy === 'created') {
-                    threadList.sort((a, b) => b.createdAt - a.createdAt);
-                } else {
-                    threadList.sort((a, b) => b.updatedAt - a.updatedAt);
-                }
-
-                if (threadList.length === 0) {
-                    container.innerHTML = '<div style="padding:10px; background:#fff;">該当するスレッドがありません。</div>';
-                    return;
-                }
-
-                let htmlBuf = "";
-                threadList.forEach(t => {
-                    const isMax = t.count >= 1000 ? ' <span style="color:red; font-weight:bold;">[1000満スレ]</span>' : '';
-                    const sizeBadge = `<span class="thread-size-info">💾 ${formatBytes(t.rawBytes)}</span>`;
-                    const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ 削除</button>` : '';
-                    htmlBuf += `
-                        <div class="thread-list-item">
-                            <div>
-                                <span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})${isMax}</span>
-                                ${sizeBadge}
-                            </div>
-                            ${adminDeleteBtn}
-                        </div>`;
-                });
-
-                container.innerHTML = htmlBuf;
-            } catch (e) {
-                console.error("通信例外エラー:", e);
-                container.innerHTML = `<div style="color:red; padding:10px; background:#fff; border:1px solid red;">⚠️ 通信エラーが発生しました。<br><small>${escapeHtml(e.message || String(e))}</small></div>`;
-            }
-        }
-
-        // リアルタイム閲覧数設定
-        function setupPresence(threadId) {
-            if (presenceChannel) {
-                _supabase.removeChannel(presenceChannel);
-            }
-            presenceChannel = _supabase.channel(`room-${threadId}`, {
-                config: { presence: { key: userSecret } }
-            });
-
-            presenceChannel
-                .on('presence', { event: 'sync' }, () => {
-                    const state = presenceChannel.presenceState();
-                    const count = Object.keys(state).length;
-                    document.getElementById('liveViewerBadge').innerText = `👀 リアルタイム閲覧数: ${count}人`;
-                })
-                .subscribe(async (status) => {
-                    if (status === 'SUBSCRIBED') {
-                        await presenceChannel.track({ online_at: new Date().toISOString() });
-                    }
-                });
-        }
-
-        // スレッド画面描画
-        async function renderActiveThread(forceFullReRender = false) {
-            if (!activeThreadId) return;
-            const targetThreadId = activeThreadId;
-
-            try {
-                const { data, error } = await _supabase.from('posts').select('*').eq('thread_id', targetThreadId).order('id', { ascending: true });
-                if (targetThreadId !== activeThreadId) return;
-
-                if (error) {
-                    document.getElementById('resContainer').innerHTML = `<div style="color:red; padding:10px;">⚠️ 投稿データの取得に失敗しました。<br><small>${escapeHtml(error.message)}</small></div>`;
-                    return;
-                }
-
-                if (!data || data.length === 0) {
-                    document.getElementById('resContainer').innerHTML = `<div style="padding:10px;">投稿が見つかりません。</div>`;
-                    return;
-                }
-
-                if (forceFullReRender) {
-                    renderedPostsMap.clear();
-                    document.getElementById('resContainer').innerHTML = "";
-                }
-
-                const resCount = data.length;
-                let threadTotalBytes = 0;
-                data.forEach(p => threadTotalBytes += calculateByteSize(p));
-                const byteSize = formatBytes(threadTotalBytes);
-
-                const firstPost = data[0];
-                document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
-                document.getElementById('threadStats').innerText = `(${byteSize} / ${resCount}レス)`;
-                document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
-
-                const postFormBox = document.getElementById('postFormBox');
-                const closedNotice = document.getElementById('threadClosedNotice');
-                if (resCount >= 1000) {
-                    postFormBox.classList.add('hidden');
-                    closedNotice.classList.remove('hidden');
-                } else {
-                    postFormBox.classList.remove('hidden');
-                    closedNotice.classList.add('hidden');
-                }
-
-                currentPostsData = data;
-                const container = document.getElementById('resContainer');
-                const fragment = document.createDocumentFragment();
-
-                data.forEach((res, index) => {
-                    const resNum = index + 1;
-                    const isOp = (res.creator_secret === userSecret);
-                    const displayID = getDisplayIDForPost(res);
-
-                    let isNg = false;
-                    if (!isAdmin) {
-                        if (ngIds.includes(displayID)) isNg = true;
-                        if (!isNg && ngWords.length > 0) {
-                            const plainMsg = res.message ? res.message.replace(/<[^>]+>/g, '') : '';
-                            if (ngWords.some(word => plainMsg.includes(word))) isNg = true;
-                        }
-                    }
-
-                    const postStateHash = `${res.id}_${res.name}_${res.message}_${res.subject}_${res.is_deleted}_${res.is_edited}_${isNg}_${isAdmin}`;
-                    if (renderedPostsMap.has(res.id) && renderedPostsMap.get(res.id) === postStateHash) return;
-
-                    let media = "";
-                    if (res.image) media = `<img src="${res.image}" class="uploaded-img" loading="lazy">`;
-                    else if (res.video) media = `<video src="${res.video}" class="uploaded-video" controls></video>`;
-                    else if (res.audio) media = `<audio src="${res.audio}" class="uploaded-audio" controls></audio>`;
-
-                    let link = res.link_url ? `<div class="res-attached-link">🔗 <b>リンク:</b> <a href="${escapeHtml(res.link_url)}" target="_blank">${escapeHtml(res.link_title || res.link_url)}</a></div>` : '';
-                    let ytEmbeds = (res.is_deleted || isNg) ? '' : parseYouTubeEmbeds(res.message);
-                    let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
-
-                    let actions = "";
-                    if (!res.is_deleted && resCount < 1000) {
-                        if (isOp) {
-                            actions += `<button class="btn edit-btn" data-id="${res.id}" data-resnum="${resNum}">✍️ 訂正</button>`;
-                            actions += `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>`;
-                        } else if (isAdmin) {
-                            actions += `<button class="btn admin-delete-btn delete-btn" data-id="${res.id}">🗑️ 【管理者】削除</button>`;
-                        }
-                    }
-
-                    const dateObj = new Date(res.created_at || Date.now());
-                    const days = ['日', '月', '火', '水', '木', '金', '土'];
-                    const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
-
-                    let bodyContent = res.is_deleted ? "（削除されました）" : (isNg ? `<span class="ng-masked">*** (管理者設定のNGフィルターにより非表示) ***</span>` : sanitizeAndFormatHtml(res.message));
-
-                    const resHtml = `
-                        <div class="res-header">
-                            <span class="res-number">${resNum}</span> ：
-                            <span class="res-name">${escapeHtml(res.name)}</span> ：
-                            <span class="res-date-id">${dateStr} ID:${displayID}</span>
-                            ${editedLabel}
-                        </div>
-                        <div class="res-body">
-                            ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
-                            <div>${bodyContent}</div>
-                            ${ytEmbeds}
-                            ${(res.is_deleted || isNg) ? '' : link}
-                            ${(res.is_deleted || isNg) ? '' : media}
-                        </div>
-                        <div class="res-actions">
-                            ${resCount < 1000 ? `<button class="btn reply-btn" data-resnum="${resNum}">返信</button>` : ''}
-                            ${actions}
-                        </div>
-                    `;
-
-                    const existingElem = document.getElementById(`res-${res.id}`);
-                    if (existingElem) {
-                        existingElem.innerHTML = resHtml;
-                    } else {
-                        const wrapperDiv = document.createElement('div');
-                        wrapperDiv.className = 'res';
-                        wrapperDiv.id = `res-${res.id}`;
-                        wrapperDiv.innerHTML = resHtml;
-                        fragment.appendChild(wrapperDiv);
-                    }
-
-                    renderedPostsMap.set(res.id, postStateHash);
-                });
-
-                if (fragment.children.length > 0) container.appendChild(fragment);
-            } catch(e) {
-                console.error("スレッド描画エラー:", e);
-            }
-        }
-
-        function showScreen(id) {
-            stopAudio(); clearAttachments();
-            renderedPostsMap.clear();
-            currentPostsData = [];
-
-            if (id === 'lobby') {
-                if (presenceChannel) _supabase.removeChannel(presenceChannel);
-                document.getElementById('lobbyScreen').classList.remove('hidden');
-                document.getElementById('threadScreen').classList.add('hidden');
-                fetchThreads();
-            } else {
-                document.getElementById('lobbyScreen').classList.add('hidden');
-                document.getElementById('threadScreen').classList.remove('hidden');
-                setupPresence(activeThreadId);
-                renderActiveThread(true);
-            }
-        }
-
-        // 新規スレッド作成処理
-        document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
+        // フォーム送信処理
+        document.getElementById('postForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            const btn = document.getElementById('btnCreateThread');
-            btn.disabled = true;
-            btn.innerText = "作成中...";
 
-            const newThreadId = 'thread-' + Date.now();
-            const title = document.getElementById('newThreadTitle').value.trim();
-            const name = document.getElementById('creatorName').value.trim() || "名無しさん";
-            const message = document.getElementById('firstMessage').innerHTML.trim();
+            const name = document.getElementById('username').value || '名無しさん';
+            const comment = document.getElementById('comment').value;
+            const postsContainer = document.getElementById('postsContainer');
+            const now = new Date().toLocaleString('ja-JP');
 
-            if (!title) {
-                alert("⚠️ お題(タイトル)を入力してください。");
-                btn.disabled = false;
-                btn.innerText = "新規スレッドを立てる";
-                return;
+            let mediaHtml = '';
+
+            // 画像が選択されている場合、高画質表示用の設定でHTML作成
+            if (pendingFileToUpload && pendingFileToUpload.type.startsWith('image/')) {
+                const previewImg = document.getElementById('imagePreview');
+                const imageUrl = previewImg.src;
+                mediaHtml = `<img src="${imageUrl}" class="uploaded-img" onclick="openModal('${imageUrl}')" alt="投稿画像">`;
             }
 
-            try {
-                const { data, error } = await _supabase.from('posts').insert([{
-                    name: name,
-                    subject: title,
-                    message: message,
-                    thread_id: newThreadId,
-                    creator_secret: userSecret,
-                    link_url: document.getElementById('threadLinkUrl').value.trim(),
-                    link_title: document.getElementById('threadLinkTitle').value.trim()
-                }]);
+            const postElement = document.createElement('div');
+            postElement.className = 'post-item';
+            postElement.innerHTML = `
+                <div class="post-header">
+                    <span class="post-name">${escapeHtml(name)}</span> ・ <span>${now}</span>
+                </div>
+                <div class="post-body">
+                    ${escapeHtml(comment).replace(/\n/g, '<br>')}
+                </div>
+                ${mediaHtml}
+            `;
 
-                if (error) {
-                    console.error("スレッド作成エラー:", error);
-                    alert("❌ スレッド作成に失敗しました:\n" + error.message + "\n\n(コード: " + (error.code || '不明') + ")");
-                    btn.disabled = false;
-                    btn.innerText = "新規スレッドを立てる";
-                    return;
-                }
+            postsContainer.prepend(postElement);
 
-                this.reset(); 
-                document.getElementById('firstMessage').innerHTML = "";
-                activeThreadId = newThreadId; 
-                window.location.hash = newThreadId; 
-                showScreen('thread');
-            } catch(err) {
-                console.error("例外エラー:", err);
-                alert("❌ システムエラーが発生しました:\n" + (err.message || err));
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "新規スレッドを立てる";
-            }
+            // フォームのリセット
+            document.getElementById('comment').value = '';
+            clearAttachments();
         });
 
-        // レス投稿フォーム送信
-        document.getElementById('postForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            if (currentPostsData.length >= 1000) return alert("1000レスに達しています。");
-
-            const editId = document.getElementById('editPostId').value;
-            const messageHtml = document.getElementById('editorBody').innerHTML.trim();
-            if (!messageHtml || messageHtml === '<br>') return alert("本文を入力してください。");
-
-            const btnSubmit = document.getElementById('btnSubmitPost');
-            btnSubmit.disabled = true;
-
-            let imageUrl = "", videoUrl = "", audioUrl = "";
-
-            try {
-                if (pendingFileToUpload) {
-                    const uploadedUrl = await uploadFileToStorage(pendingFileToUpload);
-                    if (pendingFileToUpload.type.startsWith('image/')) imageUrl = uploadedUrl;
-                    else if (pendingFileToUpload.type.startsWith('video/')) videoUrl = uploadedUrl;
-                    else if (pendingFileToUpload.type.startsWith('audio/')) audioUrl = uploadedUrl;
-                }
-
-                if (editId) {
-                    const updateData = {
-                        name: document.getElementById('name').value.trim() || "名無しさん",
-                        message: messageHtml,
-                        subject: document.getElementById('subject').value.trim(),
-                        is_edited: true,
-                        link_url: document.getElementById('linkUrl').value.trim(),
-                        link_title: document.getElementById('linkTitle').value.trim()
-                    };
-                    if (imageUrl) updateData.image = imageUrl;
-                    if (videoUrl) updateData.video = videoUrl;
-                    if (audioUrl) updateData.audio = audioUrl;
-
-                    await _supabase.from('posts').update(updateData).eq('id', editId);
-                } else {
-                    await _supabase.from('posts').insert([{
-                        name: document.getElementById('name').value.trim() || "名無しさん",
-                        subject: document.getElementById('subject').value.trim(),
-                        message: messageHtml,
-                        thread_id: activeThreadId,
-                        creator_secret: userSecret,
-                        link_url: document.getElementById('linkUrl').value.trim(),
-                        link_title: document.getElementById('linkTitle').value.trim(),
-                        image: imageUrl,
-                        video: videoUrl,
-                        audio: audioUrl
-                    }]);
-                }
-                this.reset();
-                document.getElementById('editorBody').innerHTML = "";
-            } catch (err) {
-                alert("送信に失敗しました: " + (err.message || "エラー"));
-            } finally {
-                btnSubmit.disabled = false;
-                clearAttachments();
-                renderActiveThread();
-            }
-        });
-
-        document.getElementById('resContainer').addEventListener('click', async e => {
-            if (e.target.classList.contains('uploaded-img')) {
-                imgModal.style.display = "flex";
-                document.getElementById('modalTargetImage').src = e.target.src;
-            }
-            if (e.target.classList.contains('reply-btn')) {
-                const editor = document.getElementById('editorBody');
-                editor.innerHTML += `>>${e.target.getAttribute('data-resnum')}<br>`;
-                editor.focus();
-            }
-            if (e.target.classList.contains('delete-btn')) {
-                if (confirm("この投稿を削除しますか？")) {
-                    await _supabase.from('posts').update({ message: "（削除されました）", is_deleted: true, image: "", video: "", audio: "" }).eq('id', e.target.getAttribute('data-id'));
-                    renderActiveThread();
-                }
-            }
-        });
-
-        // スレッド完全削除
-        async function deleteThread(threadId) {
-            if (confirm("このスレッドおよび関連する全投稿を完全に削除しますか？")) {
-                const { error } = await _supabase.from('posts').delete().eq('thread_id', threadId);
-                if (error) {
-                    alert("スレッド削除に失敗しました: " + error.message);
-                } else {
-                    alert("スレッドを完全に削除しました。");
-                    if (activeThreadId === threadId) {
-                        activeThreadId = null;
-                        window.location.hash = "";
-                        showScreen('lobby');
-                    } else {
-                        fetchThreads();
-                    }
-                }
-            }
+        // モーダルを開く（高画質拡大表示）
+        function openModal(imgUrl) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modalImg.src = imgUrl;
+            modal.style.display = 'flex';
         }
 
-        document.getElementById('btnDeleteThread').addEventListener('click', () => { if (activeThreadId) deleteThread(activeThreadId); });
-
-        document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
-        document.getElementById('btnBack').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
-
-        document.getElementById('threadList').addEventListener('click', e => {
-            if (e.target.classList.contains('thread-link')) { 
-                activeThreadId = e.target.getAttribute('data-id'); 
-                window.location.hash = activeThreadId; 
-                showScreen('thread'); 
-            }
-            if (e.target.classList.contains('admin-delete-thread-btn')) {
-                deleteThread(e.target.getAttribute('data-threadid'));
-            }
-        });
-
-        // リアルタイム同期（WebSockets）
-        _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-            if (activeThreadId) { renderActiveThread(); } else fetchThreads();
-        }).subscribe();
-
-        window.addEventListener('DOMContentLoaded', () => {
-            updateAdminUI();
-            if (!checkSiteAccessAndAuth()) return;
-
-            const hash = window.location.hash.substring(1);
-            if (hash) { activeThreadId = hash; showScreen('thread'); } else showScreen('lobby');
-        });
+        // モーダルを閉じる
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
     </script>
 </body>
 </html>
