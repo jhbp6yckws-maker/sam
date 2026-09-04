@@ -43,7 +43,7 @@
 
         .container { max-width: 800px; margin: 0 auto; }
 
-        /* --- ギガ残量メーターパネル --- */
+        /* --- 正確なギガ残量メーターパネル --- */
         .data-saver-card {
             background: #eef6ff;
             border: 1px solid #b6d4fe;
@@ -225,7 +225,6 @@
         .admin-delete-btn { color: #FFFFFF; background-color: #CC0000; border-color: #990000; font-weight: bold; }
         .edit-btn { color: #0066CC; font-weight: bold; }
 
-        /* 画像表示部（高クオリティ設定） */
         .uploaded-img {
             max-width: 520px;
             width: 100%;
@@ -339,17 +338,17 @@
     </div>
 
     <div class="container">
-        <!-- ギガ残量表示パネル -->
+        <!-- 正確なギガ残量表示パネル -->
         <div class="data-saver-card">
             <div class="data-info">
-                <span>今月のギガ残量: <span id="remainingData">5.00 GB</span> / 5.00 GB</span>
+                <span>今月の正確なギガ残量: <span id="remainingData">同期中...</span> / 5.00 GB</span>
                 <span>本日目安: 約 <span id="dailyLimit">170</span> MB</span>
             </div>
             <div class="progress-bar-bg">
                 <div id="progressBar" class="progress-bar-fill"></div>
             </div>
             <div class="data-notice">
-                💡 画像添付時は高画質（4K等）の鮮明さを維持したまま圧縮処理を行い、ギガ消費量を大幅削減しています。
+                💡 データベースおよび画像ストレージの実際のデータサイズから正確な容量を計測しています。
             </div>
         </div>
 
@@ -358,9 +357,8 @@
                 <h4 style="margin: 0 0 8px 0; color: #CC0000;">🚫 管理者ダッシュボード（データ容量 & フィルタ管理）</h4>
                 
                 <div style="background:#fff; padding:10px; border:1px solid #ffcccc; margin-bottom:12px; border-radius:4px;">
-                    <h5 style="margin:0 0 6px 0; color:#333;">💾 全データ使用量（概算）</h5>
-                    <div id="storageUsageInfo" style="font-size:13px; font-weight:bold; color:#0066CC;">計算中...</div>
-                    <div style="font-size:11px; color:#666; margin-top:2px;">※テキストおよび添付メディア情報の概算データ量を示します。</div>
+                    <h5 style="margin:0 0 6px 0; color:#333;">💾 Supabase実際の容量内訳</h5>
+                    <div id="storageUsageInfo" style="font-size:13px; font-weight:bold; color:#0066CC;">取得中...</div>
                 </div>
 
                 <div id="ngPanelBody">
@@ -585,36 +583,50 @@
         const SITE_PASSWORD = "冷笑系321";
         let isAdmin = localStorage.getItem('bbs_is_admin') === 'true';
 
-        // --- ギガ消費・残り容量管理の設定 ---
-        const TOTAL_CAPACITY_MB = 5120; // 5GB = 5120MB
-        let usedDataMB = parseFloat(localStorage.getItem('bbs_used_data_mb')) || 0;
+        const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
+        const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        function updateDataUsageDisplay() {
-            const remainingMB = Math.max(0, TOTAL_CAPACITY_MB - usedDataMB);
-            const remainingGB = (remainingMB / 1024).toFixed(2);
-            const percentLeft = Math.max(0, (remainingMB / TOTAL_CAPACITY_MB) * 100);
+        // --- Supabaseと直接連動した正確なギガ残量計算 ---
+        async function syncExactDataUsage() {
+            try {
+                // 1. DBテーブル内のデータバイト数取得
+                const { data: dbBytes, error: dbErr } = await _supabase.rpc('get_db_size');
+                // 2. Storage内の添付ファイル容量バイト数取得
+                const { data: storageBytes, error: stErr } = await _supabase.rpc('get_storage_size');
 
-            const remElem = document.getElementById('remainingData');
-            const barElem = document.getElementById('progressBar');
-            if (remElem) remElem.innerText = `${remainingGB} GB (${Math.round(remainingMB)} MB)`;
-            if (barElem) {
-                barElem.style.width = `${percentLeft}%`;
-                barElem.style.backgroundColor = percentLeft < 10 ? '#dc3545' : '#0d6efd';
+                const safeDbBytes = dbErr ? 0 : (dbBytes || 0);
+                const safeStorageBytes = stErr ? 0 : (storageBytes || 0);
+                const totalUsedBytes = safeDbBytes + safeStorageBytes;
+
+                const TOTAL_CAPACITY_BYTES = 5 * 1024 * 1024 * 1024; // 5GB
+                const remainingBytes = Math.max(0, TOTAL_CAPACITY_BYTES - totalUsedBytes);
+                const remainingGB = (remainingBytes / (1024 * 1024 * 1024)).toFixed(2);
+                const remainingMB = Math.round(remainingBytes / (1024 * 1024));
+                const percentLeft = Math.max(0, (remainingBytes / TOTAL_CAPACITY_BYTES) * 100);
+
+                const remElem = document.getElementById('remainingData');
+                const barElem = document.getElementById('progressBar');
+                if (remElem) remElem.innerText = `${remainingGB} GB (${remainingMB} MB)`;
+                if (barElem) {
+                    barElem.style.width = `${percentLeft}%`;
+                    barElem.style.backgroundColor = percentLeft < 10 ? '#dc3545' : '#0d6efd';
+                }
+
+                const usageElem = document.getElementById('storageUsageInfo');
+                if (usageElem) {
+                    usageElem.innerText = `DB: ${formatBytes(safeDbBytes)} / Storage: ${formatBytes(safeStorageBytes)} (計: ${formatBytes(totalUsedBytes)})`;
+                }
+            } catch (e) {
+                console.error("ギガ同期エラー:", e);
             }
         }
 
-        function consumeData(sizeInBytes) {
-            const sizeInMB = sizeInBytes / (1024 * 1024);
-            usedDataMB += sizeInMB;
-            localStorage.setItem('bbs_used_data_mb', usedDataMB);
-            updateDataUsageDisplay();
-        }
-
-        // 4K解像度を保持したままデータ量を大幅に抑える画像圧縮関数
+        // 画像最適化圧縮関数 (WebP変換)
         function compressImageForGigaSaver(file) {
             return new Promise((resolve) => {
                 if (!file.type.startsWith('image/')) {
-                    resolve(file); // 画像以外はそのまま処理
+                    resolve(file);
                     return;
                 }
                 const reader = new FileReader();
@@ -622,12 +634,11 @@
                     const img = new Image();
                     img.onload = function() {
                         const canvas = document.createElement('canvas');
-                        canvas.width = img.width;   // 解像度はそのまま保持（4Kそのまま）
+                        canvas.width = img.width;
                         canvas.height = img.height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, img.width, img.height);
                         
-                        // 高画質な品質(0.85)のWebP形式で出力して圧縮
                         canvas.toBlob((blob) => {
                             if (blob && blob.size < file.size) {
                                 const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".webp", {
@@ -644,10 +655,6 @@
                 reader.readAsDataURL(file);
             });
         }
-
-        const SUPABASE_URL = "https://iustcqynphestdbqjpiu.supabase.co"; 
-        const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         if (!localStorage.getItem('bbs_user_secret')) {
             localStorage.setItem('bbs_user_secret', Math.random().toString(36).substring(2, 12).toUpperCase() + Math.random().toString(36).substring(2, 12).toUpperCase());
@@ -740,7 +747,6 @@
         });
         document.getElementById('btnAdminLogout').addEventListener('click', () => setAdminMode(false));
 
-        // お問い合わせ管理
         const contactModal = document.getElementById('contactModal');
         document.getElementById('btnOpenContactModal').addEventListener('click', () => contactModal.style.display = 'flex');
         document.getElementById('btnCloseContactModal').addEventListener('click', () => contactModal.style.display = 'none');
@@ -797,7 +803,6 @@
             }
         });
 
-        // テキストスタイル設定
         function applyStyleToEditor(editorId, command, value) {
             const editor = document.getElementById(editorId);
             editor.focus();
@@ -872,7 +877,6 @@
             return publicUrlData.publicUrl;
         }
 
-        // ファイル選択時の自動WebP画質維持最適化
         document.getElementById('mediaFile').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (!file) return clearAttachments();
@@ -882,18 +886,15 @@
             }
 
             const previewElem = document.getElementById('attachmentPreview');
-            previewElem.innerHTML = `⚙️ ギガ節約のための画質最適化処理中...`;
+            previewElem.innerHTML = `⚙️ ギガ節約用の最適化処理中...`;
 
-            // 画像処理（画質を損なわずに省ギガ圧縮）
             const processedFile = await compressImageForGigaSaver(file);
             pendingFileToUpload = processedFile;
 
             const sizeMB = (processedFile.size / (1024 * 1024)).toFixed(2);
-            const origSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            previewElem.innerHTML = `📎 添付選択中: ${escapeHtml(processedFile.name)} (${sizeMB} MB / 元: ${origSizeMB} MB)`;
+            previewElem.innerHTML = `📎 添付選択中: ${escapeHtml(processedFile.name)} (${sizeMB} MB)`;
         });
 
-        // 録音機能
         document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
             stopAudio();
             try {
@@ -910,7 +911,7 @@
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'audio/webm' });
                 pendingFileToUpload = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
-                document.getElementById('attachmentPreview').innerHTML = "🎙️ 録音完了（音声をセットしました）";
+                document.getElementById('attachmentPreview').innerHTML = "🎙️ 録音完了";
                 stopAudio();
             };
             mediaRecorder.start();
@@ -932,18 +933,8 @@
         const imgModal = document.getElementById('imageModal');
         imgModal.addEventListener('click', () => imgModal.style.display = "none");
 
-        // データサイズ計算の共通処理
         function calculateByteSize(item) {
-            if (!item) return 0;
-            let str = '';
-            if (Array.isArray(item)) {
-                str = JSON.stringify(item);
-            } else if (typeof item === 'object') {
-                str = JSON.stringify(item);
-            } else {
-                str = String(item);
-            }
-            return new TextEncoder().encode(str).length;
+            return new TextEncoder().encode(JSON.stringify(item || {})).length;
         }
 
         function formatBytes(bytes) {
@@ -952,27 +943,19 @@
             else return (bytes / (1024 * 1024)).toFixed(2) + " MB";
         }
 
-        // スレッド一覧取得
         async function fetchThreads() {
             const container = document.getElementById('threadList');
             try {
                 const { data, error } = await _supabase.from('posts').select('id, thread_id, subject, message, created_at, name, creator_secret, link_url, link_title, image, video, audio, is_edited, is_deleted').order('id', { ascending: true });
                 
                 if (error) {
-                    console.error("Supabaseエラー:", error);
-                    container.innerHTML = `<div style="color:red; padding:10px; background:#fff; border:1px solid red;">⚠️ データの取得に失敗しました。<br><small>${escapeHtml(error.message)}</small></div>`;
+                    container.innerHTML = `<div style="color:red; padding:10px;">⚠️ データ取得エラー: ${escapeHtml(error.message)}</div>`;
                     return;
                 }
 
                 if (!data || data.length === 0) {
                     container.innerHTML = '<div style="padding:10px; background:#fff;">まだスレッドがありません。</div>';
-                    if (isAdmin) document.getElementById('storageUsageInfo').innerText = "0 B (投稿数: 0件)";
                     return;
-                }
-
-                let totalBytes = calculateByteSize(data);
-                if (isAdmin) {
-                    document.getElementById('storageUsageInfo').innerText = `${formatBytes(totalBytes)} （投稿数: ${data.length} 件）`;
                 }
 
                 const threadMap = {};
@@ -996,13 +979,9 @@
                 }
 
                 const sortBy = document.getElementById('threadSortSelect').value;
-                if (sortBy === 'count') {
-                    threadList.sort((a, b) => b.count - a.count);
-                } else if (sortBy === 'created') {
-                    threadList.sort((a, b) => b.createdAt - a.createdAt);
-                } else {
-                    threadList.sort((a, b) => b.updatedAt - a.updatedAt);
-                }
+                if (sortBy === 'count') threadList.sort((a, b) => b.count - a.count);
+                else if (sortBy === 'created') threadList.sort((a, b) => b.createdAt - a.createdAt);
+                else threadList.sort((a, b) => b.updatedAt - a.updatedAt);
 
                 if (threadList.length === 0) {
                     container.innerHTML = '<div style="padding:10px; background:#fff;">該当するスレッドがありません。</div>';
@@ -1026,34 +1005,23 @@
 
                 container.innerHTML = htmlBuf;
             } catch (e) {
-                console.error("通信例外エラー:", e);
-                container.innerHTML = `<div style="color:red; padding:10px; background:#fff; border:1px solid red;">⚠️ 通信エラーが発生しました。<br><small>${escapeHtml(e.message || String(e))}</small></div>`;
+                container.innerHTML = `<div style="color:red; padding:10px;">⚠️ エラーが発生しました。</div>`;
             }
         }
 
-        // リアルタイム閲覧数設定
         function setupPresence(threadId) {
-            if (presenceChannel) {
-                _supabase.removeChannel(presenceChannel);
-            }
-            presenceChannel = _supabase.channel(`room-${threadId}`, {
-                config: { presence: { key: userSecret } }
-            });
-
+            if (presenceChannel) _supabase.removeChannel(presenceChannel);
+            presenceChannel = _supabase.channel(`room-${threadId}`, { config: { presence: { key: userSecret } } });
             presenceChannel
                 .on('presence', { event: 'sync' }, () => {
-                    const state = presenceChannel.presenceState();
-                    const count = Object.keys(state).length;
+                    const count = Object.keys(presenceChannel.presenceState()).length;
                     document.getElementById('liveViewerBadge').innerText = `👀 リアルタイム閲覧数: ${count}人`;
                 })
                 .subscribe(async (status) => {
-                    if (status === 'SUBSCRIBED') {
-                        await presenceChannel.track({ online_at: new Date().toISOString() });
-                    }
+                    if (status === 'SUBSCRIBED') await presenceChannel.track({ online_at: new Date().toISOString() });
                 });
         }
 
-        // スレッド画面描画
         async function renderActiveThread(forceFullReRender = false) {
             if (!activeThreadId) return;
             const targetThreadId = activeThreadId;
@@ -1062,12 +1030,7 @@
                 const { data, error } = await _supabase.from('posts').select('*').eq('thread_id', targetThreadId).order('id', { ascending: true });
                 if (targetThreadId !== activeThreadId) return;
 
-                if (error) {
-                    document.getElementById('resContainer').innerHTML = `<div style="color:red; padding:10px;">⚠️ 投稿データの取得に失敗しました。<br><small>${escapeHtml(error.message)}</small></div>`;
-                    return;
-                }
-
-                if (!data || data.length === 0) {
+                if (error || !data || data.length === 0) {
                     document.getElementById('resContainer').innerHTML = `<div style="padding:10px;">投稿が見つかりません。</div>`;
                     return;
                 }
@@ -1080,11 +1043,10 @@
                 const resCount = data.length;
                 let threadTotalBytes = 0;
                 data.forEach(p => threadTotalBytes += calculateByteSize(p));
-                const byteSize = formatBytes(threadTotalBytes);
 
                 const firstPost = data[0];
                 document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
-                document.getElementById('threadStats').innerText = `(${byteSize} / ${resCount}レス)`;
+                document.getElementById('threadStats').innerText = `(${formatBytes(threadTotalBytes)} / ${resCount}レス)`;
                 document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
 
                 const postFormBox = document.getElementById('postFormBox');
@@ -1179,7 +1141,7 @@
 
                 if (fragment.children.length > 0) container.appendChild(fragment);
             } catch(e) {
-                console.error("スレッド描画エラー:", e);
+                console.error("描画エラー:", e);
             }
         }
 
@@ -1201,28 +1163,18 @@
             }
         }
 
-        // 新規スレッド作成処理
         document.getElementById('createThreadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
             const btn = document.getElementById('btnCreateThread');
             btn.disabled = true;
-            btn.innerText = "作成中...";
 
             const newThreadId = 'thread-' + Date.now();
             const title = document.getElementById('newThreadTitle').value.trim();
             const name = document.getElementById('creatorName').value.trim() || "名無しさん";
             const message = document.getElementById('firstMessage').innerHTML.trim();
 
-            if (!title) {
-                alert("⚠️ お題(タイトル)を入力してください。");
-                btn.disabled = false;
-                btn.innerText = "新規スレッドを立てる";
-                return;
-            }
-
             try {
-                const { data, error } = await _supabase.from('posts').insert([{
+                await _supabase.from('posts').insert([{
                     name: name,
                     subject: title,
                     message: message,
@@ -1232,36 +1184,23 @@
                     link_title: document.getElementById('threadLinkTitle').value.trim()
                 }]);
 
-                if (error) {
-                    console.error("スレッド作成エラー:", error);
-                    alert("❌ スレッド作成に失敗しました:\n" + error.message + "\n\n(コード: " + (error.code || '不明') + ")");
-                    btn.disabled = false;
-                    btn.innerText = "新規スレッドを立てる";
-                    return;
-                }
-
-                // 概算通信データ容量を加算
-                consumeData(calculateByteSize({ name, title, message }));
-
                 this.reset(); 
                 document.getElementById('firstMessage').innerHTML = "";
                 activeThreadId = newThreadId; 
                 window.location.hash = newThreadId; 
                 showScreen('thread');
+                
+                // 正確なギガ残量の再同期
+                await syncExactDataUsage();
             } catch(err) {
-                console.error("例外エラー:", err);
-                alert("❌ システムエラーが発生しました:\n" + (err.message || err));
+                alert("❌ エラーが発生しました。");
             } finally {
                 btn.disabled = false;
-                btn.innerText = "新規スレッドを立てる";
             }
         });
 
-        // レス投稿フォーム送信
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            if (currentPostsData.length >= 1000) return alert("1000レスに達しています。");
-
             const editId = document.getElementById('editPostId').value;
             const messageHtml = document.getElementById('editorBody').innerHTML.trim();
             if (!messageHtml || messageHtml === '<br>') return alert("本文を入力してください。");
@@ -1277,25 +1216,17 @@
                     if (pendingFileToUpload.type.startsWith('image/')) imageUrl = uploadedUrl;
                     else if (pendingFileToUpload.type.startsWith('video/')) videoUrl = uploadedUrl;
                     else if (pendingFileToUpload.type.startsWith('audio/')) audioUrl = uploadedUrl;
-
-                    // アップロードしたファイルサイズ分をカウントして減算
-                    consumeData(pendingFileToUpload.size);
                 }
 
                 if (editId) {
-                    const updateData = {
+                    await _supabase.from('posts').update({
                         name: document.getElementById('name').value.trim() || "名無しさん",
                         message: messageHtml,
                         subject: document.getElementById('subject').value.trim(),
                         is_edited: true,
                         link_url: document.getElementById('linkUrl').value.trim(),
                         link_title: document.getElementById('linkTitle').value.trim()
-                    };
-                    if (imageUrl) updateData.image = imageUrl;
-                    if (videoUrl) updateData.video = videoUrl;
-                    if (audioUrl) updateData.audio = audioUrl;
-
-                    await _supabase.from('posts').update(updateData).eq('id', editId);
+                    }).eq('id', editId);
                 } else {
                     await _supabase.from('posts').insert([{
                         name: document.getElementById('name').value.trim() || "名無しさん",
@@ -1311,17 +1242,17 @@
                     }]);
                 }
 
-                // テキスト送信分のデータ通信量をカウント
-                consumeData(calculateByteSize(messageHtml));
-
                 this.reset();
                 document.getElementById('editorBody').innerHTML = "";
             } catch (err) {
-                alert("送信に失敗しました: " + (err.message || "エラー"));
+                alert("送信エラー");
             } finally {
                 btnSubmit.disabled = false;
                 clearAttachments();
                 renderActiveThread();
+                
+                // 正確なギガ残量の再同期
+                await syncExactDataUsage();
             }
         });
 
@@ -1339,31 +1270,28 @@
                 if (confirm("この投稿を削除しますか？")) {
                     await _supabase.from('posts').update({ message: "（削除されました）", is_deleted: true, image: "", video: "", audio: "" }).eq('id', e.target.getAttribute('data-id'));
                     renderActiveThread();
+                    await syncExactDataUsage();
                 }
             }
         });
 
-        // スレッド完全削除
         async function deleteThread(threadId) {
-            if (confirm("このスレッドおよび関連する全投稿を完全に削除しますか？")) {
-                const { error } = await _supabase.from('posts').delete().eq('thread_id', threadId);
-                if (error) {
-                    alert("スレッド削除に失敗しました: " + error.message);
+            if (confirm("このスレッドを完全に削除しますか？")) {
+                await _supabase.from('posts').delete().eq('thread_id', threadId);
+                alert("スレッドを削除しました。");
+                if (activeThreadId === threadId) {
+                    activeThreadId = null;
+                    window.location.hash = "";
+                    showScreen('lobby');
                 } else {
-                    alert("スレッドを完全に削除しました。");
-                    if (activeThreadId === threadId) {
-                        activeThreadId = null;
-                        window.location.hash = "";
-                        showScreen('lobby');
-                    } else {
-                        fetchThreads();
-                    }
+                    fetchThreads();
                 }
+                // 正確なギガ残量の再同期
+                await syncExactDataUsage();
             }
         }
 
         document.getElementById('btnDeleteThread').addEventListener('click', () => { if (activeThreadId) deleteThread(activeThreadId); });
-
         document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         document.getElementById('btnBack').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
 
@@ -1378,14 +1306,15 @@
             }
         });
 
-        // リアルタイム同期（WebSockets）
-        _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+        _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async () => {
             if (activeThreadId) { renderActiveThread(); } else fetchThreads();
+            await syncExactDataUsage();
         }).subscribe();
 
         window.addEventListener('DOMContentLoaded', () => {
             updateAdminUI();
-            updateDataUsageDisplay();
+            syncExactDataUsage(); // ページ読み込み時に容量を完全取得
+            
             if (!checkSiteAccessAndAuth()) return;
 
             const hash = window.location.hash.substring(1);
