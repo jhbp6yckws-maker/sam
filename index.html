@@ -43,7 +43,7 @@
 
         .container { max-width: 800px; margin: 0 auto; }
 
-        /* --- 正確なギガ残量メーターパネル --- */
+        /* --- ギガ残量＆本日の目安リアルタイム連動パネル --- */
         .data-saver-card {
             background: #eef6ff;
             border: 1px solid #b6d4fe;
@@ -51,30 +51,47 @@
             padding: 12px 15px;
             margin-bottom: 15px;
         }
+        .data-section {
+            margin-bottom: 10px;
+        }
+        .data-section:last-child {
+            margin-bottom: 0;
+        }
         .data-info {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             font-size: 13px;
             color: #004085;
         }
+        .daily-info {
+            color: #155724;
+        }
         .progress-bar-bg {
             background-color: #d0e2ff;
-            height: 10px;
-            border-radius: 5px;
+            height: 8px;
+            border-radius: 4px;
             overflow: hidden;
+        }
+        .daily-bar-bg {
+            background-color: #c3e6cb;
         }
         .progress-bar-fill {
             background-color: #0d6efd;
             height: 100%;
             width: 100%;
-            transition: width 0.3s ease;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        .daily-bar-fill {
+            background-color: #28a745;
         }
         .data-notice {
             font-size: 11px;
             color: #666;
-            margin-top: 5px;
+            margin-top: 8px;
+            border-top: 1px dashed #b6d4fe;
+            padding-top: 6px;
         }
 
         .menu-box {
@@ -338,17 +355,32 @@
     </div>
 
     <div class="container">
-        <!-- 正確なギガ残量表示パネル -->
+        <!-- ギガ残量＆本日の目安 リアルタイム連動パネル -->
         <div class="data-saver-card">
-            <div class="data-info">
-                <span>今月の正確なギガ残量: <span id="remainingData">同期中...</span> / 5.00 GB</span>
-                <span>本日目安: 約 <span id="dailyLimit">170</span> MB</span>
+            <!-- 全体ギガ残量 -->
+            <div class="data-section">
+                <div class="data-info">
+                    <span>全体ギガ残量: <span id="remainingData">同期中...</span> / 5.00 GB</span>
+                    <span>使用済み: <span id="usedData">0.00 MB</span></span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="progressBar" class="progress-bar-fill"></div>
+                </div>
             </div>
-            <div class="progress-bar-bg">
-                <div id="progressBar" class="progress-bar-fill"></div>
+
+            <!-- 本日の目安残量 -->
+            <div class="data-section" style="margin-top: 10px;">
+                <div class="data-info daily-info">
+                    <span>📅 本日の目安残量: <span id="dailyRemainingData">同期中...</span> / 500 MB</span>
+                    <span>本日使用: <span id="dailyUsedData">0.00 MB</span></span>
+                </div>
+                <div class="progress-bar-bg daily-bar-bg">
+                    <div id="dailyProgressBar" class="progress-bar-fill daily-bar-fill"></div>
+                </div>
             </div>
+
             <div class="data-notice">
-                💡 データベースおよび画像ストレージの実際のデータサイズから正確な容量を計測しています。
+                💡 Supabase上の実データ使用量と連動して、全体および本日の残量がリアルタイムで減算されます。
             </div>
         </div>
 
@@ -587,42 +619,70 @@
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- Supabaseと直接連動した正確なギガ残量計算 ---
+        // --- 全体容量 ＆ 本日の目安残量 リアルタイム計算関数 ---
         async function syncExactDataUsage() {
             try {
-                // 1. DBテーブル内のデータバイト数取得
-                const { data: dbBytes, error: dbErr } = await _supabase.rpc('get_db_size');
-                // 2. Storage内の添付ファイル容量バイト数取得
-                const { data: storageBytes, error: stErr } = await _supabase.rpc('get_storage_size');
+                // Supabaseの実データ容量（バイト単位）を取得
+                const { data: dbBytes } = await _supabase.rpc('get_db_size');
+                const { data: storageBytes } = await _supabase.rpc('get_storage_size');
 
-                const safeDbBytes = dbErr ? 0 : (dbBytes || 0);
-                const safeStorageBytes = stErr ? 0 : (storageBytes || 0);
+                const safeDbBytes = dbBytes || 0;
+                const safeStorageBytes = storageBytes || 0;
                 const totalUsedBytes = safeDbBytes + safeStorageBytes;
 
-                const TOTAL_CAPACITY_BYTES = 5 * 1024 * 1024 * 1024; // 5GB
+                // --- 1. 全体ギガ残量（上限: 5GB）---
+                const TOTAL_CAPACITY_BYTES = 5 * 1024 * 1024 * 1024; 
                 const remainingBytes = Math.max(0, TOTAL_CAPACITY_BYTES - totalUsedBytes);
+
                 const remainingGB = (remainingBytes / (1024 * 1024 * 1024)).toFixed(2);
-                const remainingMB = Math.round(remainingBytes / (1024 * 1024));
+                const remainingMB = (remainingBytes / (1024 * 1024)).toFixed(1);
+                const usedMB = (totalUsedBytes / (1024 * 1024)).toFixed(2);
                 const percentLeft = Math.max(0, (remainingBytes / TOTAL_CAPACITY_BYTES) * 100);
 
-                const remElem = document.getElementById('remainingData');
+                document.getElementById('remainingData').innerText = `${remainingGB} GB (${remainingMB} MB)`;
+                document.getElementById('usedData').innerText = `${usedMB} MB`;
                 const barElem = document.getElementById('progressBar');
-                if (remElem) remElem.innerText = `${remainingGB} GB (${remainingMB} MB)`;
-                if (barElem) {
-                    barElem.style.width = `${percentLeft}%`;
-                    barElem.style.backgroundColor = percentLeft < 10 ? '#dc3545' : '#0d6efd';
+                barElem.style.width = `${percentLeft}%`;
+                barElem.style.backgroundColor = percentLeft < 15 ? '#dc3545' : '#0d6efd';
+
+                // --- 2. 本日の目安残量（上限目安: 500MB / 日）---
+                const DAILY_TARGET_BYTES = 500 * 1024 * 1024; // 1日の目標目安 500MB
+                
+                // ローカルストレージを使って「本日の開始時データ容量」を基準線として記録・追跡
+                const todayKey = 'bbs_daily_start_bytes_' + new Date().toISOString().split('T')[0];
+                let todayStartBytes = localStorage.getItem(todayKey);
+
+                if (!todayStartBytes) {
+                    todayStartBytes = totalUsedBytes;
+                    localStorage.setItem(todayKey, todayStartBytes);
+                } else {
+                    todayStartBytes = parseFloat(todayStartBytes);
                 }
 
+                // 本日増減した容量を算出
+                const dailyUsedBytes = Math.max(0, totalUsedBytes - todayStartBytes);
+                const dailyRemainingBytes = Math.max(0, DAILY_TARGET_BYTES - dailyUsedBytes);
+
+                const dailyRemainingMB = (dailyRemainingBytes / (1024 * 1024)).toFixed(1);
+                const dailyUsedMB = (dailyUsedBytes / (1024 * 1024)).toFixed(2);
+                const dailyPercentLeft = Math.max(0, (dailyRemainingBytes / DAILY_TARGET_BYTES) * 100);
+
+                document.getElementById('dailyRemainingData').innerText = `${dailyRemainingMB} MB`;
+                document.getElementById('dailyUsedData').innerText = `${dailyUsedMB} MB`;
+                const dailyBarElem = document.getElementById('dailyProgressBar');
+                dailyBarElem.style.width = `${dailyPercentLeft}%`;
+                dailyBarElem.style.backgroundColor = dailyPercentLeft < 20 ? '#dc3545' : '#28a745';
+
+                // 管理者パネル内情報更新
                 const usageElem = document.getElementById('storageUsageInfo');
                 if (usageElem) {
-                    usageElem.innerText = `DB: ${formatBytes(safeDbBytes)} / Storage: ${formatBytes(safeStorageBytes)} (計: ${formatBytes(totalUsedBytes)})`;
+                    usageElem.innerText = `DB: ${formatBytes(safeDbBytes)} / Storage: ${formatBytes(safeStorageBytes)} (合計使用量: ${formatBytes(totalUsedBytes)})`;
                 }
             } catch (e) {
-                console.error("ギガ同期エラー:", e);
+                console.error("容量同期エラー:", e);
             }
         }
 
-        // 画像最適化圧縮関数 (WebP変換)
         function compressImageForGigaSaver(file) {
             return new Promise((resolve) => {
                 if (!file.type.startsWith('image/')) {
@@ -886,7 +946,7 @@
             }
 
             const previewElem = document.getElementById('attachmentPreview');
-            previewElem.innerHTML = `⚙️ ギガ節約用の最適化処理中...`;
+            previewElem.innerHTML = `⚙️ 最適化処理中...`;
 
             const processedFile = await compressImageForGigaSaver(file);
             pendingFileToUpload = processedFile;
@@ -1190,7 +1250,6 @@
                 window.location.hash = newThreadId; 
                 showScreen('thread');
                 
-                // 正確なギガ残量の再同期
                 await syncExactDataUsage();
             } catch(err) {
                 alert("❌ エラーが発生しました。");
@@ -1251,7 +1310,6 @@
                 clearAttachments();
                 renderActiveThread();
                 
-                // 正確なギガ残量の再同期
                 await syncExactDataUsage();
             }
         });
@@ -1286,7 +1344,6 @@
                 } else {
                     fetchThreads();
                 }
-                // 正確なギガ残量の再同期
                 await syncExactDataUsage();
             }
         }
@@ -1313,7 +1370,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             updateAdminUI();
-            syncExactDataUsage(); // ページ読み込み時に容量を完全取得
+            syncExactDataUsage();
             
             if (!checkSiteAccessAndAuth()) return;
 
