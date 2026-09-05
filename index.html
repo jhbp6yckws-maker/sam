@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Kiwi+Maru:wght@500&family=Lobster&family=M+PLUS+Rounded+1c:wght@500;800&family=Pacifico&family=Shippori+Mincho:wght@600&family=Yuji+Syuku&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Dela+Gothic+One&family=Kaisei+Decol&family=Kiwi+Maru:wght@500&family=Lobster&family=M+PLUS+1p:wght@500;800&family=M+PLUS+Rounded+1c:wght@500;800&family=Pacifico&family=Potta+One&family=Sawarabi+Mincho&family=Shippori+Mincho:wght@600&family=Yuji+Syuku&family=Zen+Kurenaido&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: "ＭＳ Ｐゴシック", "MS PGothic", "ヒラギノ角ゴ Pro W3", sans-serif;
@@ -43,7 +43,6 @@
 
         .container { max-width: 800px; margin: 0 auto; }
 
-        /* --- ギガ残量リアルタイム連動パネル --- */
         .data-saver-card {
             background: #eef6ff;
             border: 1px solid #b6d4fe;
@@ -67,9 +66,9 @@
         }
         .progress-bar-fill {
             background-color: #0d6efd;
-            height: 100%;
+            height: 10px;
             width: 100%;
-            transition: width 0.3s ease, background-color 0.3s ease;
+            transition: width 0.2s ease;
         }
         .data-notice {
             font-size: 11px;
@@ -140,7 +139,7 @@
             padding-bottom: 10px;
             border-bottom: 1px dashed #DDDDDD;
             position: relative;
-            transition: background-color 0.5s ease;
+            transition: background-color 0.3s ease;
         }
         .res.highlight {
             background-color: #FFF8DC;
@@ -154,7 +153,6 @@
         .edited-tag { color: #FF6600; font-size: 11px; font-weight: bold; margin-left: 5px; }
         .ng-masked { color: #999999; font-style: italic; }
         
-        /* アンカーリンクとプレビュー */
         .anchor {
             color: #0000FF;
             text-decoration: underline;
@@ -258,7 +256,6 @@
             border: 1px solid #CCCCCC;
             border-radius: 4px;
             cursor: zoom-in;
-            image-rendering: -webkit-optimize-contrast;
             object-fit: contain;
         }
         .uploaded-video {
@@ -420,8 +417,10 @@
                             <div class="editor-toolbar">
                                 <div>
                                     <label>🎨 色:</label>
-                                    <select id="lobbyFmtColor">
+                                    <select id="lobbyFmtColor" class="color-selector">
                                         <option value="">黒 (標準)</option>
+                                        <option value="#D4AF37" style="color:#D4AF37; font-weight:bold; background-color:#222;">ゴールド (金)</option>
+                                        <option value="#C0C0C0" style="color:#C0C0C0; font-weight:bold; background-color:#222;">シルバー (銀)</option>
                                         <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
                                         <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
                                         <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
@@ -435,15 +434,22 @@
                                 </div>
                                 <div>
                                     <label>🔤 書体:</label>
-                                    <select id="lobbyFmtFont">
+                                    <select id="lobbyFmtFont" class="font-selector">
                                         <option value="">標準(ゴシック)</option>
                                         <option value="'Shippori Mincho', serif">明朝体 (しっぽり明朝)</option>
+                                        <option value="'Sawarabi Mincho', serif">さわらび明朝</option>
+                                        <option value="'Kaisei Decol', serif">快星デコール (レトロ明朝)</option>
+                                        <option value="'M PLUS 1p', sans-serif">M PLUS 1p (ゴシック)</option>
+                                        <option value="'Dela Gothic One', cursive">Dela Gothic One (超極太)</option>
                                         <option value="'M PLUS Rounded 1c', sans-serif">丸ゴシック (M PLUS)</option>
+                                        <option value="'Zen Maru Gothic', sans-serif">Zen 丸ゴシック</option>
                                         <option value="'Kiwi Maru', serif">キウイ丸</option>
-                                        <option value="'Yuji Syuku', serif">祐字 宿</option>
+                                        <option value="'Potta One', cursive">ポッタ One (ポップ)</option>
+                                        <option value="'Zen Kurenaido', sans-serif">Zen 紅道 (ペン手書き)</option>
+                                        <option value="'Yuji Syuku', serif">祐字 宿 (毛筆風)</option>
                                         <option value="'Cinzel', serif">Cinzel (洋風銘字)</option>
-                                        <option value="'Lobster', cursive">Lobster (筆記体)</option>
-                                        <option value="'Pacifico', cursive">Pacifico (カジュアル)</option>
+                                        <option value="'Lobster', cursive">Lobster (洋風筆記体)</option>
+                                        <option value="'Pacifico', cursive">Pacifico (カジュアル英字)</option>
                                     </select>
                                 </div>
                             </div>
@@ -515,8 +521,10 @@
                         <div class="editor-toolbar">
                             <div>
                                 <label>🎨 文字色:</label>
-                                <select id="fmtColor">
+                                <select id="fmtColor" class="color-selector">
                                     <option value="">黒 (標準)</option>
+                                    <option value="#D4AF37" style="color:#D4AF37; font-weight:bold; background-color:#222;">ゴールド (金)</option>
+                                    <option value="#C0C0C0" style="color:#C0C0C0; font-weight:bold; background-color:#222;">シルバー (銀)</option>
                                     <option value="#CC0000" style="color:#CC0000; font-weight:bold;">赤色</option>
                                     <option value="#0066CC" style="color:#0066CC; font-weight:bold;">青色</option>
                                     <option value="#008000" style="color:#008000; font-weight:bold;">緑色</option>
@@ -530,15 +538,22 @@
                             </div>
                             <div>
                                 <label>🔤 書体:</label>
-                                <select id="fmtFont">
+                                <select id="fmtFont" class="font-selector">
                                     <option value="">標準(ゴシック)</option>
                                     <option value="'Shippori Mincho', serif">明朝体 (しっぽり明朝)</option>
+                                    <option value="'Sawarabi Mincho', serif">さわらび明朝</option>
+                                    <option value="'Kaisei Decol', serif">快星デコール (レトロ明朝)</option>
+                                    <option value="'M PLUS 1p', sans-serif">M PLUS 1p (ゴシック)</option>
+                                    <option value="'Dela Gothic One', cursive">Dela Gothic One (超極太)</option>
                                     <option value="'M PLUS Rounded 1c', sans-serif">丸ゴシック (M PLUS)</option>
+                                    <option value="'Zen Maru Gothic', sans-serif">Zen 丸ゴシック</option>
                                     <option value="'Kiwi Maru', serif">キウイ丸</option>
-                                    <option value="'Yuji Syuku', serif">祐字 宿</option>
+                                    <option value="'Potta One', cursive">ポッタ One (ポップ)</option>
+                                    <option value="'Zen Kurenaido', sans-serif">Zen 紅道 (ペン手書き)</option>
+                                    <option value="'Yuji Syuku', serif">祐字 宿 (毛筆風)</option>
                                     <option value="'Cinzel', serif">Cinzel (洋風銘字)</option>
-                                    <option value="'Lobster', cursive">Lobster (筆記体)</option>
-                                    <option value="'Pacifico', cursive">Pacifico (カジュアル)</option>
+                                    <option value="'Lobster', cursive">Lobster (洋風筆記体)</option>
+                                    <option value="'Pacifico', cursive">Pacifico (カジュアル英字)</option>
                                 </select>
                             </div>
                         </div>
@@ -610,7 +625,6 @@
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- Supabase容量連動機能 ---
         async function syncExactDataUsage() {
             try {
                 const { data: dbBytes } = await _supabase.rpc('get_db_size');
@@ -649,10 +663,8 @@
             }
         }
 
-        // --- GIF非破壊型 画像圧縮処理 ---
         function compressImageForGigaSaver(file) {
             return new Promise((resolve) => {
-                // GIF画像や画像以外はアニメーションを維持するためそのまま返す
                 if (file.type === 'image/gif' || !file.type.startsWith('image/')) {
                     resolve(file);
                     return;
@@ -831,11 +843,23 @@
             }
         });
 
+        // 即時反映型エディタ装飾関数
         function applyStyleToEditor(editorId, command, value) {
             const editor = document.getElementById(editorId);
             editor.focus();
-            document.execCommand('styleWithCSS', false, true);
-            document.execCommand(command, false, value);
+            
+            const sel = window.getSelection();
+            if (!sel.isCollapsed && sel.rangeCount > 0) {
+                document.execCommand('styleWithCSS', false, true);
+                document.execCommand(command, false, value);
+            } else {
+                // 選択範囲がない場合は入力スタイルを変更
+                if (command === 'foreColor') {
+                    editor.style.color = value;
+                } else if (command === 'fontName') {
+                    editor.style.fontFamily = value;
+                }
+            }
         }
 
         ['change', 'input'].forEach(evtType => {
@@ -858,7 +882,6 @@
         let audioStream = null, mediaRecorder = null, chunks = [];
         let recordSeconds = 0, recordInterval = null;
 
-        // アンカー要素生成
         function sanitizeAndFormatHtml(html) {
             if (!html) return '';
             const container = document.createElement('div');
@@ -925,7 +948,6 @@
             previewElem.innerHTML = `📎 添付選択中: ${escapeHtml(processedFile.name)} (${sizeMB} MB)`;
         });
 
-        // --- スマホ対応ボイスメッセージ録音 ---
         document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
             stopAudio();
             try {
@@ -940,7 +962,6 @@
 
         document.getElementById('btnAudioStart').addEventListener('click', () => {
             chunks = [];
-            // iOS/Safari・Android両対応のMIME形式選択
             let options = {};
             if (MediaRecorder.isTypeSupported('audio/mp4')) {
                 options = { mimeType: 'audio/mp4' };
@@ -1174,7 +1195,7 @@
                         </div>
                     `;
 
-                    const existingElem = document.getElementById(`res-${res.id}`);
+                    const existingElem = document.getElementById(`res-num-${resNum}`);
                     if (existingElem) {
                         existingElem.innerHTML = resHtml;
                     } else {
@@ -1248,7 +1269,6 @@
             }
         });
 
-        // 訂正モードのキャンセル処理
         function cancelEditMode() {
             document.getElementById('editPostId').value = "";
             document.getElementById('writeFormTitle').innerText = "このスレッドに書き込む";
@@ -1256,12 +1276,13 @@
             document.getElementById('btnCancelEdit').classList.add('hidden');
             document.getElementById('postForm').reset();
             document.getElementById('editorBody').innerHTML = "";
+            document.getElementById('editorBody').style.color = "";
+            document.getElementById('editorBody').style.fontFamily = "";
             clearAttachments();
         }
 
         document.getElementById('btnCancelEdit').addEventListener('click', cancelEditMode);
 
-        // 投稿および訂正（編集）処理
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const editId = document.getElementById('editPostId').value;
@@ -1282,7 +1303,7 @@
                 }
 
                 if (editId) {
-                    // --- 訂正更新 ---
+                    // 訂正更新 (スレッドが増殖しないよう特定のポストのみ更新)
                     const updatePayload = {
                         name: document.getElementById('name').value.trim() || "名無しさん",
                         message: messageHtml,
@@ -1298,7 +1319,7 @@
                     await _supabase.from('posts').update(updatePayload).eq('id', editId);
                     cancelEditMode();
                 } else {
-                    // --- 新規書き込み ---
+                    // 新規レス投稿
                     await _supabase.from('posts').insert([{
                         name: document.getElementById('name').value.trim() || "名無しさん",
                         subject: document.getElementById('subject').value.trim(),
@@ -1313,6 +1334,8 @@
                     }]);
                     this.reset();
                     document.getElementById('editorBody').innerHTML = "";
+                    document.getElementById('editorBody').style.color = "";
+                    document.getElementById('editorBody').style.fontFamily = "";
                 }
             } catch (err) {
                 alert("送信エラーが発生しました。");
@@ -1324,7 +1347,6 @@
             }
         });
 
-        // アンカーのプレビュー・クリック処理 & 訂正ボタン処理
         document.getElementById('resContainer').addEventListener('mouseover', e => {
             const anchor = e.target.closest('.anchor');
             if (anchor) {
@@ -1351,7 +1373,6 @@
         });
 
         document.getElementById('resContainer').addEventListener('click', async e => {
-            // アンカーリンクをクリックした時のスムーズスクロールとハイライト
             const anchor = e.target.closest('.anchor');
             if (anchor) {
                 const resNum = anchor.getAttribute('data-resnum');
@@ -1375,7 +1396,6 @@
                 editor.innerHTML += `>>${e.target.getAttribute('data-resnum')}<br>`;
                 editor.focus();
             }
-            // ✍️ 訂正（編集）ボタン処理
             if (e.target.classList.contains('edit-btn')) {
                 const resId = e.target.getAttribute('data-id');
                 const post = currentPostsData.find(p => String(p.id) === String(resId));
@@ -1433,9 +1453,14 @@
             }
         });
 
-        _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async () => {
-            if (activeThreadId) { renderActiveThread(); } else fetchThreads();
-            await syncExactDataUsage();
+        // リアルタイム変更受信時の高速反映
+        _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async (payload) => {
+            if (activeThreadId) { 
+                await renderActiveThread(); 
+            } else {
+                await fetchThreads();
+            }
+            syncExactDataUsage();
         }).subscribe();
 
         window.addEventListener('DOMContentLoaded', () => {
