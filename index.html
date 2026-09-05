@@ -140,6 +140,10 @@
             padding-bottom: 10px;
             border-bottom: 1px dashed #DDDDDD;
             position: relative;
+            transition: background-color 0.5s ease;
+        }
+        .res.highlight {
+            background-color: #FFF8DC;
         }
         .res-header { font-size: 14px; margin-bottom: 5px; }
         .res-number { color: #000000; }
@@ -150,11 +154,31 @@
         .edited-tag { color: #FF6600; font-size: 11px; font-weight: bold; margin-left: 5px; }
         .ng-masked { color: #999999; font-style: italic; }
         
+        /* アンカーリンクとプレビュー */
         .anchor {
             color: #0000FF;
             text-decoration: underline;
             cursor: pointer;
             font-weight: bold;
+            position: relative;
+        }
+        .anchor-preview {
+            position: absolute;
+            bottom: 125%;
+            left: 0;
+            background: #ffffff;
+            border: 2px solid #000;
+            padding: 8px 12px;
+            border-radius: 4px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+            z-index: 2000;
+            width: 280px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+            color: #333;
+            pointer-events: none;
+            display: none;
         }
         
         .res-body a { color: #0000FF; text-decoration: underline; }
@@ -246,7 +270,7 @@
             border: 1px solid #CCCCCC;
             border-radius: 4px;
         }
-        .uploaded-audio { display: block; margin-top: 10px; }
+        .uploaded-audio { display: block; margin-top: 10px; width: 100%; max-width: 400px; }
 
         .form-box {
             margin-top: 20px; background-color: #FFFFFF; padding: 15px;
@@ -338,7 +362,6 @@
     </div>
 
     <div class="container">
-        <!-- ギガ残量リアルタイム表示パネル -->
         <div class="data-saver-card">
             <div class="data-info">
                 <span>残量ギガ: <span id="remainingData">同期中...</span> / 5.00 GB</span>
@@ -532,18 +555,18 @@
                             <input type="text" id="linkTitle" placeholder="タイトル">
                         </div>
                         <div class="form-row" style="margin-bottom: 10px;">
-                            <label for="mediaFile">ファイル添付:</label>
-                            <input type="file" id="mediaFile" accept="image/*,video/*,audio/*">
+                            <label for="mediaFile">添付(画像/GIF/動画):</label>
+                            <input type="file" id="mediaFile" accept="image/*,image/gif,video/*,audio/*">
                         </div>
                         <div class="form-row" style="margin-bottom: 10px;">
-                            <button type="button" class="btn" id="btnStartAudioCapture">🎙️ 録音(最大60秒)</button>
+                            <button type="button" class="btn" id="btnStartAudioCapture">🎙️ スマホでボイスメッセージ録音</button>
                         </div>
                     </div>
 
                     <div id="audioArea" class="media-capture-area hidden">
                         <div id="audioTimer" class="recording-timer">🔴 REC: 0秒 / 60秒</div>
-                        <button type="button" class="btn" id="btnAudioStart" style="color:red;">🔴 録音開始</button>
-                        <button type="button" class="btn hidden" id="btnAudioStop">■ 停止</button>
+                        <button type="button" class="btn" id="btnAudioStart" style="color:red; font-weight:bold;">🔴 録音開始</button>
+                        <button type="button" class="btn hidden" id="btnAudioStop">■ 停止して決定</button>
                         <button type="button" class="btn" id="btnStopAudio">中止</button>
                     </div>
 
@@ -587,10 +610,9 @@
         const SUPABASE_KEY = "sb_publishable_8GQRZs0KpN3ByPfINhVDFg_j9jMUhPs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- Supabaseと完全連動するギガ減算・残量計算処理 ---
+        // --- Supabase容量連動機能 ---
         async function syncExactDataUsage() {
             try {
-                // DBおよびStorageから現在の実使用量をバイト単位で取得
                 const { data: dbBytes } = await _supabase.rpc('get_db_size');
                 const { data: storageBytes } = await _supabase.rpc('get_storage_size');
 
@@ -598,17 +620,15 @@
                 const safeStorageBytes = storageBytes || 0;
                 const totalUsedBytes = safeDbBytes + safeStorageBytes;
 
-                const TOTAL_CAPACITY_BYTES = 5 * 1024 * 1024 * 1024; // 上限5GB
+                const TOTAL_CAPACITY_BYTES = 5 * 1024 * 1024 * 1024; // 5GB
                 const remainingBytes = Math.max(0, TOTAL_CAPACITY_BYTES - totalUsedBytes);
 
                 const remainingGB = (remainingBytes / (1024 * 1024 * 1024)).toFixed(2);
                 const remainingMB = (remainingBytes / (1024 * 1024)).toFixed(1);
                 const usedMB = (totalUsedBytes / (1024 * 1024)).toFixed(2);
                 
-                // パーセンテージ（使用率）の計算
                 const percentLeft = Math.max(0, (remainingBytes / TOTAL_CAPACITY_BYTES) * 100);
 
-                // UIの表示更新
                 const remElem = document.getElementById('remainingData');
                 const usedElem = document.getElementById('usedData');
                 const barElem = document.getElementById('progressBar');
@@ -629,9 +649,11 @@
             }
         }
 
+        // --- GIF非破壊型 画像圧縮処理 ---
         function compressImageForGigaSaver(file) {
             return new Promise((resolve) => {
-                if (!file.type.startsWith('image/')) {
+                // GIF画像や画像以外はアニメーションを維持するためそのまま返す
+                if (file.type === 'image/gif' || !file.type.startsWith('image/')) {
                     resolve(file);
                     return;
                 }
@@ -836,13 +858,15 @@
         let audioStream = null, mediaRecorder = null, chunks = [];
         let recordSeconds = 0, recordInterval = null;
 
+        // アンカー要素生成
         function sanitizeAndFormatHtml(html) {
             if (!html) return '';
             const container = document.createElement('div');
             container.innerHTML = html;
             container.querySelectorAll('script, iframe, object, embed').forEach(s => s.remove());
             let cleanHtml = container.innerHTML;
-            cleanHtml = cleanHtml.replace(/&gt;&gt;(\d+)/g, '<span class="anchor" data-resnum="$1">&gt;&gt;$1</span>').replace(/>>(\d+)/g, '<span class="anchor" data-resnum="$1">&gt;&gt;$1</span>');
+            cleanHtml = cleanHtml.replace(/&gt;&gt;(\d+)/g, '<span class="anchor" data-resnum="$1">&gt;&gt;$1<div class="anchor-preview"></div></span>')
+                                 .replace(/>>(\d+)/g, '<span class="anchor" data-resnum="$1">&gt;&gt;$1<div class="anchor-preview"></div></span>');
             return cleanHtml;
         }
 
@@ -892,7 +916,7 @@
             }
 
             const previewElem = document.getElementById('attachmentPreview');
-            previewElem.innerHTML = `⚙️ 最適化処理中...`;
+            previewElem.innerHTML = `⚙️ 処理中...`;
 
             const processedFile = await compressImageForGigaSaver(file);
             pendingFileToUpload = processedFile;
@@ -901,6 +925,7 @@
             previewElem.innerHTML = `📎 添付選択中: ${escapeHtml(processedFile.name)} (${sizeMB} MB)`;
         });
 
+        // --- スマホ対応ボイスメッセージ録音 ---
         document.getElementById('btnStartAudioCapture').addEventListener('click', async () => {
             stopAudio();
             try {
@@ -908,16 +933,34 @@
                 document.getElementById('audioArea').classList.remove('hidden');
                 document.getElementById('btnAudioStart').classList.remove('hidden');
                 document.getElementById('btnAudioStop').classList.add('hidden');
-            } catch(e) { alert("マイクの起動に失敗しました。"); }
+            } catch(e) { 
+                alert("マイクの起動に失敗しました。スマホの設定でブラウザのマイク許可を確認してください。"); 
+            }
         });
 
         document.getElementById('btnAudioStart').addEventListener('click', () => {
-            chunks = []; mediaRecorder = new MediaRecorder(audioStream);
-            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            chunks = [];
+            // iOS/Safari・Android両対応のMIME形式選択
+            let options = {};
+            if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                options = { mimeType: 'audio/mp4' };
+            } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                options = { mimeType: 'audio/webm' };
+            }
+            
+            try {
+                mediaRecorder = new MediaRecorder(audioStream, options);
+            } catch (err) {
+                mediaRecorder = new MediaRecorder(audioStream);
+            }
+
+            mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
             mediaRecorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                pendingFileToUpload = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
-                document.getElementById('attachmentPreview').innerHTML = "🎙️ 録音完了";
+                const type = mediaRecorder.mimeType || 'audio/mp4';
+                const ext = type.includes('webm') ? 'webm' : 'mp4';
+                const blob = new Blob(chunks, { type: type });
+                pendingFileToUpload = new File([blob], `voice_${Date.now()}.${ext}`, { type: type });
+                document.getElementById('attachmentPreview').innerHTML = "🎙️ ボイスメッセージ録音完了";
                 stopAudio();
             };
             mediaRecorder.start();
@@ -1137,7 +1180,8 @@
                     } else {
                         const wrapperDiv = document.createElement('div');
                         wrapperDiv.className = 'res';
-                        wrapperDiv.id = `res-${res.id}`;
+                        wrapperDiv.id = `res-num-${resNum}`;
+                        wrapperDiv.setAttribute('data-dbid', res.id);
                         wrapperDiv.innerHTML = resHtml;
                         fragment.appendChild(wrapperDiv);
                     }
@@ -1152,7 +1196,7 @@
         }
 
         function showScreen(id) {
-            stopAudio(); clearAttachments();
+            stopAudio(); clearAttachments(); cancelEditMode();
             renderedPostsMap.clear();
             currentPostsData = [];
 
@@ -1196,7 +1240,6 @@
                 window.location.hash = newThreadId; 
                 showScreen('thread');
                 
-                // 投稿完了後にギガ残量を減算して同期
                 await syncExactDataUsage();
             } catch(err) {
                 alert("❌ エラーが発生しました。");
@@ -1205,6 +1248,20 @@
             }
         });
 
+        // 訂正モードのキャンセル処理
+        function cancelEditMode() {
+            document.getElementById('editPostId').value = "";
+            document.getElementById('writeFormTitle').innerText = "このスレッドに書き込む";
+            document.getElementById('btnSubmitPost').innerText = "書き込む";
+            document.getElementById('btnCancelEdit').classList.add('hidden');
+            document.getElementById('postForm').reset();
+            document.getElementById('editorBody').innerHTML = "";
+            clearAttachments();
+        }
+
+        document.getElementById('btnCancelEdit').addEventListener('click', cancelEditMode);
+
+        // 投稿および訂正（編集）処理
         document.getElementById('postForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const editId = document.getElementById('editPostId').value;
@@ -1225,15 +1282,23 @@
                 }
 
                 if (editId) {
-                    await _supabase.from('posts').update({
+                    // --- 訂正更新 ---
+                    const updatePayload = {
                         name: document.getElementById('name').value.trim() || "名無しさん",
                         message: messageHtml,
                         subject: document.getElementById('subject').value.trim(),
                         is_edited: true,
                         link_url: document.getElementById('linkUrl').value.trim(),
                         link_title: document.getElementById('linkTitle').value.trim()
-                    }).eq('id', editId);
+                    };
+                    if (imageUrl) updatePayload.image = imageUrl;
+                    if (videoUrl) updatePayload.video = videoUrl;
+                    if (audioUrl) updatePayload.audio = audioUrl;
+
+                    await _supabase.from('posts').update(updatePayload).eq('id', editId);
+                    cancelEditMode();
                 } else {
+                    // --- 新規書き込み ---
                     await _supabase.from('posts').insert([{
                         name: document.getElementById('name').value.trim() || "名無しさん",
                         subject: document.getElementById('subject').value.trim(),
@@ -1246,23 +1311,61 @@
                         video: videoUrl,
                         audio: audioUrl
                     }]);
+                    this.reset();
+                    document.getElementById('editorBody').innerHTML = "";
                 }
-
-                this.reset();
-                document.getElementById('editorBody').innerHTML = "";
             } catch (err) {
-                alert("送信エラー");
+                alert("送信エラーが発生しました。");
             } finally {
                 btnSubmit.disabled = false;
                 clearAttachments();
                 renderActiveThread();
-                
-                // 投稿完了後にギガ残量を減算して同期
                 await syncExactDataUsage();
             }
         });
 
+        // アンカーのプレビュー・クリック処理 & 訂正ボタン処理
+        document.getElementById('resContainer').addEventListener('mouseover', e => {
+            const anchor = e.target.closest('.anchor');
+            if (anchor) {
+                const resNum = anchor.getAttribute('data-resnum');
+                const targetRes = document.getElementById(`res-num-${resNum}`);
+                const previewBox = anchor.querySelector('.anchor-preview');
+                if (previewBox) {
+                    if (targetRes) {
+                        previewBox.innerHTML = targetRes.querySelector('.res-body').innerHTML;
+                    } else {
+                        previewBox.innerHTML = `>>${resNum} のレスが見つかりません`;
+                    }
+                    previewBox.style.display = 'block';
+                }
+            }
+        });
+
+        document.getElementById('resContainer').addEventListener('mouseout', e => {
+            const anchor = e.target.closest('.anchor');
+            if (anchor) {
+                const previewBox = anchor.querySelector('.anchor-preview');
+                if (previewBox) previewBox.style.display = 'none';
+            }
+        });
+
         document.getElementById('resContainer').addEventListener('click', async e => {
+            // アンカーリンクをクリックした時のスムーズスクロールとハイライト
+            const anchor = e.target.closest('.anchor');
+            if (anchor) {
+                const resNum = anchor.getAttribute('data-resnum');
+                const targetElem = document.getElementById(`res-num-${resNum}`);
+                if (targetElem) {
+                    targetElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targetElem.classList.add('highlight');
+                    setTimeout(() => targetElem.classList.remove('highlight'), 2000);
+                } else {
+                    alert(`>>${resNum} は存在しないか削除されています。`);
+                }
+                return;
+            }
+
             if (e.target.classList.contains('uploaded-img')) {
                 imgModal.style.display = "flex";
                 document.getElementById('modalTargetImage').src = e.target.src;
@@ -1271,6 +1374,25 @@
                 const editor = document.getElementById('editorBody');
                 editor.innerHTML += `>>${e.target.getAttribute('data-resnum')}<br>`;
                 editor.focus();
+            }
+            // ✍️ 訂正（編集）ボタン処理
+            if (e.target.classList.contains('edit-btn')) {
+                const resId = e.target.getAttribute('data-id');
+                const post = currentPostsData.find(p => String(p.id) === String(resId));
+                if (post) {
+                    document.getElementById('editPostId').value = post.id;
+                    document.getElementById('name').value = post.name || "";
+                    document.getElementById('subject').value = post.subject || "";
+                    document.getElementById('editorBody').innerHTML = post.message || "";
+                    document.getElementById('linkUrl').value = post.link_url || "";
+                    document.getElementById('linkTitle').value = post.link_title || "";
+                    
+                    document.getElementById('writeFormTitle').innerText = `✍️ レス No.${e.target.getAttribute('data-resnum')} を訂正中`;
+                    document.getElementById('btnSubmitPost').innerText = "訂正内容を保存";
+                    document.getElementById('btnCancelEdit').classList.remove('hidden');
+                    
+                    document.getElementById('postFormBox').scrollIntoView({ behavior: 'smooth' });
+                }
             }
             if (e.target.classList.contains('delete-btn')) {
                 if (confirm("この投稿を削除しますか？")) {
@@ -1292,7 +1414,6 @@
                 } else {
                     fetchThreads();
                 }
-                // 削除完了後にギガ残量を更新
                 await syncExactDataUsage();
             }
         }
@@ -1319,7 +1440,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             updateAdminUI();
-            syncExactDataUsage(); // 初期読み込み時の残量同期
+            syncExactDataUsage();
             
             if (!checkSiteAccessAndAuth()) return;
 
