@@ -90,6 +90,9 @@
             border-bottom: 1px dashed #eee;
             padding-bottom: 6px;
         }
+        .thread-list-item.deleted-thread {
+            background-color: #ffe6e6;
+        }
         .thread-link {
             color: #0000FF;
             text-decoration: underline;
@@ -141,9 +144,9 @@
             position: relative;
             transition: background-color 0.3s ease;
         }
-        .res.highlight {
-            background-color: #FFF8DC;
-        }
+        .res.highlight { background-color: #FFF8DC; }
+        .res.deleted-res { background-color: #FFF0F0; }
+        
         .res-header { font-size: 14px; margin-bottom: 5px; }
         .res-number { color: #000000; }
         .res-name { color: #008000; font-weight: bold; }
@@ -244,6 +247,7 @@
 
         .back-btn { margin-bottom: 15px; margin-right: 5px; display: inline-block; }
         .delete-btn { color: #CC0000; }
+        .restore-btn { color: #008000; font-weight: bold; border-color: #008000; }
         .admin-delete-btn { color: #FFFFFF; background-color: #CC0000; border-color: #990000; font-weight: bold; }
         .edit-btn { color: #0066CC; font-weight: bold; }
 
@@ -368,7 +372,7 @@
                 <div id="progressBar" class="progress-bar-fill"></div>
             </div>
             <div class="data-notice">
-                💡 Supabase上のDB・画像ストレージデータ使用量と同期して残量が減算されます。
+                💡 Supabase上のDB・画像ストレージデータ使用量と同期して残量が減算されます。（※自動削除機能は解除済みです）
             </div>
         </div>
 
@@ -487,6 +491,7 @@
         <div id="threadScreen" class="hidden">
             <button class="btn back-btn" id="btnBack">← スレッド一覧に戻る</button>
             <button class="btn back-btn delete-btn hidden" id="btnDeleteThread">🗑️ このスレッドを削除</button>
+            <button class="btn back-btn restore-btn hidden" id="btnRestoreThread">🔄 このスレッドを復元</button>
             
             <div class="thread-box">
                 <div class="thread-title">
@@ -843,22 +848,16 @@
             }
         });
 
-        // 即時反映型エディタ装飾関数
         function applyStyleToEditor(editorId, command, value) {
             const editor = document.getElementById(editorId);
             editor.focus();
-            
             const sel = window.getSelection();
             if (!sel.isCollapsed && sel.rangeCount > 0) {
                 document.execCommand('styleWithCSS', false, true);
                 document.execCommand(command, false, value);
             } else {
-                // 選択範囲がない場合は入力スタイルを変更
-                if (command === 'foreColor') {
-                    editor.style.color = value;
-                } else if (command === 'fontName') {
-                    editor.style.fontFamily = value;
-                }
+                if (command === 'foreColor') editor.style.color = value;
+                else if (command === 'fontName') editor.style.fontFamily = value;
             }
         }
 
@@ -1032,8 +1031,17 @@
                 data.forEach(post => {
                     const tId = post.thread_id;
                     if (!tId || tId === 'admin-inquiries-log') return;
+                    
                     if (!threadMap[tId]) {
-                        threadMap[tId] = { id: tId, title: post.subject || "無題のスレッド", count: 0, rawBytes: 0, createdAt: new Date(post.created_at || Date.now()), updatedAt: new Date(post.created_at || Date.now()) };
+                        threadMap[tId] = { 
+                            id: tId, 
+                            title: post.subject || "無題のスレッド", 
+                            count: 0, 
+                            rawBytes: 0, 
+                            createdAt: new Date(post.created_at || Date.now()), 
+                            updatedAt: new Date(post.created_at || Date.now()),
+                            isDeleted: post.is_deleted
+                        };
                     }
                     threadMap[tId].count++;
                     threadMap[tId].rawBytes += calculateByteSize(post);
@@ -1042,6 +1050,11 @@
                 });
 
                 let threadList = Object.values(threadMap);
+
+                // 管理者以外は削除されたスレッドを除外
+                if (!isAdmin) {
+                    threadList = threadList.filter(t => !t.isDeleted);
+                }
 
                 const keyword = document.getElementById('threadSearchInput').value.trim().toLowerCase();
                 if (keyword) {
@@ -1061,15 +1074,25 @@
                 let htmlBuf = "";
                 threadList.forEach(t => {
                     const isMax = t.count >= 1000 ? ' <span style="color:red; font-weight:bold;">[1000満スレ]</span>' : '';
+                    const deletedTag = t.isDeleted ? ' <span style="color:red; font-weight:bold;">[削除済み]</span>' : '';
                     const sizeBadge = `<span class="thread-size-info">💾 ${formatBytes(t.rawBytes)}</span>`;
-                    const adminDeleteBtn = isAdmin ? `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ 削除</button>` : '';
+                    
+                    let adminActionBtn = '';
+                    if (isAdmin) {
+                        if (t.isDeleted) {
+                            adminActionBtn = `<button class="btn restore-btn admin-restore-thread-btn" data-threadid="${t.id}">🔄 復元</button>`;
+                        } else {
+                            adminActionBtn = `<button class="btn admin-delete-btn admin-delete-thread-btn" data-threadid="${t.id}">🗑️ 削除</button>`;
+                        }
+                    }
+
                     htmlBuf += `
-                        <div class="thread-list-item">
+                        <div class="thread-list-item ${t.isDeleted ? 'deleted-thread' : ''}">
                             <div>
-                                <span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})${isMax}</span>
+                                <span class="thread-link" data-id="${t.id}">■ ${escapeHtml(t.title)} (${t.count})${isMax}${deletedTag}</span>
                                 ${sizeBadge}
                             </div>
-                            ${adminDeleteBtn}
+                            ${adminActionBtn}
                         </div>`;
                 });
 
@@ -1115,15 +1138,17 @@
                 data.forEach(p => threadTotalBytes += calculateByteSize(p));
 
                 const firstPost = data[0];
-                document.getElementById('activeThreadTitle').innerText = firstPost.subject || "無題のスレッド";
+                document.getElementById('activeThreadTitle').innerText = (firstPost.is_deleted ? "[削除済み] " : "") + (firstPost.subject || "無題のスレッド");
                 document.getElementById('threadStats').innerText = `(${formatBytes(threadTotalBytes)} / ${resCount}レス)`;
-                document.getElementById('btnDeleteThread').classList.toggle('hidden', !isAdmin && (firstPost.creator_secret !== userSecret));
+                
+                document.getElementById('btnDeleteThread').classList.toggle('hidden', firstPost.is_deleted || (!isAdmin && (firstPost.creator_secret !== userSecret)));
+                document.getElementById('btnRestoreThread').classList.toggle('hidden', !firstPost.is_deleted || !isAdmin);
 
                 const postFormBox = document.getElementById('postFormBox');
                 const closedNotice = document.getElementById('threadClosedNotice');
-                if (resCount >= 1000) {
+                if (resCount >= 1000 || firstPost.is_deleted) {
                     postFormBox.classList.add('hidden');
-                    closedNotice.classList.remove('hidden');
+                    closedNotice.classList.toggle('hidden', resCount < 1000);
                 } else {
                     postFormBox.classList.remove('hidden');
                     closedNotice.classList.add('hidden');
@@ -1160,12 +1185,16 @@
                     let editedLabel = res.is_edited ? `<span class="edited-tag">(訂正済)</span>` : '';
 
                     let actions = "";
-                    if (!res.is_deleted && resCount < 1000) {
-                        if (isOp) {
-                            actions += `<button class="btn edit-btn" data-id="${res.id}" data-resnum="${resNum}">✍️ 訂正</button>`;
-                            actions += `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>`;
+                    if (resCount < 1000) {
+                        if (!res.is_deleted) {
+                            if (isOp) {
+                                actions += `<button class="btn edit-btn" data-id="${res.id}" data-resnum="${resNum}">✍️ 訂正</button>`;
+                                actions += `<button class="btn delete-btn" data-id="${res.id}">🗑️ 削除</button>`;
+                            } else if (isAdmin) {
+                                actions += `<button class="btn admin-delete-btn delete-btn" data-id="${res.id}">🗑️ 【管理者】削除</button>`;
+                            }
                         } else if (isAdmin) {
-                            actions += `<button class="btn admin-delete-btn delete-btn" data-id="${res.id}">🗑️ 【管理者】削除</button>`;
+                            actions += `<button class="btn restore-btn" data-id="${res.id}">🔄 【管理者】復元</button>`;
                         }
                     }
 
@@ -1173,7 +1202,7 @@
                     const days = ['日', '月', '火', '水', '木', '金', '土'];
                     const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}(${days[dateObj.getDay()]}) ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
 
-                    let bodyContent = res.is_deleted ? "（削除されました）" : (isNg ? `<span class="ng-masked">*** (管理者設定のNGフィルターにより非表示) ***</span>` : sanitizeAndFormatHtml(res.message));
+                    let bodyContent = res.is_deleted ? (isAdmin ? `<span style="color:red; font-weight:bold;">[削除済み] </span>${sanitizeAndFormatHtml(res.message)}` : "（削除されました）") : (isNg ? `<span class="ng-masked">*** (管理者設定のNGフィルターにより非表示) ***</span>` : sanitizeAndFormatHtml(res.message));
 
                     const resHtml = `
                         <div class="res-header">
@@ -1186,21 +1215,22 @@
                             ${resNum > 1 && res.subject ? `<span class="res-subject">${escapeHtml(res.subject)}</span><br><br>` : ''}
                             <div>${bodyContent}</div>
                             ${ytEmbeds}
-                            ${(res.is_deleted || isNg) ? '' : link}
-                            ${(res.is_deleted || isNg) ? '' : media}
+                            ${(res.is_deleted && !isAdmin || isNg) ? '' : link}
+                            ${(res.is_deleted && !isAdmin || isNg) ? '' : media}
                         </div>
                         <div class="res-actions">
-                            ${resCount < 1000 ? `<button class="btn reply-btn" data-resnum="${resNum}">返信</button>` : ''}
+                            ${resCount < 1000 && !res.is_deleted ? `<button class="btn reply-btn" data-resnum="${resNum}">返信</button>` : ''}
                             ${actions}
                         </div>
                     `;
 
                     const existingElem = document.getElementById(`res-num-${resNum}`);
                     if (existingElem) {
+                        existingElem.className = `res ${res.is_deleted ? 'deleted-res' : ''}`;
                         existingElem.innerHTML = resHtml;
                     } else {
                         const wrapperDiv = document.createElement('div');
-                        wrapperDiv.className = 'res';
+                        wrapperDiv.className = `res ${res.is_deleted ? 'deleted-res' : ''}`;
                         wrapperDiv.id = `res-num-${resNum}`;
                         wrapperDiv.setAttribute('data-dbid', res.id);
                         wrapperDiv.innerHTML = resHtml;
@@ -1303,7 +1333,6 @@
                 }
 
                 if (editId) {
-                    // 訂正更新 (スレッドが増殖しないよう特定のポストのみ更新)
                     const updatePayload = {
                         name: document.getElementById('name').value.trim() || "名無しさん",
                         message: messageHtml,
@@ -1319,7 +1348,6 @@
                     await _supabase.from('posts').update(updatePayload).eq('id', editId);
                     cancelEditMode();
                 } else {
-                    // 新規レス投稿
                     await _supabase.from('posts').insert([{
                         name: document.getElementById('name').value.trim() || "名無しさん",
                         subject: document.getElementById('subject').value.trim(),
@@ -1416,7 +1444,14 @@
             }
             if (e.target.classList.contains('delete-btn')) {
                 if (confirm("この投稿を削除しますか？")) {
-                    await _supabase.from('posts').update({ message: "（削除されました）", is_deleted: true, image: "", video: "", audio: "" }).eq('id', e.target.getAttribute('data-id'));
+                    await _supabase.from('posts').update({ is_deleted: true }).eq('id', e.target.getAttribute('data-id'));
+                    renderActiveThread();
+                    await syncExactDataUsage();
+                }
+            }
+            if (e.target.classList.contains('restore-btn')) {
+                if (confirm("この投稿を復元しますか？")) {
+                    await _supabase.from('posts').update({ is_deleted: false }).eq('id', e.target.getAttribute('data-id'));
                     renderActiveThread();
                     await syncExactDataUsage();
                 }
@@ -1424,13 +1459,24 @@
         });
 
         async function deleteThread(threadId) {
-            if (confirm("このスレッドを完全に削除しますか？")) {
-                await _supabase.from('posts').delete().eq('thread_id', threadId);
+            if (confirm("このスレッドを削除しますか？")) {
+                await _supabase.from('posts').update({ is_deleted: true }).eq('thread_id', threadId);
                 alert("スレッドを削除しました。");
                 if (activeThreadId === threadId) {
-                    activeThreadId = null;
-                    window.location.hash = "";
-                    showScreen('lobby');
+                    renderActiveThread();
+                } else {
+                    fetchThreads();
+                }
+                await syncExactDataUsage();
+            }
+        }
+
+        async function restoreThread(threadId) {
+            if (confirm("このスレッドを復元しますか？")) {
+                await _supabase.from('posts').update({ is_deleted: false }).eq('thread_id', threadId);
+                alert("スレッドを復元しました。");
+                if (activeThreadId === threadId) {
+                    renderActiveThread();
                 } else {
                     fetchThreads();
                 }
@@ -1439,6 +1485,8 @@
         }
 
         document.getElementById('btnDeleteThread').addEventListener('click', () => { if (activeThreadId) deleteThread(activeThreadId); });
+        document.getElementById('btnRestoreThread').addEventListener('click', () => { if (activeThreadId) restoreThread(activeThreadId); });
+        
         document.getElementById('siteTitle').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
         document.getElementById('btnBack').addEventListener('click', () => { activeThreadId = null; window.location.hash = ""; showScreen('lobby'); });
 
@@ -1451,9 +1499,11 @@
             if (e.target.classList.contains('admin-delete-thread-btn')) {
                 deleteThread(e.target.getAttribute('data-threadid'));
             }
+            if (e.target.classList.contains('admin-restore-thread-btn')) {
+                restoreThread(e.target.getAttribute('data-threadid'));
+            }
         });
 
-        // リアルタイム変更受信時の高速反映
         _supabase.channel('bbs-fast-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async (payload) => {
             if (activeThreadId) { 
                 await renderActiveThread(); 
