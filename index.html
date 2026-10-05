@@ -1214,8 +1214,8 @@
                     <div class="res-actions">
                         ${resCount < 1000 ? `<button class="btn reply-btn" data-resnum="${resNum}">返信</button>` : ''}
                         ${!res.is_deleted ? `
-                            <button class="btn btn-like like-btn ${likeActiveClass}" data-id="${res.id}">👍 ${likesCount}</button>
-                            <button class="btn btn-dislike dislike-btn ${dislikeActiveClass}" data-id="${res.id}">👎 ${dislikesCount}</button>
+                            <button class="btn btn-like like-btn ${likeActiveClass}" data-id="${res.id}"> ${likesCount}</button>
+                            <button class="btn btn-dislike dislike-btn ${dislikeActiveClass}" data-id="${res.id}"> ${dislikesCount}</button>
                         ` : ''}
                         ${actions}
                     </div>
